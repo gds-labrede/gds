@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GDS — Gestion des Stocks</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --deep:#0a1428; --navy:#1a2e55;
+  --orange:#d46c1a; --orange-hi:#f0913f;
+  --glass:rgba(255,255,255,.055); --glass-hi:rgba(255,255,255,.10);
+  --line:rgba(255,255,255,.11); --line-hi:rgba(255,255,255,.22);
+  --ink:#fff; --ink-mid:rgba(255,255,255,.62); --ink-low:rgba(255,255,255,.38);
+  --red:#ff6b6b; --green:#2fd39a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'DM Sans',sans-serif;background:var(--deep);color:var(--ink);
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:40px 24px;overflow-x:hidden}
+
+/* ══ SCÈNE ══ */
+.stage{position:fixed;inset:0;overflow:hidden;pointer-events:none}
+.glow{position:absolute;border-radius:50%;filter:blur(90px)}
+.glow-a{width:620px;height:620px;top:-220px;left:-140px;background:#24457f;opacity:.55}
+.glow-b{width:520px;height:520px;bottom:-200px;right:-120px;background:var(--orange);opacity:.20}
+.glow-c{width:400px;height:400px;top:38%;left:52%;background:#1b6ea8;opacity:.22}
+.floor{position:absolute;left:0;right:0;bottom:0;height:34%;
+  background:linear-gradient(to top,rgba(255,255,255,.05),transparent);
+  border-top:1px solid rgba(255,255,255,.07)}
+
+/* ══ PANNEAU ══ */
+.col{position:relative;z-index:2;width:min(430px,100%)}
+.panel{position:relative;background:var(--glass);
+  backdrop-filter:blur(26px) saturate(150%);-webkit-backdrop-filter:blur(26px) saturate(150%);
+  border:1px solid var(--line);border-radius:20px;overflow:hidden;
+  box-shadow:0 30px 70px -20px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.22)}
+.panel::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(152deg,rgba(255,255,255,.15),rgba(255,255,255,.03) 34%,transparent 58%)}
+.panel-in{position:relative;padding:38px 36px 32px}
+
+/* reflet du panneau sur le sol */
+.panel-echo{height:70px;margin:0 8px;border-radius:0 0 20px 20px;
+  background:linear-gradient(to bottom,rgba(255,255,255,.07),transparent);
+  -webkit-mask-image:linear-gradient(to bottom,rgba(0,0,0,.55),transparent 78%);
+  mask-image:linear-gradient(to bottom,rgba(0,0,0,.55),transparent 78%);
+  border-left:1px solid rgba(255,255,255,.05);border-right:1px solid rgba(255,255,255,.05)}
+
+/* ══ MARQUE + REFLET ══ */
+.mark{text-align:center}
+.mark-word{font-size:44px;font-weight:700;letter-spacing:-1.5px;line-height:1;
+  background:linear-gradient(180deg,#fff 30%,rgba(255,255,255,.55));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.mark-refl{font-size:44px;font-weight:700;letter-spacing:-1.5px;line-height:1;
+  transform:scaleY(-1);margin-top:1px;color:rgba(255,255,255,.30);
+  -webkit-mask-image:linear-gradient(to bottom,rgba(0,0,0,.8),transparent 62%);
+  mask-image:linear-gradient(to bottom,rgba(0,0,0,.8),transparent 62%);
+  filter:blur(.5px);user-select:none}
+.mark-sub{font-size:13px;color:var(--ink-mid);margin-top:12px}
+.mark-site{font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:2.5px;color:var(--ink-low);margin-top:5px}
+.rule{height:1px;background:linear-gradient(90deg,transparent,var(--line-hi),transparent);margin:26px 0 24px}
+
+/* ══ ONGLETS ══ */
+.tabs{display:flex;gap:4px;padding:4px;background:rgba(0,0,0,.22);
+  border:1px solid var(--line);border-radius:11px;margin-bottom:22px}
+.tab{flex:1;padding:10px;border:none;border-radius:8px;background:transparent;color:var(--ink-mid);
+  font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:background .2s,color .2s}
+.tab:hover{color:var(--ink)}
+.tab.on{background:var(--glass-hi);color:var(--ink);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.20),0 2px 8px rgba(0,0,0,.3)}
+
+/* ══ CHAMPS ══ */
+.form{display:none;flex-direction:column;gap:14px}
+.form.on{display:flex}
+.f{position:relative}
+.f label{display:block;font-size:11.5px;font-weight:600;color:var(--ink-mid);margin-bottom:6px}
+.f input,.f select{width:100%;padding:12px 14px;background:rgba(0,0,0,.26);
+  border:1px solid var(--line);border-radius:10px;
+  font-family:'DM Sans',sans-serif;font-size:14px;color:var(--ink);outline:none;
+  transition:border-color .2s,box-shadow .2s,background .2s;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.f input[type=password],.f input.pw{padding-right:44px;font-family:'DM Mono',monospace;letter-spacing:1px}
+.f input::placeholder{color:rgba(255,255,255,.26);letter-spacing:0;font-family:'DM Sans',sans-serif}
+.f input:focus,.f select:focus{border-color:rgba(240,145,63,.65);background:rgba(0,0,0,.32);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 0 0 3px rgba(212,108,26,.18)}
+.f select option{background:#12213f;color:#fff}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* œil afficher/masquer */
+.eye{position:absolute;right:6px;bottom:5px;width:34px;height:34px;border:none;border-radius:8px;
+  background:transparent;color:var(--ink-low);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:color .2s}
+.eye:hover{color:var(--ink)}
+.eye svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+/* verrouillage majuscules */
+.sous{font-size:10.5px;color:var(--ink-low);margin-top:6px;line-height:1.45}
+.sous.err{color:var(--orange-hi)}
+.caps{display:none;align-items:center;gap:6px;font-size:11px;color:var(--orange-hi);margin-top:7px}
+.caps.on{display:flex}
+.caps::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--orange-hi)}
+
+/* ══ BOUTON ══ */
+.go{position:relative;overflow:hidden;width:100%;margin-top:6px;padding:13px;
+  border:1px solid rgba(255,255,255,.16);border-radius:10px;cursor:pointer;
+  background:linear-gradient(180deg,var(--orange-hi),var(--orange));color:#fff;
+  font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;
+  box-shadow:0 8px 22px -8px rgba(212,108,26,.75),inset 0 1px 0 rgba(255,255,255,.35);
+  transition:filter .2s,transform .1s}
+.go::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,255,255,.22),transparent 52%)}
+.go:hover:not(:disabled){filter:brightness(1.08)}
+.go:active:not(:disabled){transform:translateY(1px)}
+.go:disabled{opacity:.6;cursor:default}
+
+.msg{min-height:17px;text-align:center;font-size:12px;font-weight:500;margin-top:2px}
+.msg.err{color:var(--red)} .msg.ok{color:var(--green)}
+.hint{font-size:11.5px;color:var(--ink-low);line-height:1.5;text-align:center;margin-top:14px}
+.foot{text-align:center;margin-top:14px;font-family:'DM Mono',monospace;
+  font-size:10px;letter-spacing:1.6px;color:rgba(255,255,255,.22)}
+
+*:focus-visible{outline:2px solid var(--orange-hi);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media(max-width:480px){
+  .panel-in{padding:30px 24px 26px}
+  .mark-word,.mark-refl{font-size:38px}
+  .row{grid-template-columns:1fr}
+  .panel-echo{height:48px}
+}
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="glow glow-a"></div><div class="glow glow-b"></div>
+  <div class="glow glow-c"></div><div class="floor"></div>
+</div>
+
+<div class="col">
+  <div class="panel">
+    <div class="panel-in">
+
+      <div class="mark">
+        <div class="mark-word">GDS</div>
+        <div class="mark-refl" aria-hidden="true">GDS</div>
+        <div class="mark-sub">Gestion des stocks</div>
+        <div class="mark-site">LA BRÈDE</div>
+      </div>
+
+      <div class="rule"></div>
+
+      <div class="tabs">
+        <button class="tab on" id="t-in" onclick="vue('in')">Se connecter</button>
+        <button class="tab" id="t-new" onclick="vue('new')">Demander un accès</button>
+      </div>
+
+      <!-- CONNEXION -->
+      <div class="form on" id="f-in">
+        <div class="f">
+          <label for="in-id">Identifiant</label>
+          <input type="text" id="in-id" placeholder="Votre identifiant" autocomplete="username" autocapitalize="none" spellcheck="false">
+        </div>
+        <div class="f">
+          <label for="in-pw">Mot de passe</label>
+          <input type="password" id="in-pw" class="pw" placeholder="••••••••" autocomplete="current-password">
+          <button class="eye" type="button" onclick="oeil('in-pw',this)" aria-label="Afficher le mot de passe"></button>
+          <div class="caps" id="caps-in">Verrouillage majuscules actif</div>
+        </div>
+        <button class="go" id="b-in" onclick="connecter()">Se connecter</button>
+        <div class="msg" id="m-in"></div>
+      </div>
+
+      <!-- DEMANDE D'ACCÈS -->
+      <div class="form" id="f-new">
+        <div class="row">
+          <div class="f"><label for="n-prenom">Prénom</label>
+            <input type="text" id="n-prenom" placeholder="Votre prénom"></div>
+          <div class="f"><label for="n-nom">Nom</label>
+            <input type="text" id="n-nom" placeholder="Votre nom"></div>
+        </div>
+        <div class="f">
+          <label for="n-soc">Entreprise</label>
+          <select id="n-soc">
+            <option value="">Sélectionner…</option>
+            <option>Metro</option>
+            <option>Id Logistics</option>
+          </select>
+        </div>
+        <div class="f">
+          <label for="n-service">Service</label>
+          <select id="n-service">
+            <option value="">Sélectionner…</option>
+            <option>Réception</option>
+            <option>Préparation</option>
+            <option>Inventaire</option>
+            <option>Encadrement</option>
+            <option>Autre</option>
+          </select>
+        </div>
+        <div class="f">
+          <label for="n-id">Identifiant GDS souhaité</label>
+          <input type="text" id="n-id" placeholder="Sans accent ni espace" maxlength="20"
+                 autocomplete="username" autocapitalize="none" spellcheck="false"
+                 oninput="normaliserId(this)">
+          <div class="sous" id="aide-id">Lettres, chiffres, point et tiret. Il figurera sur votre QR code.</div>
+        </div>
+        <div class="f">
+          <label for="n-mail">Adresse mail professionnelle</label>
+          <input type="email" id="n-mail" placeholder="Pour recevoir vos identifiants"
+                 autocomplete="email" autocapitalize="none" spellcheck="false">
+        </div>
+        <button class="go" id="b-new" onclick="creer()">Envoyer la demande</button>
+        <div class="msg" id="m-new"></div>
+        <div class="hint">L'administrateur valide le compte, puis votre page personnelle et votre QR code sont générés.</div>
+      </div>
+
+    </div>
+  </div>
+  <div class="panel-echo" aria-hidden="true"></div>
+  <div class="foot">METRO × ID LOGISTICS</div>
+</div>
+
+<script src="config.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════
+   CONFIGURATION — les deux seules lignes à modifier
+   ═══════════════════════════════════════════════════ */
+
+/* Adresse du Worker, sans barre oblique finale.
+   Exemple : https://gds-api.xxxx.workers.dev            */
+/* Garde-fou : sans config.js, tout le script s'arrêterait
+   sans explication. On le signale clairement. */
+if (typeof GDS === 'undefined') {
+  document.body.innerHTML =
+    '<div style="font-family:sans-serif;max-width:520px;margin:80px auto;padding:28px;' +
+    'border:1px solid #f0a8a8;background:#fdeaea;border-radius:12px;color:#7a2420">' +
+    '<b style="font-size:16px">Fichier config.js absent</b>' +
+    '<p style="margin-top:10px;line-height:1.55;font-size:14px">' +
+    'Le fichier <code>config.js</code> doit se trouver dans le même dossier ' +
+    'que cette page, et contenir votre clé publique Supabase.</p></div>';
+  throw new Error('config.js absent');
+}
+
+/* Valeurs lues dans config.js */
+var API           = GDS.API;
+var CLE_PUBLIQUE  = GDS.CLE_PUBLIQUE;
+var DEMANDE_ACCES = GDS.DEMANDE_ACCES;
+
+var SVG_OUVERT = '<svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+var SVG_BARRE  = '<svg viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
+document.querySelectorAll('.eye').forEach(function(b){ b.innerHTML = SVG_OUVERT; });
+
+if(!DEMANDE_ACCES){
+  document.querySelector('.tabs').style.display = 'none';
+}
+
+function oeil(id, btn){
+  var el = document.getElementById(id);
+  var cache = el.type === 'password';
+  el.type = cache ? 'text' : 'password';
+  btn.innerHTML = cache ? SVG_BARRE : SVG_OUVERT;
+  btn.setAttribute('aria-label', cache ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+  el.focus();
+}
+
+/* Verrouillage majuscules — utile avec des gants sur un poste partagé */
+['in-pw'].forEach(function(id){
+  var el = document.getElementById(id);
+  ['keyup','keydown'].forEach(function(ev){
+    el.addEventListener(ev, function(e){
+      var actif = e.getModifierState && e.getModifierState('CapsLock');
+      var cible = 'caps-in';
+      document.getElementById(cible).classList.toggle('on', !!actif);
+    });
+  });
+});
+
+/* L'identifiant part dans un QR code scanné en entrepôt :
+   accents et caractères spéciaux sont retirés à la saisie. */
+function normaliserId(el){
+  var brut = el.value;
+  var net = brut
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')   // accents
+    .toLowerCase()
+    .replace(/[^a-z0-9.-]/g,'');                        // reste interdit
+  if(net !== brut){
+    var pos = el.selectionStart - (brut.length - net.length);
+    el.value = net;
+    el.setSelectionRange(pos, pos);
+  }
+  document.getElementById('aide-id').classList.remove('err');
+}
+
+function vue(v){
+  var isIn = v === 'in';
+  document.getElementById('t-in').classList.toggle('on', isIn);
+  document.getElementById('t-new').classList.toggle('on', !isIn);
+  document.getElementById('f-in').classList.toggle('on', isIn);
+  document.getElementById('f-new').classList.toggle('on', !isIn);
+  dire('m-in',''); dire('m-new','');
+  setTimeout(function(){ document.getElementById(isIn ? 'in-id' : 'n-prenom').focus(); }, 30);
+}
+
+var MSG = {
+  attente: "Compte en attente de validation par l'administrateur.",
+  refuse:  "Cette demande de compte a \u00e9t\u00e9 refus\u00e9e. Contactez l'administrateur.",
+  inconnu: 'Identifiant ou mot de passe incorrect.',
+  demande: "Demande envoy\u00e9e. Vous serez pr\u00e9venu apr\u00e8s validation."
+};
+
+function dire(id, texte, type){
+  var el = document.getElementById(id);
+  el.textContent = texte;
+  el.className = 'msg' + (type ? ' ' + type : '');
+}
+
+function occupe(idBtn, actif, texte){
+  var b = document.getElementById(idBtn);
+  b.disabled = actif;
+  b.textContent = texte;
+}
+
+/* ─────────────────────────────────────────────
+   À BRANCHER SUR LE WORKER
+   Aucun mot de passe ni aucune clé ne doit
+   être vérifié ou stocké dans cette page.
+   ───────────────────────────────────────────── */
+async function connecter(){
+  var id = document.getElementById('in-id').value.trim();
+  var pw = document.getElementById('in-pw').value;
+  if(!id || !pw){ dire('m-in','Renseignez votre identifiant et votre mot de passe.','err'); return; }
+  if(!API){ dire('m-in','Adresse du serveur non renseign\u00e9e (variable API).','err'); return; }
+
+  occupe('b-in', true, 'Connexion\u2026');
+  dire('m-in','');
+
+  try {
+    var r = await fetch(API + '/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + CLE_PUBLIQUE,
+        'apikey': CLE_PUBLIQUE
+      },
+      body: JSON.stringify({ id: id, pw: pw })
+    });
+    var d = await r.json();
+    occupe('b-in', false, 'Se connecter');
+
+    if(d.etat === 'ok'){
+      /* Le jeton vit le temps de l'onglet : refermer la fen\u00eatre
+         d\u00e9connecte, ce qui limite les sessions oubli\u00e9es
+         sur un poste partag\u00e9. */
+      sessionStorage.setItem('gds_jeton', d.jeton);
+      sessionStorage.setItem('gds_role',  d.role);
+      sessionStorage.setItem('gds_nom',   d.nom || id);
+      location.href = 'sommaire.html';
+      return;
+    }
+    if(d.etat === 'attente'){ dire('m-in', MSG.attente, 'err'); return; }
+    if(d.etat === 'refuse') { dire('m-in', MSG.refuse,  'err'); return; }
+    dire('m-in', MSG.inconnu, 'err');
+
+  } catch(e){
+    occupe('b-in', false, 'Se connecter');
+    dire('m-in','Serveur injoignable. V\u00e9rifiez votre connexion.','err');
+  }
+}
+
+async function creer(){
+  var v = function(x){ return document.getElementById(x).value.trim(); };
+
+  if(!v('n-prenom') || !v('n-nom') || !v('n-soc') || !v('n-service') || !v('n-id')){
+    dire('m-new','Renseignez tous les champs.','err'); return; }
+  if(v('n-id').length < 3){
+    document.getElementById('aide-id').classList.add('err');
+    dire('m-new','Identifiant trop court (3 caract\u00e8res minimum).','err'); return; }
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v('n-mail'))){
+    dire('m-new','Adresse mail invalide.','err'); return; }
+
+  occupe('b-new', true, 'Envoi\u2026');
+  dire('m-new','');
+
+  try {
+    var r = await fetch(API + '/demande', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + CLE_PUBLIQUE,
+        'apikey': CLE_PUBLIQUE
+      },
+      body: JSON.stringify({
+        prenom: v('n-prenom'), nom: v('n-nom'), societe: v('n-soc'),
+        service: v('n-service'), identifiant: v('n-id'), mail: v('n-mail')
+      })
+    });
+    var d = await r.json();
+    occupe('b-new', false, 'Envoyer la demande');
+
+    if(r.status === 409){
+      document.getElementById('aide-id').classList.add('err');
+      dire('m-new','Cet identifiant est d\u00e9j\u00e0 pris. Choisissez-en un autre.','err');
+      return;
+    }
+    if(!r.ok){ dire('m-new','Envoi impossible. R\u00e9essayez.','err'); return; }
+
+    dire('m-new', MSG.demande, 'ok');
+    document.getElementById('f-new').querySelectorAll('input,select')
+      .forEach(function(el){ el.value = ''; });
+
+  } catch(e){
+    occupe('b-new', false, 'Envoyer la demande');
+    dire('m-new','Serveur injoignable. V\u00e9rifiez votre connexion.','err');
+  }
+}
+
+document.addEventListener('keydown', function(e){
+  if(e.key !== 'Enter') return;
+  if(document.getElementById('f-in').classList.contains('on')) connecter();
+  else creer();
+});
+
+document.getElementById('in-id').focus();
+</script>
+</body>
+</html>
