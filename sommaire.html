@@ -162,7 +162,8 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
 /* Piste teintée du vert au rouge : on voit la marge restante
    et la zone dans laquelle on entre. */
 .bp-p{position:relative;height:12px;border-radius:6px;
-  background:linear-gradient(90deg,#d8f0e6 0%,#fbe9d2 55%,#f9d8d6 100%)}
+  background:linear-gradient(90deg,
+    #d8f0e6 0%, #dff2e4 30%, #fbeacf 58%, #f6c9b4 78%, #eda69c 90%, #e08076 100%)}
 .bp-b{position:relative;z-index:2;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),
   0 1px 4px -1px rgba(20,32,60,.45)}
 .bp-b::after{content:'';position:absolute;top:0;right:0;bottom:0;width:3px;
@@ -322,7 +323,10 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
           <span class="conso-t">Fichiers courants</span>
           <span class="conso-v" id="conso-v">—</span>
         </div>
-        <div class="conso-p"><div class="conso-b" id="conso-b"></div></div>
+        <div class="conso-p bp-p">
+          <div class="conso-b bp-b" id="conso-b"></div>
+          <div class="bp-seuils"><i></i><i></i><i></i></div>
+        </div>
         <div class="conso-s">1 GO</div>
       </div>
       <div class="conso">
@@ -330,7 +334,10 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
           <span class="conso-t">Archive</span>
           <span class="conso-v" id="arc-v">—</span>
         </div>
-        <div class="conso-p"><div class="conso-b" id="arc-b"></div></div>
+        <div class="conso-p bp-p">
+          <div class="conso-b bp-b" id="arc-b"></div>
+          <div class="bp-seuils"><i></i><i></i><i></i></div>
+        </div>
         <div class="conso-s">10 GO</div>
       </div>
       <div class="conso">
@@ -777,8 +784,8 @@ async function chargerConso(){
     var pct = Math.min(100, total / ESPACES.courant.quota * 100);
     document.getElementById('conso-v').textContent = pct.toFixed(1) + ' %  ·  ' + poids(total);
     var b = document.getElementById('conso-b');
-    b.style.width = Math.max(pct, 1) + '%';
-    b.className = 'conso-b' + (pct > 85 ? ' haut' : pct > 60 ? ' moyen' : '');
+    b.style.width = Math.max(pct, 2) + '%';
+    b.className = 'conso-b bp-b' + (pct > 85 ? ' haut' : pct > 60 ? ' moyen' : '');
   } catch(e){
     document.getElementById('conso-v').textContent = 'indisponible';
   }
@@ -793,8 +800,8 @@ async function chargerConsoB2(){
     var pct = Math.min(100, d.stocke / d.quota * 100);
     document.getElementById('arc-v').textContent = pct.toFixed(1) + ' %  ·  ' + poids(d.stocke);
     var a = document.getElementById('arc-b');
-    a.style.width = Math.max(pct, 1) + '%';
-    a.className = 'conso-b' + (pct > 85 ? ' haut' : pct > 60 ? ' moyen' : '');
+    a.style.width = Math.max(pct, 2) + '%';
+    a.className = 'conso-b bp-b' + (pct > 85 ? ' haut' : pct > 60 ? ' moyen' : '');
 
     var pctj = Math.min(100, d.sorti / d.quota_jour * 100);
     document.getElementById('bp-v').textContent = pctj.toFixed(1) + ' %';
