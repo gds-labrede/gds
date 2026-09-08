@@ -159,27 +159,19 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
   color:var(--text-low);margin-top:9px}
 
 /* ══ DAILY BANDWIDTH ══ */
-.conso.bp{grid-column:span 1}
-.bp-corps{display:flex;align-items:center;gap:16px}
-.anneau{position:relative;width:96px;height:96px;flex-shrink:0}
-.anneau svg{width:96px;height:96px;display:block}
-#bp-arc{transition:stroke-dashoffset .9s cubic-bezier(.2,.7,.3,1)}
-.anneau-txt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
-.anneau-pct{font-size:19px;font-weight:700;letter-spacing:-.6px}
-
-.semaine{flex:1;display:flex;align-items:flex-end;gap:5px;height:76px}
-.jour{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%}
-.jour-barre{position:relative;width:100%;flex:1;display:flex;align-items:flex-end}
-.jour-b{width:100%;border-radius:4px 4px 2px 2px;min-height:3px;
-  background:linear-gradient(180deg,#37a37f,#1d7a5f);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 2px 5px -2px rgba(20,32,60,.4);
-  transition:height .7s cubic-bezier(.2,.7,.3,1)}
-.jour-b.moyen{background:linear-gradient(180deg,#e09a45,#c2701c)}
-.jour-b.haut{background:linear-gradient(180deg,#d45c55,#b8342f)}
-.jour-b.nul{background:#dfe4ec;box-shadow:none}
-.jour-b.today{outline:2px solid rgba(26,46,85,.25);outline-offset:1px}
-.jour-l{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.5px;color:var(--text-low)}
-.jour-l.today{color:var(--navy);font-weight:500}
+/* Piste teintée du vert au rouge : on voit la marge restante
+   et la zone dans laquelle on entre. */
+.bp-p{position:relative;height:12px;border-radius:6px;
+  background:linear-gradient(90deg,#d8f0e6 0%,#fbe9d2 55%,#f9d8d6 100%)}
+.bp-b{position:relative;z-index:2;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),
+  0 1px 4px -1px rgba(20,32,60,.45)}
+.bp-b::after{content:'';position:absolute;top:0;right:0;bottom:0;width:3px;
+  background:rgba(255,255,255,.75);border-radius:0 6px 6px 0}
+.bp-seuils{position:absolute;inset:0;z-index:3;pointer-events:none}
+.bp-seuils i{position:absolute;top:2px;bottom:2px;width:1px;background:rgba(20,32,60,.16)}
+.bp-seuils i:nth-child(1){left:25%}
+.bp-seuils i:nth-child(2){left:50%}
+.bp-seuils i:nth-child(3){left:75%}
 
 /* ══ SÉLECTEUR D'ESPACE ══ */
 .segments{display:inline-flex;gap:3px;padding:3px;background:var(--white);
@@ -341,37 +333,16 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
         <div class="conso-p"><div class="conso-b" id="arc-b"></div></div>
         <div class="conso-s">10 GO</div>
       </div>
-      <div class="conso bp">
+      <div class="conso">
         <div class="conso-h">
           <span class="conso-t">Daily Bandwidth</span>
+          <span class="conso-v" id="bp-v">—</span>
         </div>
-        <div class="bp-corps">
-          <div class="anneau">
-            <svg viewBox="0 0 120 120">
-              <defs>
-                <linearGradient id="grad-bp" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%"   id="g1" stop-color="#37a37f"/>
-                  <stop offset="100%" id="g2" stop-color="#1d7a5f"/>
-                </linearGradient>
-                <filter id="ombre-bp" x="-50%" y="-50%" width="200%" height="200%">
-                  <feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity=".22"/>
-                </filter>
-              </defs>
-              <circle cx="60" cy="60" r="50" fill="none" stroke="#e2e7ef" stroke-width="11"/>
-              <circle cx="60" cy="60" r="50" fill="none" stroke="url(#grad-bp)" stroke-width="11"
-                      stroke-linecap="round" filter="url(#ombre-bp)"
-                      transform="rotate(-90 60 60)"
-                      stroke-dasharray="314.2" stroke-dashoffset="314.2" id="bp-arc"/>
-              <path d="M60 10a50 50 0 0 1 35 15" fill="none" stroke="rgba(255,255,255,.55)"
-                    stroke-width="3.5" stroke-linecap="round"/>
-            </svg>
-            <div class="anneau-txt">
-              <span class="anneau-pct" id="bp-v">—</span>
-            </div>
-          </div>
-          <div class="semaine" id="bp-semaine"></div>
+        <div class="conso-p bp-p">
+          <div class="conso-b bp-b" id="bp-b"></div>
+          <div class="bp-seuils"><i></i><i></i><i></i></div>
         </div>
-        <div class="conso-s">1 GO PAR JOUR · 7 DERNIERS JOURS</div>
+        <div class="conso-s">1 GO PAR JOUR</div>
       </div>
     </div>
 
@@ -825,63 +796,16 @@ async function chargerConsoB2(){
     a.style.width = Math.max(pct, 1) + '%';
     a.className = 'conso-b' + (pct > 85 ? ' haut' : pct > 60 ? ' moyen' : '');
 
-    dessinerBandwidth(d);
+    var pctj = Math.min(100, d.sorti / d.quota_jour * 100);
+    document.getElementById('bp-v').textContent = pctj.toFixed(1) + ' %';
+    var b = document.getElementById('bp-b');
+    b.style.width = Math.max(pctj, 2) + '%';
+    b.className = 'conso-b bp-b' + (pctj > 85 ? ' haut' : pctj > 60 ? ' moyen' : '');
 
   } catch(e){
     document.getElementById('arc-v').textContent = 'indisponible';
-    document.getElementById('bp-v').textContent  = '—';
+    document.getElementById('bp-v').textContent  = 'indisponible';
   }
-}
-
-/* ── Anneau + histogramme de la semaine ── */
-var JOURS_COURTS = ['D','L','M','M','J','V','S'];
-
-function teinte(pct){
-  return pct > 85 ? 'haut' : pct > 60 ? 'moyen' : '';
-}
-
-function dessinerBandwidth(d){
-  var pct = Math.min(100, d.sorti / d.quota_jour * 100);
-
-  /* Anneau : 2πr avec r = 50, soit 314,2 */
-  var arc = document.getElementById('bp-arc');
-  arc.style.strokeDashoffset = 314.2 * (1 - pct / 100);
-
-  var couples = { '':      ['#37a37f','#1d7a5f'],
-                  'moyen': ['#e09a45','#c2701c'],
-                  'haut':  ['#d45c55','#b8342f'] };
-  var c = couples[teinte(pct)];
-  document.getElementById('g1').setAttribute('stop-color', c[0]);
-  document.getElementById('g2').setAttribute('stop-color', c[1]);
-
-  document.getElementById('bp-v').textContent = pct.toFixed(0) + ' %';
-
-  /* Histogramme : hauteur relative au plus fort jour de la semaine */
-  var h = d.historique || [];
-  var zone = document.getElementById('bp-semaine');
-  zone.innerHTML = '';
-  if(!h.length) return;
-
-  var maxi = Math.max.apply(null, h.map(function(x){ return x.octets; }).concat([1]));
-
-  h.forEach(function(x, i){
-    var dt   = new Date(x.jour + 'T12:00:00');
-    var pctj = Math.min(100, x.octets / d.quota_jour * 100);
-    var haut = x.octets ? Math.max(8, x.octets / maxi * 100) : 0;
-    var last = i === h.length - 1;
-
-    var el = document.createElement('div');
-    el.className = 'jour';
-    el.title = dt.toLocaleDateString('fr-FR') + ' — ' + poids(x.octets) +
-               ' (' + pctj.toFixed(1) + ' %)';
-    el.innerHTML =
-      '<div class="jour-barre"><div class="jour-b ' +
-        (x.octets ? teinte(pctj) : 'nul') + (last ? ' today' : '') +
-        '" style="height:' + (x.octets ? haut : 3) + '%"></div></div>' +
-      '<div class="jour-l' + (last ? ' today' : '') + '">' +
-        JOURS_COURTS[dt.getDay()] + '</div>';
-    zone.appendChild(el);
-  });
 }
 
 function rafraichirJauges(){
