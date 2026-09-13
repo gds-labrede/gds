@@ -90,7 +90,7 @@ input[type=text]::placeholder{color:var(--text-low)}
 .regle{--c:var(--navy);position:relative;overflow:hidden;background:linear-gradient(180deg,#fff,#fbfcfe);
   border:1px solid var(--border);border-radius:12px;padding:16px 17px}
 .regle::after{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c)}
-.regle h3{display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:600;margin-bottom:9px}
+.regle h3{position:relative;display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:600;margin-bottom:17px}
 .regle h3 svg{width:17px;height:17px}
 .regle h3 .a{fill:color-mix(in srgb,var(--c) 26%,white)}
 .regle h3 .b{fill:var(--c)}
@@ -203,6 +203,95 @@ table.stock tbody tr:hover{background:#f7f9fc}
 .orient.on .a{fill:#d3ddec}.orient.on .b{fill:var(--navy)}
 .modale-pied{display:flex;justify-content:flex-end;gap:10px;padding:0 24px 22px}
 
+/* ══ SECTEURS ══ */
+:root{
+  --s-viandes:#a8452f; --s-surgeles:#2a6f97; --s-fruits:#4a7c3f;
+  --s-maree:#1a7f8e;   --s-autre:#7a8699;
+}
+.sect{--c:var(--s-autre);display:inline-flex;align-items:center;gap:6px;
+  font-size:11px;font-weight:600;padding:4px 9px 4px 7px;border-radius:6px;white-space:nowrap;
+  background:color-mix(in srgb,var(--c) 9%,white);
+  border:1px solid color-mix(in srgb,var(--c) 28%,white);
+  color:color-mix(in srgb,var(--c) 82%,black)}
+.sect::before{content:'';width:7px;height:7px;border-radius:2px;flex-shrink:0;
+  background:linear-gradient(145deg,color-mix(in srgb,var(--c) 55%,white),var(--c));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55)}
+.s-viandes{--c:var(--s-viandes)}.s-surgeles{--c:var(--s-surgeles)}
+.s-fruits{--c:var(--s-fruits)}.s-maree{--c:var(--s-maree)}.s-autre{--c:var(--s-autre)}
+table.stock tbody tr{box-shadow:inset 3px 0 0 var(--sc,transparent)}
+table.stock tbody tr.s-viandes{--sc:var(--s-viandes)}
+table.stock tbody tr.s-surgeles{--sc:var(--s-surgeles)}
+table.stock tbody tr.s-fruits{--sc:var(--s-fruits)}
+table.stock tbody tr.s-maree{--sc:var(--s-maree)}
+table.stock tbody tr.s-autre{--sc:var(--s-autre)}
+
+/* ══ CRISTAL ══ */
+.carte,.chiffre,.regle{position:relative;isolation:isolate}
+.carte::before,.chiffre::before,.regle::before{content:'';position:absolute;inset:0;z-index:-1;
+  border-radius:inherit;pointer-events:none;
+  background:linear-gradient(147deg,rgba(255,255,255,.95) 0%,rgba(255,255,255,0) 44%)}
+.carte{background:linear-gradient(180deg,#fff,#fafbfe);
+  box-shadow:0 1px 2px rgba(20,32,60,.05),0 10px 28px -22px rgba(20,32,60,.45),inset 0 1px 0 #fff}
+.carte-tete{background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(238,241,246,.5));
+  border-radius:14px 14px 0 0}
+
+/* reflet sous les icônes de règles */
+.regle h3 svg{width:22px;height:22px}
+.regle{padding-top:18px}
+.reflet{position:absolute;left:0;top:23px;display:block;width:22px;height:9px;overflow:hidden}
+.reflet svg{width:22px;height:22px;transform:scaleY(-1);opacity:.3;
+  -webkit-mask-image:linear-gradient(to top,rgba(0,0,0,.85),transparent 60%);
+  mask-image:linear-gradient(to top,rgba(0,0,0,.85),transparent 60%)}
+
+/* ══ ICÔNES PLUS GRANDES ══ */
+.carte-tete svg{width:24px;height:24px}
+.bouton svg{width:18px;height:18px}
+.champ svg{width:17px;height:17px;left:13px}
+input[type=text]{padding-left:40px}
+.vide svg{width:64px;height:64px;margin-bottom:16px}
+.orient svg{width:46px;height:46px}
+.avis-tete svg{width:22px;height:22px}
+
+/* ══ BRILLANCE DES BOUTONS ══ */
+.bouton{position:relative;overflow:hidden}
+.bouton.fort::after{content:'';position:absolute;top:0;bottom:0;width:38%;left:-50%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.42),transparent);
+  transform:skewX(-18deg);transition:left .55s cubic-bezier(.3,.7,.3,1)}
+.bouton.fort:hover::after{left:130%}
+
+/* ══ COMPTEURS ══ */
+.chiffre{background:linear-gradient(180deg,#fff,#fafbfe);
+  transition:transform .2s cubic-bezier(.2,.7,.3,1),box-shadow .2s,border-color .2s}
+.chiffre:hover{transform:translateY(-3px);
+  border-color:color-mix(in srgb,var(--c,var(--navy)) 40%,transparent);
+  box-shadow:0 14px 26px -16px color-mix(in srgb,var(--c,var(--navy)) 62%,transparent),
+             0 2px 8px rgba(20,32,60,.06),inset 0 1px 0 #fff}
+.chiffre::after{height:4px;opacity:1;
+  background:linear-gradient(90deg,var(--c,var(--navy)),color-mix(in srgb,var(--c,var(--navy)) 45%,white))}
+.c-nb{font-variant-numeric:tabular-nums}
+.chiffre.urgent .c-nb{animation:battement 2.4s ease-in-out infinite}
+@keyframes battement{0%,100%{opacity:1}50%{opacity:.55}}
+.chiffre{animation:monte .38s cubic-bezier(.2,.7,.3,1) both}
+@keyframes monte{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+
+/* ══ TABLEAU DÉFILANT ══ */
+.tableau{max-height:min(62vh,620px);overflow:auto;border-radius:0 0 14px 14px;
+  scrollbar-width:thin;scrollbar-color:var(--border-hi) transparent}
+.tableau::-webkit-scrollbar{width:10px;height:10px}
+.tableau::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:6px;
+  border:3px solid var(--white)}
+.tableau::-webkit-scrollbar-track{background:transparent}
+table.stock thead th{z-index:2;
+  background:linear-gradient(180deg,#f4f6fa,#e9edf4);
+  box-shadow:0 1px 0 var(--border)}
+.compte{display:flex;align-items:center;gap:8px;padding:10px 20px;
+  border-top:1px solid var(--border);background:var(--bg);border-radius:0 0 14px 14px;
+  font-family:'DM Mono',monospace;font-size:11px;color:var(--text-low);letter-spacing:.5px}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+
     </style>
 </head>
 <body>
@@ -253,14 +342,14 @@ table.stock tbody tr:hover{background:#f7f9fc}
     <div class="carte-corps">
       <div class="regles">
         <div class="regle r-alcool">
-          <h3><svg viewBox="0 0 24 24"><path class="a" d="M7 3h10l-1.2 6.2A4.8 4.8 0 0 1 11 13a4.8 4.8 0 0 1-4.8-3.8L5 3h2Z"/><path class="b" d="M11 12.5h1.6V19H16v1.6H7.6V19H11v-6.5Z"/></svg>Alcools</h3>
+          <h3><svg viewBox="0 0 24 24"><path class="a" d="M7 3h10l-1.2 6.2A4.8 4.8 0 0 1 11 13a4.8 4.8 0 0 1-4.8-3.8L5 3h2Z"/><path class="b" d="M11 12.5h1.6V19H16v1.6H7.6V19H11v-6.5Z"/></svg><span class="reflet"><svg viewBox="0 0 24 24"><path class="a" d="M7 3h10l-1.2 6.2A4.8 4.8 0 0 1 11 13a4.8 4.8 0 0 1-4.8-3.8L5 3h2Z"/><path class="b" d="M11 12.5h1.6V19H16v1.6H7.6V19H11v-6.5Z"/></svg></span>Alcools</h3>
           <dl>
             <dt>SORTIE</dt><dd>Association — reprise interdite</dd>
             <dt>REPÈRES</dt><dd>vin, bière, spiritueux, champagne, whisky, vodka</dd>
           </dl>
         </div>
         <div class="regle r-os">
-          <h3><svg viewBox="0 0 24 24"><path class="a" d="M5.3 12.2a2.6 2.6 0 1 1 2.2-3.9 2.6 2.6 0 0 1 3.8 2.1l3 3a2.6 2.6 0 0 1 3.7 2.4 2.6 2.6 0 1 1-3.5 2.4l-3.6-3.6a2.6 2.6 0 0 1-3.8-2.4H5.3Z"/><path class="b" d="M8.7 11.1l4.2 4.2-1.3 1.3-4.2-4.2 1.3-1.3Z"/></svg>Os et carcasses</h3>
+          <h3><svg viewBox="0 0 24 24"><path class="a" d="M5.3 12.2a2.6 2.6 0 1 1 2.2-3.9 2.6 2.6 0 0 1 3.8 2.1l3 3a2.6 2.6 0 0 1 3.7 2.4 2.6 2.6 0 1 1-3.5 2.4l-3.6-3.6a2.6 2.6 0 0 1-3.8-2.4H5.3Z"/><path class="b" d="M8.7 11.1l4.2 4.2-1.3 1.3-4.2-4.2 1.3-1.3Z"/></svg><span class="reflet"><svg viewBox="0 0 24 24"><path class="a" d="M5.3 12.2a2.6 2.6 0 1 1 2.2-3.9 2.6 2.6 0 0 1 3.8 2.1l3 3a2.6 2.6 0 0 1 3.7 2.4 2.6 2.6 0 1 1-3.5 2.4l-3.6-3.6a2.6 2.6 0 0 1-3.8-2.4H5.3Z"/><path class="b" d="M8.7 11.1l4.2 4.2-1.3 1.3-4.2-4.2 1.3-1.3Z"/></svg></span>Os et carcasses</h3>
           <dl>
             <dt>CLÉ</dt><dd>1 — destruction</dd>
             <dt>SORTIE</dt><dd>Poubelle rouge</dd>
@@ -268,7 +357,7 @@ table.stock tbody tr:hover{background:#f7f9fc}
           </dl>
         </div>
         <div class="regle r-cles">
-          <h3><svg viewBox="0 0 24 24"><circle class="a" cx="8" cy="8" r="5"/><path class="b" d="M11.4 11.4l7.4 7.4-1.4 1.4-1.6-1.6-1.4 1.4-1.4-1.4 1.4-1.4-1.3-1.3-1.4 1.4-1.4-1.4 1.4-1.4-1.1-1.1 1.4-1.4Z"/></svg>Attribution des clés</h3>
+          <h3><svg viewBox="0 0 24 24"><circle class="a" cx="8" cy="8" r="5"/><path class="b" d="M11.4 11.4l7.4 7.4-1.4 1.4-1.6-1.6-1.4 1.4-1.4-1.4 1.4-1.4-1.3-1.3-1.4 1.4-1.4-1.4 1.4-1.4-1.1-1.1 1.4-1.4Z"/></svg><span class="reflet"><svg viewBox="0 0 24 24"><circle class="a" cx="8" cy="8" r="5"/><path class="b" d="M11.4 11.4l7.4 7.4-1.4 1.4-1.6-1.6-1.4 1.4-1.4-1.4 1.4-1.4-1.3-1.3-1.4 1.4-1.4-1.4 1.4-1.4-1.1-1.1 1.4-1.4Z"/></svg></span>Attribution des clés</h3>
           <dl>
             <dt>CLÉ 7</dt><dd>Mercredi et samedi</dd>
             <dt>CLÉ 16</dt><dd>Autres jours</dd>
@@ -735,11 +824,13 @@ table.stock tbody tr:hover{background:#f7f9fc}
         }
 
         const ZONES = {
-            MEAT_SPECIAL_HANDLING: 'Viandes',
-            DEEP_FROZEN: 'Surgelés',
-            FRUITS_VEGETABLES: 'Fruits et légumes',
-            FISH: 'Marée'
+            MEAT_SPECIAL_HANDLING: { nom: 'Viandes',            cls: 's-viandes'  },
+            DEEP_FROZEN:           { nom: 'Surgelés',           cls: 's-surgeles' },
+            FRUITS_VEGETABLES:     { nom: 'Fruits et légumes',  cls: 's-fruits'   },
+            FISH:                  { nom: 'Marée',              cls: 's-maree'    }
         };
+        const SANS_ZONE = { nom: 'Hors secteur', cls: 's-autre' };
+        function secteur(zone) { return ZONES[zone] || (zone ? { nom: zone, cls: 's-autre' } : SANS_ZONE); }
 
         function updateZoneFilter() {
             const zoneFilter = document.getElementById('zoneFilter');
@@ -750,7 +841,7 @@ table.stock tbody tr:hover{background:#f7f9fc}
             zones.forEach(zone => {
                 const option = document.createElement('option');
                 option.value = zone;
-                option.textContent = ZONES[zone] || zone;
+                option.textContent = secteur(zone).nom;
                 zoneFilter.appendChild(option);
             });
         }
@@ -825,7 +916,7 @@ table.stock tbody tr:hover{background:#f7f9fc}
                     <table class="stock">
                         <thead>
                             <tr>
-                                <th>POSITION</th><th>DESCRIPTION</th><th>MGB</th>
+                                <th>SECTEUR</th><th>POSITION</th><th>DESCRIPTION</th><th>MGB</th>
                                 <th style="text-align:right">QTE</th>
                                 <th>LIVRAISON MAX</th><th>DLC</th>
                                 <th style="text-align:center">JOURS</th>
@@ -835,7 +926,8 @@ table.stock tbody tr:hover{background:#f7f9fc}
                         </thead>
                         <tbody>
                             ${filteredProducts.map(product => `
-                                <tr>
+                                <tr class="${secteur(product.pickingArea).cls}">
+                                    <td><span class="sect ${secteur(product.pickingArea).cls}">${secteur(product.pickingArea).nom}</span></td>
                                     <td class="t-pos">${product.position}</td>
                                     <td class="t-desc" title="${(product.description || '').replace(/"/g, '&quot;')}">${product.description}</td>
                                     <td class="t-mgb">${product.mgb}</td>
@@ -850,6 +942,7 @@ table.stock tbody tr:hover{background:#f7f9fc}
                         </tbody>
                     </table>
                 </div>
+                <div class="compte">${filteredProducts.length} ligne${filteredProducts.length > 1 ? 's' : ''} affichée${filteredProducts.length > 1 ? 's' : ''} sur ${allProducts.length}</div>
             `;
 
             container.innerHTML = tableHTML;
@@ -873,8 +966,8 @@ table.stock tbody tr:hover{background:#f7f9fc}
                 ['c-attention', 'Attention', stats.warning],
                 ['c-bon', 'Bons', stats.good]
             ];
-            const statsHTML = cartes.map(([cls, libelle, nb]) => `
-                <div class="chiffre ${cls}">
+            const statsHTML = cartes.map(([cls, libelle, nb], i) => `
+                <div class="chiffre ${cls}${(cls === 'c-sortir' && nb > 0) ? ' urgent' : ''}" style="animation-delay:${i * 55}ms">
                     <div class="c-nb">${nb}</div>
                     <div class="c-lib">${libelle}</div>
                 </div>
