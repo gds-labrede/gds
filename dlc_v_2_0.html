@@ -1,0 +1,2061 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des DLC - La Brède METRO</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="config.js"></script>
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-light: #3b82f6;
+            --secondary: #059669;
+            --accent: #7c3aed;
+            --danger: #dc2626;
+            --warning: #f59e0b;
+            --success: #10b981;
+            --info: #06b6d4;
+            --dark: #1f2937;
+            --light: #f8fafc;
+            --white: #ffffff;
+            --border: #e5e7eb;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            min-height: 100vh;
+            color: var(--dark);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Header Styles */
+        .header {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            text-align: center;
+            border: 1px solid #e5e7eb;
+        }
+
+        .header h1 {
+            color: var(--dark);
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: -0.025em;
+        }
+
+        .header p {
+            color: #6b7280;
+            font-size: 1rem;
+            font-weight: 400;
+            margin-bottom: 16px;
+        }
+
+        .print-code {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            background: #1f2937;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: 3px solid #374151;
+            margin-top: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .print-code-label {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .print-code-number {
+            font-size: 20px;
+            font-weight: 900;
+            font-family: 'Monaco', 'Menlo', monospace;
+            letter-spacing: 2px;
+            background: #fbbf24;
+            color: #1f2937;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 2px solid #f59e0b;
+        }
+
+        /* Controls Styles */
+        .controls {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            border: 1px solid #e5e7eb;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 400;
+            transition: all 0.2s ease;
+            background: white;
+            color: var(--dark);
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .file-upload {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .file-upload input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-upload-btn {
+            background: var(--primary);
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        .file-upload-btn:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        /* Statistics */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            transition: all 0.2s ease;
+            border: 1px solid #e5e7eb;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            line-height: 1;
+        }
+
+        .stat-label {
+            color: #6b7280;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-expired { --accent-color: var(--danger); }
+        .stat-critical { --accent-color: var(--warning); }
+        .stat-warning { --accent-color: #f59e0b; }
+        .stat-good { --accent-color: var(--success); }
+
+        .stat-to-remove .stat-number { color: #dc2626; }
+        .stat-expired .stat-number { color: var(--danger); }
+        .stat-critical .stat-number { color: var(--warning); }
+        .stat-warning .stat-number { color: #f59e0b; }
+        .stat-good .stat-number { color: var(--success); }
+
+        .stat-to-remove::before { background: #dc2626; }
+        .stat-expired::before { background: var(--danger); }
+        .stat-critical::before { background: var(--warning); }
+        .stat-warning::before { background: #f59e0b; }
+        .stat-good::before { background: var(--success); }
+
+        /* Products Container */
+        .products-container {
+            background: white;
+            border-radius: 12px;
+            padding: 0;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+        }
+
+        .products-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px;
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .products-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .export-btn {
+            background: var(--success);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        .export-btn:hover {
+            background: #059669;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            margin-bottom: 24px;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 8px;
+        }
+
+        .modal-subtitle {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        .orientation-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .orientation-option {
+            padding: 24px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .orientation-option:hover {
+            border-color: var(--primary-light);
+            background: #f0f9ff;
+        }
+
+        .orientation-option.selected {
+            border-color: var(--primary);
+            background: #dbeafe;
+        }
+
+        .orientation-icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+        }
+
+        .orientation-label {
+            font-weight: 600;
+            color: var(--dark);
+            font-size: 1rem;
+        }
+
+        .orientation-description {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .modal-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .modal-btn-cancel {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .modal-btn-cancel:hover {
+            background: #e5e7eb;
+        }
+
+        .modal-btn-confirm {
+            background: var(--primary);
+            color: white;
+        }
+
+        .modal-btn-confirm:hover {
+            background: #1d4ed8;
+        }
+
+        /* Table Styles */
+        .table-container {
+            overflow-x: hidden;
+            max-height: 70vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .products-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--white);
+            font-size: 14px;
+            position: relative;
+            table-layout: fixed;
+        }
+
+        .products-table thead {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .products-table th {
+            background: var(--dark);
+            color: white;
+            padding: 16px 8px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid #374151;
+            white-space: nowrap;
+        }
+
+        .products-table th:nth-child(1) { width: 10%; } /* Position */
+        .products-table th:nth-child(2) { width: 32%; } /* Description */
+        .products-table th:nth-child(3) { width: 10%; } /* MGB */
+        .products-table th:nth-child(4) { width: 7%; }  /* Quantité */
+        .products-table th:nth-child(5) { width: 9%; }  /* Max Livraison */
+        .products-table th:nth-child(6) { width: 9%; }  /* DLC */
+        .products-table th:nth-child(7) { width: 7%; }  /* Jours */
+        .products-table th:nth-child(8) { width: 13%; } /* Statut */
+        .products-table th:nth-child(9) { width: 8%; }  /* Clé */
+
+        .products-table td {
+            padding: 12px 8px;
+            border-bottom: 1px solid #f3f4f6;
+            vertical-align: middle;
+            font-weight: 400;
+            font-size: 13px;
+            transition: all 0.1s ease;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .products-table tbody tr {
+            transition: all 0.1s ease;
+        }
+
+        .products-table tbody tr:hover {
+            background: #f9fafb;
+        }
+
+        /* Status Badges */
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .status-to-remove { 
+            background: #fef2f2; 
+            color: #dc2626;
+            border: 1px solid #fecaca;
+            position: relative;
+        }
+
+        .status-to-remove.poulet-volaille::after {
+            content: '🐔';
+            position: absolute;
+            right: 2px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 10px;
+        }
+
+        .status-to-remove.steak-hache::after {
+            content: '🥩';
+            position: absolute;
+            right: 2px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 10px;
+        }
+        .status-expired { 
+            background: #fef2f2; 
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+        .status-critical { 
+            background: #fffbeb; 
+            color: #d97706;
+            border: 1px solid #fed7aa;
+        }
+        .status-warning { 
+            background: #fffbeb; 
+            color: #f59e0b;
+            border: 1px solid #fde68a;
+        }
+        .status-good { 
+            background: #ecfdf5; 
+            color: #059669;
+            border: 1px solid #a7f3d0;
+        }
+
+        .status-badge::before {
+            content: '';
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        /* Cell Styles */
+        .position-cell {
+            font-weight: 500;
+            color: var(--dark);
+            font-size: 12px;
+        }
+
+        .quantity-cell {
+            font-weight: 600;
+            color: var(--dark);
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .description-cell {
+            font-weight: 400;
+            color: var(--dark);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .mgb-cell {
+            font-family: 'Monaco', 'Menlo', monospace;
+            background: #f3f4f6;
+            color: var(--accent);
+            font-weight: 500;
+            border-radius: 4px;
+            padding: 4px 6px !important;
+            font-size: 11px;
+            text-align: center;
+        }
+
+        .date-cell {
+            font-weight: 500;
+            color: var(--dark);
+            text-align: center;
+            font-size: 12px;
+        }
+
+        /* Mapping Section */
+        .mapping-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            border: 1px solid #e5e7eb;
+        }
+
+        .mapping-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mapping-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .mapping-card {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 16px;
+            border: 1px solid #e5e7eb;
+            transition: all 0.2s ease;
+        }
+
+        .mapping-card:hover {
+            border-color: var(--primary-light);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .mapping-card h4 {
+            color: var(--dark);
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .mapping-card p {
+            color: #6b7280;
+            margin-bottom: 12px;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .mapping-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .dlc-days {
+            background: var(--primary);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        /* Special Rules Section */
+        .special-rules {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            border: 1px solid #e5e7eb;
+        }
+
+        .special-rules-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .rules-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .rule-card {
+            border-radius: 8px;
+            padding: 16px;
+            border: 1px solid #e5e7eb;
+            transition: all 0.2s ease;
+        }
+
+        .rule-card h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .rule-card p {
+            font-size: 13px;
+            line-height: 1.4;
+            margin-bottom: 4px;
+        }
+
+        .rule-card strong {
+            color: var(--dark);
+        }
+
+        .rule-alcohol {
+            background: #fef7f0;
+            border-color: #fed7aa;
+        }
+
+        .rule-alcohol h4 {
+            color: #ea580c;
+        }
+
+        .rule-bones {
+            background: #fef2f2;
+            border-color: #fecaca;
+        }
+
+        .rule-bones h4 {
+            color: #dc2626;
+        }
+
+        .rule-keys {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+        }
+
+        .rule-keys h4 {
+            color: #16a34a;
+        }
+
+        .category-tag {
+            background: var(--accent);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        /* No Data State */
+        .no-data {
+            text-align: center;
+            padding: 80px 20px;
+            color: #64748b;
+        }
+
+        .no-data h3 {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            color: var(--dark);
+            font-weight: 700;
+        }
+
+        .no-data p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 60px;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #e5e7eb;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.9; }
+        }
+
+        .loading-text {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .controls-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 15px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+            
+            .header h1 {
+                font-size: 1.75rem;
+            }
+            
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .products-header {
+                flex-direction: column;
+                gap: 16px;
+                text-align: center;
+            }
+            
+            .table-container {
+                max-height: 60vh;
+            }
+            
+            .products-table {
+                font-size: 12px;
+            }
+            
+            .products-table th,
+            .products-table td {
+                padding: 8px 6px;
+            }
+            
+            .mapping-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .orientation-options {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Scrollbar Styling */
+        .table-container::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .table-container::-webkit-scrollbar-track {
+            background: #f3f4f6;
+            border-radius: 3px;
+        }
+
+        .table-container::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 3px;
+        }
+
+        .table-container::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🏪 Gestion des DLC - La Brède</h1>
+            <p>Système avancé de surveillance des dates limites de consommation METRO</p>
+            <div class="print-code">
+                <span class="print-code-label">CODE IMPRESSION :</span>
+                <span class="print-code-number">9049449146</span>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="controls-grid">
+                <div class="input-group">
+                    <input type="text" id="searchInput" placeholder="🔍 Rechercher un produit ou un code MGB..." />
+                </div>
+                
+                <div class="input-group">
+                    <select id="statusFilter">
+                        <option value="all">📊 Tous les statuts</option>
+                        <option value="to-remove">🚨 À Sortir</option>
+                        <option value="expired">🔴 Expirés</option>
+                        <option value="critical">🟠 Critiques (≤1j)</option>
+                        <option value="warning">🟡 Attention (≤3j)</option>
+                        <option value="good">🟢 Bons</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <select id="zoneFilter">
+                        <option value="all">📍 Toutes les zones</option>
+                    </select>
+                </div>
+                
+                <div class="file-upload">
+                    <input type="file" id="csvFile" accept=".csv" />
+                    <button class="file-upload-btn">
+                        📂 Charger CSV local
+                    </button>
+                </div>
+                <div>
+                    <button class="file-upload-btn" id="btn-serveur" onclick="chargerDepuisServeur()" style="background:#059669;">
+                        ☁️ Charger le stock du jour
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Règles de gestion spéciales -->
+        <div class="special-rules">
+            <h2 class="special-rules-title">📋 Règles de Gestion Spéciales</h2>
+            <div class="rules-grid">
+                <div class="rule-card rule-alcohol">
+                    <h4>🍷 Alcools</h4>
+                    <p><strong>Destination :</strong> Association (interdit pour l'association)</p>
+                    <p><strong>Mots-clés :</strong> alcool, vin, bière, spiritueux, champagne, whisky, vodka</p>
+                </div>
+                <div class="rule-card rule-bones">
+                    <h4>🦴 Os & Carcasses</h4>
+                    <p><strong>Clé :</strong> 1 (destruction)</p>
+                    <p><strong>Destination :</strong> Poubelle rouge</p>
+                    <p><strong>Mots-clés :</strong> os, carcasse, squelette, ossature</p>
+                </div>
+                <div class="rule-card rule-keys">
+                    <h4>🔑 Système de Clés</h4>
+                    <p><strong>Clé 7 :</strong> Samedi ET Mercredi (jaune)</p>
+                    <p><strong>Clé 16 :</strong> Autres jours + Steaks hachés (vert)</p>
+                    <p><strong>Exception :</strong> Steaks hachés = toujours clé 16</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mapping Rules -->
+        <div class="mapping-section">
+            <h2 class="mapping-title">⚙️ Règles de Mapping DLC</h2>
+            <div class="mapping-grid" id="mappingGrid">
+                <!-- Les règles seront ajoutées dynamiquement -->
+            </div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="stats" id="statsContainer">
+            <!-- Les statistiques seront ajoutées dynamiquement -->
+        </div>
+
+        <!-- Products Table -->
+        <div class="products-container">
+            <div class="products-header">
+                <h2 class="products-title">📦 Stock avec surveillance DLC</h2>
+                <button class="export-btn" onclick="showPrintDialog()">
+                    🖨️ Aperçu PDF
+                </button>
+            </div>
+            
+            <div id="productsContent">
+                <div class="no-data">
+                    <h3>Aucun fichier chargé</h3>
+                    <p>Veuillez charger votre fichier CSV pour commencer l'analyse des DLC</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal pour choisir l'orientation -->
+    <div id="orientationModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">🖨️ Options d'impression</h2>
+                <p class="modal-subtitle">Choisissez l'orientation de votre document</p>
+            </div>
+            
+            <div class="orientation-options">
+                <div class="orientation-option" data-orientation="portrait" onclick="selectOrientation('portrait')">
+                    <div class="orientation-icon">📄</div>
+                    <div class="orientation-label">Portrait</div>
+                    <div class="orientation-description">Format vertical</div>
+                </div>
+                
+                <div class="orientation-option" data-orientation="landscape" onclick="selectOrientation('landscape')">
+                    <div class="orientation-icon">📃</div>
+                    <div class="orientation-label">Paysage</div>
+                    <div class="orientation-description">Format horizontal</div>
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-cancel" onclick="closePrintDialog()">Annuler</button>
+                <button class="modal-btn modal-btn-confirm" onclick="confirmPrint()">Générer PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let allProducts = [];
+        let filteredProducts = [];
+        let selectedOrientation = 'portrait'; // Orientation par défaut
+
+        /* ══════════ SERVEUR ══════════ */
+
+        /* Garde-fou : sans config.js, rien ne fonctionne. */
+        if (typeof GDS === 'undefined') {
+            document.addEventListener('DOMContentLoaded', function () {
+                document.body.innerHTML =
+                    '<div style="font-family:sans-serif;max-width:520px;margin:80px auto;padding:28px;' +
+                    'border:1px solid #f0a8a8;background:#fdeaea;border-radius:12px;color:#7a2420">' +
+                    '<b style="font-size:16px">Fichier config.js absent</b>' +
+                    '<p style="margin-top:10px;line-height:1.55;font-size:14px">' +
+                    'Le fichier <code>config.js</code> doit se trouver dans le meme dossier que cette page.</p></div>';
+            });
+            throw new Error('config.js absent');
+        }
+
+        var jeton = sessionStorage.getItem('jeton') || '';
+
+        function auth(sup) {
+            var h = {
+                'Authorization': 'Bearer ' + GDS.CLE_PUBLIQUE,
+                'apikey': GDS.CLE_PUBLIQUE,
+                'X-GDS-Session': jeton
+            };
+            if (sup) for (var k in sup) h[k] = sup[k];
+            return h;
+        }
+
+        var PREFIXE_STOCK = 'StockStatus_FR_STOREDEPOT_';
+
+        /* Date d'export lue dans le nom du fichier, pas sur l'horodatage. */
+        function dateExport(nom) {
+            var m = nom.match(/_(\d{2})-(\d{2})-(\d{4})/);
+            return m ? new Date(+m[3], +m[2] - 1, +m[1]) : null;
+        }
+
+        async function chargerDepuisServeur() {
+            if (!jeton) {
+                location.replace((GDS.BASE || '') + 'index.html');
+                return;
+            }
+
+            var btn = document.getElementById('btn-serveur');
+            var libelle = btn.textContent;
+            btn.textContent = '⏳ Chargement...';
+            btn.disabled = true;
+
+            try {
+                var r = await fetch(GDS.API + '/fichiers', {
+                    method: 'POST',
+                    headers: auth({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({ prefix: '' })
+                });
+                if (r.status === 401 || r.status === 403) {
+                    location.replace((GDS.BASE || '') + 'index.html');
+                    return;
+                }
+                if (!r.ok) throw new Error('liste indisponible');
+
+                var d = await r.json();
+                var fichiers = (Array.isArray(d) ? d : [])
+                    .filter(function (f) { return f.name && f.name.indexOf(PREFIXE_STOCK) === 0; });
+
+                if (!fichiers.length) {
+                    alert('Aucun fichier de stock disponible.\nIl doit d\'abord etre depose depuis le sommaire.');
+                    return;
+                }
+
+                /* Le plus recent selon la date contenue dans le nom. */
+                fichiers.sort(function (a, b) {
+                    var da = dateExport(a.name), db = dateExport(b.name);
+                    return (db ? db.getTime() : 0) - (da ? da.getTime() : 0);
+                });
+                var choisi = fichiers[0];
+
+                var dl = await fetch(GDS.API + '/fichier/' + encodeURIComponent(choisi.name), { headers: auth() });
+                if (!dl.ok) throw new Error('telechargement impossible');
+                var texte = await dl.text();
+
+                document.getElementById('productsContent').innerHTML =
+                    '<div class="loading"><div class="spinner"></div>' +
+                    '<div class="loading-text">Analyse du fichier en cours...</div></div>';
+
+                var d0 = dateExport(choisi.name);
+                var etiquette = d0 ? d0.toLocaleDateString('fr-FR') : choisi.name;
+
+                Papa.parse(texte, {
+                    header: true,
+                    dynamicTyping: false,
+                    skipEmptyLines: true,
+                    complete: function (results) {
+                        setTimeout(function () {
+                            processCSVData(results.data);
+                            btn.textContent = '✅ Stock du ' + etiquette;
+                            btn.disabled = false;
+                        }, 500);
+                    },
+                    error: function (error) {
+                        alert('Erreur de lecture du fichier : ' + error.message);
+                        btn.textContent = libelle;
+                        btn.disabled = false;
+                    }
+                });
+                return;
+
+            } catch (e) {
+                alert('Chargement impossible : ' + e.message);
+            }
+
+            btn.textContent = libelle;
+            btn.disabled = false;
+        }
+
+        let mappingRules = {
+            "MEAT_SPECIAL_HANDLING": { 
+                dlcDays: 7, 
+                category: "Produits spéciaux viande", 
+                description: "Viandes et produits spéciaux nécessitant manipulation particulière" 
+            },
+            "DEEP_FROZEN": { 
+                dlcDays: 365, 
+                category: "Produits surgelés", 
+                description: "Produits congelés avec longue durée de conservation" 
+            },
+            "FISH": { 
+                dlcDays: 3, 
+                category: "Produits de la mer", 
+                description: "Poissons et fruits de mer frais" 
+            }
+        };
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeEventListeners();
+            updateMappingDisplay();
+            updateZoneFilter();
+        });
+
+        function initializeEventListeners() {
+            document.getElementById('csvFile').addEventListener('change', handleFileUpload);
+            document.getElementById('searchInput').addEventListener('input', applyFilters);
+            document.getElementById('statusFilter').addEventListener('change', applyFilters);
+            document.getElementById('zoneFilter').addEventListener('change', applyFilters);
+        }
+
+        // Fonctions pour le modal d'orientation
+        function showPrintDialog() {
+            if (filteredProducts.length === 0) {
+                alert('Aucun produit à exporter en PDF');
+                return;
+            }
+            document.getElementById('orientationModal').classList.add('active');
+        }
+
+        function closePrintDialog() {
+            document.getElementById('orientationModal').classList.remove('active');
+        }
+
+        function selectOrientation(orientation) {
+            selectedOrientation = orientation;
+            
+            // Mettre à jour la sélection visuelle
+            document.querySelectorAll('.orientation-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            document.querySelector(`[data-orientation="${orientation}"]`).classList.add('selected');
+        }
+
+        function confirmPrint() {
+            closePrintDialog();
+            generatePDF(selectedOrientation);
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const expectedPrefix = 'StockStatus_FR_STOREDEPOT_';
+            
+            if (!file.name.startsWith(expectedPrefix)) {
+                alert(`❌ Erreur : Le fichier doit commencer par "${expectedPrefix}"\n\nFichier actuel : ${file.name}`);
+                event.target.value = '';
+                return;
+            }
+
+            const today = new Date();
+            const fileDate = new Date(file.lastModified);
+            
+            const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const fileDateOnly = new Date(fileDate.getFullYear(), fileDate.getMonth(), fileDate.getDate());
+            
+            if (fileDateOnly.getTime() !== todayDateOnly.getTime()) {
+                const fileDateString = fileDate.toLocaleDateString('fr-FR');
+                const todayDateString = today.toLocaleDateString('fr-FR');
+                
+                alert(`❌ Erreur : Le fichier doit avoir été créé aujourd'hui uniquement.\n\nDate du fichier : ${fileDateString}\nDate d'aujourd'hui : ${todayDateString}`);
+                event.target.value = '';
+                return;
+            }
+
+            const loadingHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div class="loading-text">Chargement et analyse du fichier en cours...</div>
+                </div>
+            `;
+            document.getElementById('productsContent').innerHTML = loadingHTML;
+
+            Papa.parse(file, {
+                header: true,
+                dynamicTyping: false,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    setTimeout(() => processCSVData(results.data), 500);
+                },
+                error: function(error) {
+                    alert('Erreur lors du chargement du fichier: ' + error.message);
+                }
+            });
+        }
+
+        function processCSVData(data) {
+            allProducts = data.filter(row => row.Description && row.BBD).map((row, index) => {
+                const bbd = parseDate(row.BBD);
+                const dlcStatus = calculateDLCStatus(bbd, row['Max Delivery Date'], row['Picking Area'], row['Description']);
+                
+                return {
+                    id: index + 1,
+                    pickingArea: row['Picking Area'] || '',
+                    position: row['Position'] || '',
+                    locationCode: row['Location Code'] || '',
+                    description: row['Description'] || '',
+                    mgb: row['MGB'] || '',
+                    subSys: row['SubSys'] || '',
+                    bundleSize: row['Bundle Size'] || 1,
+                    quantity: parseFloat(row['Quantity']) || 0,
+                    bbd: bbd,
+                    bbdOriginal: row['BBD'],
+                    maxDeliveryDate: row['Max Delivery Date'] || '',
+                    sscc: row['SSCC'] || '',
+                    lastChangedAt: row['LastChangedAt'] || '',
+                    dlcStatus: dlcStatus,
+                    managementKey: calculateManagementKey(row['Description'] || '')
+                };
+            });
+
+            console.log(`Données traitées: ${allProducts.length} produits`);
+            
+            showSuccessNotification(data.length, allProducts.length);
+            
+            updateZoneFilter();
+            applyFilters();
+            updateStatistics();
+        }
+
+        function showSuccessNotification(totalRows, validProducts) {
+            const stats = {
+                toRemove: allProducts.filter(p => p.dlcStatus.status === 'to-remove').length,
+                expired: allProducts.filter(p => p.dlcStatus.status === 'expired').length,
+                critical: allProducts.filter(p => p.dlcStatus.status === 'critical').length,
+                warning: allProducts.filter(p => p.dlcStatus.status === 'warning').length,
+                good: allProducts.filter(p => p.dlcStatus.status === 'good').length
+            };
+
+            const notification = document.createElement('div');
+            notification.className = 'success-notification';
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <div class="notification-header">
+                        <span class="notification-icon">✅</span>
+                        <span class="notification-title">Fichier chargé avec succès !</span>
+                        <button class="notification-close" onclick="this.parentElement.parentElement.parentElement.remove()">×</button>
+                    </div>
+                    <div class="notification-body">
+                        <div class="notification-stats">
+                            <div class="stat-item">
+                                <strong>${totalRows}</strong> lignes lues
+                            </div>
+                            <div class="stat-item">
+                                <strong>${validProducts}</strong> produits valides
+                            </div>
+                            <div class="stat-item critical">
+                                <strong>${stats.toRemove + stats.expired + stats.critical}</strong> produits urgents
+                            </div>
+                        </div>
+                        <div class="notification-details">
+                            <span class="detail-item">🚨 À sortir: ${stats.toRemove}</span>
+                            <span class="detail-item">🔴 Expirés: ${stats.expired}</span>
+                            <span class="detail-item">🟠 Critiques: ${stats.critical}</span>
+                            <span class="detail-item">🟡 Attention: ${stats.warning}</span>
+                            <span class="detail-item">🟢 Bons: ${stats.good}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            if (!document.querySelector('#notification-styles')) {
+                const styles = document.createElement('style');
+                styles.id = 'notification-styles';
+                styles.textContent = `
+                    .success-notification {
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        background: white;
+                        border-radius: 12px;
+                        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+                        border-left: 5px solid #10b981;
+                        z-index: 1000;
+                        min-width: 350px;
+                        animation: slideInRight 0.3s ease-out;
+                    }
+                    
+                    @keyframes slideInRight {
+                        from { transform: translateX(100%); opacity: 0; }
+                        to { transform: translateX(0); opacity: 1; }
+                    }
+                    
+                    .notification-content {
+                        padding: 16px;
+                    }
+                    
+                    .notification-header {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        margin-bottom: 12px;
+                    }
+                    
+                    .notification-icon {
+                        font-size: 20px;
+                    }
+                    
+                    .notification-title {
+                        font-weight: 600;
+                        color: #065f46;
+                        flex: 1;
+                    }
+                    
+                    .notification-close {
+                        background: none;
+                        border: none;
+                        font-size: 20px;
+                        cursor: pointer;
+                        color: #6b7280;
+                        padding: 0;
+                        width: 24px;
+                        height: 24px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        border-radius: 50%;
+                        transition: all 0.2s ease;
+                    }
+                    
+                    .notification-close:hover {
+                        background: #f3f4f6;
+                        color: #374151;
+                    }
+                    
+                    .notification-stats {
+                        display: flex;
+                        gap: 16px;
+                        margin-bottom: 12px;
+                        padding-bottom: 12px;
+                        border-bottom: 1px solid #e5e7eb;
+                    }
+                    
+                    .stat-item {
+                        text-align: center;
+                        font-size: 13px;
+                        color: #374151;
+                    }
+                    
+                    .stat-item.critical {
+                        color: #dc2626;
+                    }
+                    
+                    .stat-item strong {
+                        display: block;
+                        font-size: 18px;
+                        font-weight: 700;
+                        margin-bottom: 2px;
+                    }
+                    
+                    .notification-details {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 8px;
+                    }
+                    
+                    .detail-item {
+                        font-size: 11px;
+                        color: #6b7280;
+                        background: #f9fafb;
+                        padding: 4px 8px;
+                        border-radius: 6px;
+                        border: 1px solid #e5e7eb;
+                    }
+                `;
+                document.head.appendChild(styles);
+            }
+
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.style.animation = 'slideInRight 0.3s ease-in reverse';
+                    setTimeout(() => notification.remove(), 300);
+                }
+            }, 8000);
+        }
+
+        function parseDate(dateStr) {
+            if (!dateStr) return null;
+            
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                const day = parseInt(parts[0]);
+                const month = parseInt(parts[1]) - 1;
+                const year = parseInt(parts[2]);
+                return new Date(year, month, day);
+            }
+            return null;
+        }
+
+        function calculateDLCStatus(bbdDate, maxDeliveryDate, pickingArea, description) {
+            if (!bbdDate) return { status: 'unknown', label: 'Inconnu', daysLeft: null };
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const descLower = (description || '').toLowerCase();
+            
+            const isPouletVolailleBase = /poulet|volaille|canard|dinde|chicken|poultry|oie|pintade/.test(descLower);
+            const isTransformed = /filet|nuggets|escalope|cordon bleu|panés|pané|haché|émincé|brochette|mariné|rôti|farci|préparé|cuisiné/.test(descLower);
+            const isPouletVolaille = isPouletVolailleBase && !isTransformed;
+            
+            const isSteakHache = /steak haché|steack haché|bœuf haché|boeuf haché|viande hachée|tartare/.test(descLower);
+            
+            const dayOfWeek = today.getDay();
+            const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
+            const isSaturday = dayOfWeek === 6;
+            
+            if (maxDeliveryDate) {
+                const maxDelivery = parseDate(maxDeliveryDate);
+                if (maxDelivery) {
+                    maxDelivery.setHours(0, 0, 0, 0);
+                    const maxDeliveryDiff = maxDelivery - today;
+                    const maxDeliveryDaysLeft = Math.ceil(maxDeliveryDiff / (1000 * 60 * 60 * 24));
+                    
+                    let shouldRemove = false;
+                    
+                    if (isWeekday) {
+                        if (maxDeliveryDaysLeft <= 0) {
+                            shouldRemove = true;
+                        } else if (maxDeliveryDaysLeft === 1 && (isPouletVolaille || isSteakHache)) {
+                            shouldRemove = true;
+                        }
+                    } else if (isSaturday) {
+                        if (maxDeliveryDaysLeft <= 1) {
+                            shouldRemove = true;
+                        } else if (maxDeliveryDaysLeft === 2 && (isPouletVolaille || isSteakHache)) {
+                            shouldRemove = true;
+                        }
+                    } else {
+                        if (maxDeliveryDaysLeft <= 0) {
+                            shouldRemove = true;
+                        }
+                    }
+                    
+                    if (shouldRemove) {
+                        let productType = 'Standard';
+                        if (isPouletVolaille) productType = 'Poulet/Volaille';
+                        else if (isSteakHache) productType = 'Steak Haché';
+                        else if (isPouletVolailleBase && isTransformed) productType = 'Poulet Transformé';
+                        
+                        return { 
+                            status: 'to-remove', 
+                            label: 'À Sortir', 
+                            daysLeft: maxDeliveryDaysLeft,
+                            reason: 'Max Delivery Date atteinte',
+                            productType: productType
+                        };
+                    }
+                }
+            }
+
+            const bbdCopy = new Date(bbdDate);
+            bbdCopy.setHours(0, 0, 0, 0);
+            const timeDiff = bbdCopy - today;
+            const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+
+            if (daysLeft < 0) {
+                return { status: 'expired', label: 'Expiré', daysLeft: daysLeft };
+            } else if (daysLeft <= 1) {
+                return { status: 'critical', label: 'Critique', daysLeft: daysLeft };
+            } else if (daysLeft <= 3) {
+                return { status: 'warning', label: 'Attention', daysLeft: daysLeft };
+            } else {
+                return { status: 'good', label: 'Bon', daysLeft: daysLeft };
+            }
+        }
+
+        function calculateManagementKey(description) {
+            const today = new Date();
+            const dayOfWeek = today.getDay();
+            
+            const descLower = (description || '').toLowerCase();
+            const isSteakHache = /steak haché|steack haché|bœuf haché|boeuf haché|viande hachée|tartare/.test(descLower);
+            
+            if (isSteakHache) {
+                return { key: 16, color: 'key-16' };
+            }
+            
+            if (dayOfWeek === 3 || dayOfWeek === 6) {
+                return { key: 7, color: 'key-7' };
+            }
+            
+            return { key: 16, color: 'key-16' };
+        }
+
+        function updateZoneFilter() {
+            const zoneFilter = document.getElementById('zoneFilter');
+            const zones = [...new Set(allProducts.map(p => p.pickingArea))].filter(Boolean).sort();
+            
+            zoneFilter.innerHTML = '<option value="all">📍 Toutes les zones</option>';
+            
+            zones.forEach(zone => {
+                const option = document.createElement('option');
+                option.value = zone;
+                option.textContent = `📍 ${zone}`;
+                zoneFilter.appendChild(option);
+            });
+        }
+
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            const zoneFilter = document.getElementById('zoneFilter').value;
+
+            filteredProducts = allProducts.filter(product => {
+                const matchesSearch = !searchTerm ||
+                    product.description.toLowerCase().includes(searchTerm) ||
+                    String(product.mgb).includes(searchTerm);
+
+                const matchesStatus = statusFilter === 'all' || product.dlcStatus.status === statusFilter;
+                
+                const matchesZone = zoneFilter === 'all' || product.pickingArea === zoneFilter;
+
+                return matchesSearch && matchesStatus && matchesZone;
+            });
+
+            filteredProducts.sort((a, b) => {
+                const posA = a.position || '';
+                const posB = b.position || '';
+                
+                const parsePosition = (pos) => {
+                    const parts = pos.split('-');
+                    return parts.map(part => {
+                        const num = parseInt(part);
+                        return isNaN(num) ? part : num;
+                    });
+                };
+                
+                const partsA = parsePosition(posA);
+                const partsB = parsePosition(posB);
+                
+                for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+                    const partA = partsA[i] || '';
+                    const partB = partsB[i] || '';
+                    
+                    if (typeof partA === 'number' && typeof partB === 'number') {
+                        if (partA !== partB) return partA - partB;
+                    } else {
+                        const comparison = String(partA).localeCompare(String(partB));
+                        if (comparison !== 0) return comparison;
+                    }
+                }
+                
+                return 0;
+            });
+
+            displayProducts();
+            updateStatistics();
+        }
+
+        function displayProducts() {
+            const container = document.getElementById('productsContent');
+            
+            if (filteredProducts.length === 0) {
+                container.innerHTML = `
+                    <div class="no-data">
+                        <h3>Aucun produit trouvé</h3>
+                        <p>Essayez de modifier vos critères de recherche ou filtres</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const tableHTML = `
+                <div class="table-container">
+                    <table class="products-table">
+                        <thead>
+                            <tr>
+                                <th>Position ↑</th>
+                                <th>Description Produit</th>
+                                <th>Code MGB</th>
+                                <th>Quantité</th>
+                                <th>Max Livraison</th>
+                                <th>DLC</th>
+                                <th>Jours</th>
+                                <th>Statut</th>
+                                <th>Clé</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${filteredProducts.map(product => `
+                                <tr>
+                                    <td class="position-cell">${product.position}</td>
+                                    <td class="description-cell" title="${product.description}">${product.description}</td>
+                                    <td class="mgb-cell">${product.mgb}</td>
+                                    <td class="quantity-cell">${product.quantity}</td>
+                                    <td class="date-cell">${product.maxDeliveryDate}</td>
+                                    <td class="date-cell">${product.bbdOriginal}</td>
+                                    <td class="days-cell" style="color: ${getDaysColor(product.dlcStatus.daysLeft)}">${product.dlcStatus.daysLeft !== null ? product.dlcStatus.daysLeft + 'j' : '-'}</td>
+                                    <td><span class="status-badge status-${product.dlcStatus.status}${product.dlcStatus.productType === 'Poulet/Volaille' ? ' poulet-volaille' : ''}${product.dlcStatus.productType === 'Steak Haché' ? ' steak-hache' : ''}" title="${product.dlcStatus.productType || ''}">${product.dlcStatus.label}</span></td>
+                                    <td><span class="key-cell ${product.managementKey.color}">${product.managementKey.key}</span></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            container.innerHTML = tableHTML;
+        }
+
+        function getDaysColor(days) {
+            if (days === null) return '#64748b';
+            if (days < 0) return '#dc2626';
+            if (days <= 0) return '#dc2626';
+            if (days <= 1) return '#f59e0b';
+            if (days <= 3) return '#f59e0b';
+            return '#10b981';
+        }
+
+        function updateStatistics() {
+            const stats = {
+                total: filteredProducts.length,
+                toRemove: filteredProducts.filter(p => p.dlcStatus.status === 'to-remove').length,
+                expired: filteredProducts.filter(p => p.dlcStatus.status === 'expired').length,
+                critical: filteredProducts.filter(p => p.dlcStatus.status === 'critical').length,
+                warning: filteredProducts.filter(p => p.dlcStatus.status === 'warning').length,
+                good: filteredProducts.filter(p => p.dlcStatus.status === 'good').length
+            };
+
+            const statsHTML = `
+                <div class="stat-card">
+                    <div class="stat-number" style="color: var(--primary);">${stats.total}</div>
+                    <div class="stat-label">Total Produits</div>
+                </div>
+                <div class="stat-card stat-to-remove">
+                    <div class="stat-number">${stats.toRemove}</div>
+                    <div class="stat-label">À Sortir</div>
+                </div>
+                <div class="stat-card stat-expired">
+                    <div class="stat-number">${stats.expired}</div>
+                    <div class="stat-label">Expirés</div>
+                </div>
+                <div class="stat-card stat-critical">
+                    <div class="stat-number">${stats.critical}</div>
+                    <div class="stat-label">Critiques</div>
+                </div>
+                <div class="stat-card stat-warning">
+                    <div class="stat-number">${stats.warning}</div>
+                    <div class="stat-label">Attention</div>
+                </div>
+                <div class="stat-card stat-good">
+                    <div class="stat-number">${stats.good}</div>
+                    <div class="stat-label">Bons</div>
+                </div>
+            `;
+
+            document.getElementById('statsContainer').innerHTML = statsHTML;
+        }
+
+        function updateMappingDisplay() {
+            const mappingGrid = document.getElementById('mappingGrid');
+            
+            const mappingHTML = Object.entries(mappingRules).map(([zone, rule]) => `
+                <div class="mapping-card">
+                    <h4>${zone}</h4>
+                    <p>${rule.description}</p>
+                    <div class="mapping-info">
+                        <span class="dlc-days">DLC: ${rule.dlcDays} jours</span>
+                        <span class="category-tag">${rule.category}</span>
+                    </div>
+                </div>
+            `).join('');
+
+            mappingGrid.innerHTML = mappingHTML;
+        }
+
+        function generatePDF(orientation = 'portrait') {
+            if (filteredProducts.length === 0) {
+                alert('Aucun produit à exporter en PDF');
+                return;
+            }
+
+            const today = new Date().toLocaleDateString('fr-FR');
+            const productsPerPage = orientation === 'portrait' ? 28 : 35;
+            
+            const pages = [];
+            for (let i = 0; i < filteredProducts.length; i += productsPerPage) {
+                pages.push(filteredProducts.slice(i, i + productsPerPage));
+            }
+            
+            const generatePageContent = (products, pageNumber, totalPages) => `
+                <div class="page-content" ${pageNumber > 1 ? 'style="page-break-before: always;"' : ''}>
+                    <div class="print-header">
+                        <div class="name-boxes">
+                            <div class="name-container">
+                                <span class="name-label">NOM :</span>
+                                <div class="name-box nom-box"></div>
+                            </div>
+                            <div class="name-container">
+                                <span class="name-label">PRÉNOM :</span>
+                                <div class="name-box prenom-box"></div>
+                            </div>
+                        </div>
+                        <div class="print-title">🏪 Gestion des DLC - La Brède METRO</div>
+                        <div class="print-subtitle">Rapport de surveillance des dates limites de consommation</div>
+                        <div class="print-date">Date : ${today} • Page ${pageNumber}/${totalPages} • ${filteredProducts.length} produits total • Orientation: ${orientation === 'portrait' ? 'Portrait' : 'Paysage'}</div>
+                    </div>
+                    
+                    <table class="print-table">
+                        <thead>
+                            <tr>
+                                <th style="width: ${orientation === 'portrait' ? '12%' : '10%'};">Position</th>
+                                <th style="width: ${orientation === 'portrait' ? '35%' : '38%'};">Description</th>
+                                <th style="width: ${orientation === 'portrait' ? '10%' : '9%'};">MGB</th>
+                                <th class="bold-header" style="width: ${orientation === 'portrait' ? '6%' : '5%'};">Qté</th>
+                                <th style="width: ${orientation === 'portrait' ? '9%' : '8%'};">Max Liv.</th>
+                                <th class="bold-header" style="width: ${orientation === 'portrait' ? '9%' : '8%'};">DLC</th>
+                                <th style="width: ${orientation === 'portrait' ? '6%' : '5%'};">Jours</th>
+                                <th style="width: ${orientation === 'portrait' ? '8%' : '7%'};">Statut</th>
+                                <th style="width: ${orientation === 'portrait' ? '5%' : '5%'};">Clé</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${products.map(product => {
+                                const descLower = (product.description || '').toLowerCase();
+                                const isPouletVolailleBase = /poulet|volaille|canard|dinde|chicken|poultry|oie|pintade/.test(descLower);
+                                const isTransformed = /filet|nuggets|escalope|cordon bleu|panés|pané|haché|émincé|brochette|mariné|rôti|farci|préparé|cuisiné/.test(descLower);
+                                const isPouletVolaille = isPouletVolailleBase && !isTransformed;
+                                const pouletClass = isPouletVolaille ? ' poulet-row' : '';
+                                
+                                return `
+                                <tr class="${pouletClass}">
+                                    <td>${product.position}</td>
+                                    <td class="print-desc" title="${product.description}">${product.description}</td>
+                                    <td class="print-code">${product.mgb}</td>
+                                    <td class="print-center bold-cell">${product.quantity}</td>
+                                    <td class="print-center">${product.maxDeliveryDate}</td>
+                                    <td class="print-center bold-cell">${product.bbdOriginal}</td>
+                                    <td class="print-center">${product.dlcStatus.daysLeft !== null ? product.dlcStatus.daysLeft + 'j' : '-'}</td>
+                                    <td class="print-status-${product.dlcStatus.status}">${product.dlcStatus.label}</td>
+                                    <td class="print-key-${product.managementKey.key}">${product.managementKey.key}</td>
+                                </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            const printContent = `
+                <style>
+                    @page {
+                        margin: ${orientation === 'portrait' ? '15mm' : '10mm'};
+                        size: A4 ${orientation};
+                    }
+                    
+                    body {
+                        font-family: Arial, sans-serif;
+                        font-size: ${orientation === 'portrait' ? '11px' : '10px'};
+                        margin: 0;
+                        padding: 0;
+                        color: #333;
+                    }
+                    
+                    .page-content {
+                        min-height: 100vh;
+                        page-break-inside: avoid;
+                    }
+                    
+                    .print-header {
+                        position: relative;
+                        margin-bottom: 15px;
+                        padding-bottom: 10px;
+                        border-bottom: 2px solid #333;
+                        page-break-inside: avoid;
+                    }
+                    
+                    .print-title {
+                        font-size: ${orientation === 'portrait' ? '20px' : '18px'};
+                        font-weight: bold;
+                        color: #333;
+                        margin-bottom: 5px;
+                    }
+                    
+                    .print-subtitle {
+                        font-size: ${orientation === 'portrait' ? '13px' : '12px'};
+                        color: #666;
+                        margin-bottom: 8px;
+                    }
+                    
+                    .print-date {
+                        font-size: ${orientation === 'portrait' ? '11px' : '10px'};
+                        color: #666;
+                    }
+                    
+                    .name-boxes {
+                        position: absolute;
+                        top: 0;
+                        right: 0;
+                        display: flex;
+                        gap: 20px;
+                    }
+                    
+                    .name-container {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: flex-start;
+                        gap: 4px;
+                    }
+                    
+                    .name-label {
+                        font-size: 10px;
+                        font-weight: bold;
+                        color: #333;
+                        margin-bottom: 2px;
+                    }
+                    
+                    .name-box {
+                        border: 3px solid #333;
+                        padding: 0;
+                        width: 100px;
+                        height: 25px;
+                        background: white;
+                    }
+                    
+                    .nom-box {
+                        background: #e3f2fd;
+                        border-color: #1976d2;
+                    }
+                    
+                    .prenom-box {
+                        background: #f3e5f5;
+                        border-color: #7b1fa2;
+                    }
+                    
+                    .print-table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-top: 10px;
+                        font-size: ${orientation === 'portrait' ? '10px' : '9px'};
+                    }
+                    
+                    .print-table th {
+                        background: #333;
+                        color: white;
+                        padding: ${orientation === 'portrait' ? '6px 4px' : '5px 3px'};
+                        text-align: left;
+                        font-weight: bold;
+                        font-size: ${orientation === 'portrait' ? '10px' : '9px'};
+                        border: 1px solid #333;
+                    }
+                    
+                    /* EN GRAS : Les colonnes Quantité et DLC */
+                    .print-table th.bold-header {
+                        font-weight: 900;
+                        background: #1e3a8a;
+                    }
+                    
+                    .print-table td {
+                        padding: ${orientation === 'portrait' ? '4px' : '3px'};
+                        border: 1px solid #ccc;
+                        vertical-align: middle;
+                        font-size: ${orientation === 'portrait' ? '10px' : '9px'};
+                    }
+                    
+                    /* EN GRAS : Les cellules Quantité et DLC */
+                    .print-table td.bold-cell {
+                        font-weight: 900;
+                        background: #f0f9ff;
+                    }
+                    
+                    .print-table tr:nth-child(even) {
+                        background: #f9f9f9;
+                    }
+                    
+                    .poulet-row {
+                        background: #e8f5e8 !important;
+                    }
+                    
+                    .poulet-row:nth-child(even) {
+                        background: #d4f4d4 !important;
+                    }
+                    
+                    .print-status-to-remove { 
+                        background: #ffcdd2 !important; 
+                        color: #c62828;
+                        font-weight: bold;
+                        text-align: center;
+                    }
+                    
+                    .print-status-expired { 
+                        background: #ffcdd2 !important; 
+                        color: #d32f2f;
+                        font-weight: bold;
+                        text-align: center;
+                    }
+                    
+                    .print-status-critical { 
+                        background: #ffe0b2 !important; 
+                        color: #f57c00;
+                        font-weight: bold;
+                        text-align: center;
+                    }
+                    
+                    .print-status-warning { 
+                        background: #fff9c4 !important; 
+                        color: #f9a825;
+                        font-weight: bold;
+                        text-align: center;
+                    }
+                    
+                    .print-status-good { 
+                        background: #c8e6c9 !important; 
+                        color: #2e7d32;
+                        font-weight: bold;
+                        text-align: center;
+                    }
+                    
+                    .print-key-7 {
+                        background: #fff8dc !important;
+                        color: #b8860b;
+                        font-weight: bold;
+                        text-align: center;
+                        border: 1px solid #daa520;
+                    }
+                    
+                    .print-key-16 {
+                        background: #e8f5e8 !important;
+                        color: #2e7d32;
+                        font-weight: bold;
+                        text-align: center;
+                        border: 1px solid #81c784;
+                    }
+                    
+                    .print-center {
+                        text-align: center;
+                        font-weight: bold;
+                    }
+                    
+                    .print-desc {
+                        max-width: ${orientation === 'portrait' ? '100px' : '120px'};
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                    }
+                    
+                    .print-code {
+                        font-family: monospace;
+                        text-align: center;
+                        font-size: ${orientation === 'portrait' ? '9px' : '8px'};
+                    }
+                    
+                    .instructions {
+                        margin: 20px;
+                        padding: 15px;
+                        background: #e8f5e8;
+                        border: 2px solid #4caf50;
+                        border-radius: 8px;
+                        font-size: 11px;
+                    }
+                    
+                    @media print {
+                        body { margin: 0; }
+                        .no-print, .instructions { display: none !important; }
+                    }
+                </style>
+                
+                ${pages.map((pageProducts, index) => 
+                    generatePageContent(pageProducts, index + 1, pages.length)
+                ).join('')}
+                
+                <div class="instructions no-print">
+                    <strong>📋 Instructions d'impression :</strong><br>
+                    • Utilisez <strong>Ctrl+P</strong> (Windows) ou <strong>Cmd+P</strong> (Mac) pour imprimer<br>
+                    • L'orientation <strong>${orientation === 'portrait' ? 'Portrait' : 'Paysage'}</strong> est déjà configurée<br>
+                    • Les colonnes <strong>Quantité</strong> et <strong>DLC</strong> sont en gras<br>
+                    • Les champs <strong>NOM</strong> et <strong>PRÉNOM</strong> sont présents sur chaque page<br>
+                    • Remplissez ces champs à la main après impression<br>
+                    • Fermez cette fenêtre après impression<br>
+                    • <strong>${pages.length} pages</strong> à imprimer au total
+                </div>
+            `;
+
+            const printWindow = window.open('', '_blank', 'width=900,height=700');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Gestion DLC - ${today} - ${orientation}</title>
+                </head>
+                <body>
+                    ${printContent}
+                </body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+            printWindow.focus();
+            
+            setTimeout(() => {
+                printWindow.print();
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
