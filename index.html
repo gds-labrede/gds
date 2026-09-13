@@ -350,9 +350,6 @@ async function connecter(){
     occupe('b-in', false, 'Se connecter');
 
     if(d.etat === 'ok'){
-      /* Le jeton vit le temps de l'onglet : refermer la fen\u00eatre
-         d\u00e9connecte, ce qui limite les sessions oubli\u00e9es
-         sur un poste partag\u00e9. */
       /* localStorage et non sessionStorage : les outils s'ouvrent
          dans un nouvel onglet, qui n'herite pas du stockage de session.
          L'echeance est portee par le jeton lui-meme (12 h) et par la
