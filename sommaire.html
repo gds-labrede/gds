@@ -574,7 +574,10 @@ function ouvrirVue(id){
     f.outils.forEach(function(o){
       var a = document.createElement('a');
       a.className = 'outil';
-      a.href = BASE + o.f; a.target = '_blank'; a.rel = 'noopener';
+      /* 'opener' et non 'noopener' : sans la relation avec l'onglet
+         d'origine, le navigateur n'y recopie pas le sessionStorage,
+         et les outils qui appellent l'API perdent la session. */
+      a.href = BASE + o.f; a.target = '_blank'; a.rel = 'opener';
       a.style.setProperty('--c', f.c);
       a.innerHTML = '<div class="o-ico">' + svg(o.ico) + '</div>' +
                     '<div class="o-nom">' + o.nom + '</div>' +
