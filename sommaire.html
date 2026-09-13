@@ -493,9 +493,9 @@ var FAMILLES = [
 ];
 
 /* ══════════ SESSION ══════════ */
-var jeton = sessionStorage.getItem('gds_jeton');
-var role  = sessionStorage.getItem('gds_role');
-var nom   = sessionStorage.getItem('gds_nom');
+var jeton = localStorage.getItem('gds_jeton') || sessionStorage.getItem('gds_jeton');
+var role  = localStorage.getItem('gds_role')  || sessionStorage.getItem('gds_role');
+var nom   = localStorage.getItem('gds_nom')   || sessionStorage.getItem('gds_nom');
 if(!jeton){ location.replace('index.html'); }
 
 var LIBELLE = { admin:'Administrateur', admin_restreint:'Admin restreint', user:'Utilisateur' };
@@ -506,7 +506,7 @@ document.getElementById('pastille').textContent =
 document.getElementById('accroche').textContent =
   'Bonjour ' + (nom || '') + ' — sélectionnez une famille.';
 
-function quitter(){ sessionStorage.clear(); location.replace('index.html'); }
+function quitter(){ sessionStorage.clear(); localStorage.clear(); location.replace('index.html'); }
 function svg(n){ return '<svg viewBox="0 0 48 48">' + (I[n] || I.feuille) + '</svg>'; }
 
 function auth(sup){

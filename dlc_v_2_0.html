@@ -1040,7 +1040,7 @@
             throw new Error('config.js absent');
         }
 
-        var jeton = sessionStorage.getItem('gds_jeton') || '';
+        var jeton = localStorage.getItem('gds_jeton') || sessionStorage.getItem('gds_jeton') || '';
 
         function auth(sup) {
             var h = {
@@ -1062,7 +1062,8 @@
 
         async function chargerDepuisServeur() {
             if (!jeton) {
-                location.replace((GDS.BASE || '') + 'index.html');
+                alert('Session absente.\n\nOuvrez cet outil depuis le sommaire, ' +
+                      'pas en saisissant son adresse directement.');
                 return;
             }
 
@@ -1078,7 +1079,7 @@
                     body: JSON.stringify({ prefix: '' })
                 });
                 if (r.status === 401 || r.status === 403) {
-                    location.replace((GDS.BASE || '') + 'index.html');
+                    alert('Session expiree. Reconnectez-vous depuis le sommaire.');
                     return;
                 }
                 if (!r.ok) throw new Error('liste indisponible');
