@@ -1040,7 +1040,7 @@
             throw new Error('config.js absent');
         }
 
-        var jeton = sessionStorage.getItem('jeton') || '';
+        var jeton = sessionStorage.getItem('gds_jeton') || '';
 
         function auth(sup) {
             var h = {
