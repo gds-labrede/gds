@@ -16,7 +16,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&family=Montserrat:wght@400;700&family=Oswald:wght@400;700&family=Lato:wght@400;700&family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&family=Montserrat:wght@400;700&family=Oswald:wght@400;700&family=Lato:wght@400;700&family=Poppins:wght@400;700&display=swap" rel="stylesheet">
   <style>
     :root {
       --idl-blue: #1A3A6E;
@@ -735,6 +735,169 @@
       .main-container { flex-direction: column; }
       .sidebar { width: 100%; min-width: 100%; max-height: 50vh; }
     }
+
+/* ════════════════════════════════════════════
+   HABILLAGE GDS — surcouche appliquée après
+   les regles d'origine, qu'elle ne remplace pas.
+   ════════════════════════════════════════════ */
+:root{
+  --idl-blue:#1a2e55; --idl-light-blue:#24406f; --idl-dark-blue:#12213e;
+  --idl-red:#b8342f; --orange:#d46c1a;
+  --bg-primary:#eef1f6; --bg-secondary:#ffffff; --bg-tertiary:#f4f6fa;
+  --text-primary:#16203a; --text-secondary:#5c6883; --text-low:#98a1b5;
+  --border-color:#e2e7ef; --border-hi:#c9d2e0;
+  --success:#2c7a5b; --warning:#a8641c;
+  --shadow-sm:0 1px 2px rgba(20,32,60,.05);
+  --shadow-md:0 10px 28px -20px rgba(20,32,60,.45);
+}
+body{font-family:'DM Sans',sans-serif;color:var(--text-primary);
+  -webkit-font-smoothing:antialiased}
+
+/* ── Bandeau ── */
+.header{height:62px;padding:0 24px;background:var(--bg-secondary);
+  border-bottom:1px solid var(--border-color);box-shadow:0 1px 3px rgba(20,32,60,.07)}
+.header-nav{gap:8px}
+.nav-tab{position:relative;overflow:hidden;font-family:'DM Sans',sans-serif;
+  font-size:13px;font-weight:600;letter-spacing:-.1px;
+  padding:9px 15px;border-radius:9px;border:1px solid transparent;
+  color:var(--text-secondary);background:transparent;
+  transition:color .18s,background .18s,border-color .18s,box-shadow .2s}
+.nav-tab:hover{background:var(--bg-tertiary);border-color:var(--border-color);color:var(--text-primary)}
+.nav-tab.active{background:linear-gradient(180deg,var(--idl-light-blue),var(--idl-blue));
+  border-color:var(--idl-blue);color:#fff;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 2px 8px -3px rgba(26,46,85,.55)}
+.nav-tab.active::after{content:'';position:absolute;top:0;bottom:0;left:-50%;width:38%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.4),transparent);
+  transform:skewX(-18deg);transition:left .6s cubic-bezier(.3,.7,.3,1)}
+.nav-tab.active:hover::after{left:130%}
+.header-btn{border-radius:9px;border:1px solid var(--border-color);
+  background:var(--bg-secondary);color:var(--text-secondary);transition:.18s}
+.header-btn:hover{border-color:var(--border-hi);color:var(--text-primary)}
+
+/* ── Colonne latérale ── */
+.sidebar{background:transparent;border-right:1px solid var(--border-color);padding:18px 16px}
+.sidebar::-webkit-scrollbar{width:10px}
+.sidebar::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:6px;
+  border:3px solid var(--bg-primary)}
+
+/* ── Panneaux ── */
+.panel{position:relative;isolation:isolate;margin-bottom:14px;border-radius:13px;
+  border:1px solid var(--border-color);background:linear-gradient(180deg,#fff,#fafbfe);
+  box-shadow:var(--shadow-sm),var(--shadow-md),inset 0 1px 0 #fff;overflow:hidden}
+.panel::before{content:'';position:absolute;inset:0;z-index:-1;border-radius:inherit;
+  pointer-events:none;
+  background:linear-gradient(147deg,rgba(255,255,255,.95),rgba(255,255,255,0) 44%)}
+.panel-header{padding:14px 16px;border-bottom:1px solid var(--border-color);
+  background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(238,241,246,.5));
+  transition:background .18s}
+.panel.collapsed .panel-header{border-bottom-color:transparent}
+.panel-title{font-size:13.5px;font-weight:600;letter-spacing:-.15px;color:var(--text-primary)}
+.panel-toggle{color:var(--text-low);transition:transform .22s cubic-bezier(.2,.7,.3,1)}
+.panel-content{padding:16px}
+
+/* ── Formulaires ── */
+.form-label{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:1.1px;
+  text-transform:uppercase;color:var(--text-low);font-weight:400}
+.form-input,.form-select{font-family:'DM Sans',sans-serif;font-size:13px;
+  border-radius:9px;border:1px solid var(--border-color);padding:10px 12px;
+  color:var(--text-primary);background:#fff;transition:border-color .18s,box-shadow .18s}
+.form-input:focus,.form-select:focus{border-color:var(--border-hi);
+  box-shadow:0 0 0 3px rgba(26,46,85,.07);outline:none}
+.form-input::placeholder{color:var(--text-low)}
+
+/* ── Boutons ── */
+.btn{position:relative;overflow:hidden;font-family:'DM Sans',sans-serif;
+  font-size:13px;font-weight:600;border-radius:9px;padding:10px 14px;
+  border:1px solid var(--border-color);transition:transform .15s,box-shadow .2s,border-color .18s,background .18s}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:linear-gradient(180deg,var(--idl-light-blue),var(--idl-blue));
+  border-color:var(--idl-blue);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 1px 2px rgba(20,32,60,.14)}
+.btn-primary:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 6px 16px -6px rgba(26,46,85,.6)}
+.btn-primary::after{content:'';position:absolute;top:0;bottom:0;left:-50%;width:38%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.42),transparent);
+  transform:skewX(-18deg);transition:left .55s cubic-bezier(.3,.7,.3,1)}
+.btn-primary:hover::after{left:130%}
+.btn-danger{background:linear-gradient(180deg,#c94640,var(--idl-red));border-color:var(--idl-red)}
+.btn-success{background:linear-gradient(180deg,#38916c,var(--success));border-color:var(--success)}
+.btn-warning{background:linear-gradient(180deg,#c07c2a,var(--warning));border-color:var(--warning)}
+.btn-secondary{background:#fff;color:var(--text-secondary)}
+.btn-secondary:hover{border-color:var(--border-hi);color:var(--text-primary);background:#fff}
+
+/* ── Pastilles de filtre ── */
+.filter-chip{display:inline-flex;align-items:center;gap:6px;cursor:pointer;
+  font-family:'DM Mono',monospace;font-size:11.5px;font-weight:400;
+  padding:6px 10px;border-radius:8px;border:1px solid var(--border-color);
+  background:#fff;color:var(--text-secondary);user-select:none;
+  transition:border-color .16s,background .16s,color .16s,transform .14s}
+.filter-chip input{display:none}
+.filter-chip em{font-style:normal;font-size:9.5px;padding:1px 5px;border-radius:5px;
+  background:var(--bg-tertiary);color:var(--text-low);border:1px solid var(--border-color)}
+.filter-chip:hover{border-color:var(--border-hi);transform:translateY(-1px)}
+.filter-chip.active{background:linear-gradient(180deg,var(--idl-light-blue),var(--idl-blue));
+  border-color:var(--idl-blue);color:#fff;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 2px 8px -4px rgba(26,46,85,.6)}
+.filter-chip.active em{background:rgba(255,255,255,.17);color:#fff;border-color:transparent}
+.chips-vide{font-size:12px;color:var(--text-low);font-style:italic}
+
+/* ── Zone de dépôt ── */
+.dropzone{border:1px dashed var(--border-hi);border-radius:12px;padding:26px 16px;
+  background:linear-gradient(180deg,#fff,#fafbfe);transition:border-color .18s,background .18s}
+.dropzone:hover,.dropzone.dragover{border-color:var(--idl-blue);background:#f7f9fc}
+.dropzone-icon{font-size:30px;opacity:.5}
+.dropzone-text{font-size:13.5px;font-weight:600}
+.dropzone-hint{font-size:11.5px;color:var(--text-low)}
+
+/* ── Aperçu ── */
+.preview-area{background:var(--bg-primary)}
+.preview-header{padding:14px 20px;background:var(--bg-secondary);
+  border-bottom:1px solid var(--border-color)}
+.preview-title{font-size:14.5px;font-weight:600;letter-spacing:-.15px}
+.preview-canvas{border-radius:12px}
+.preview-footer{background:var(--bg-secondary);border-top:1px solid var(--border-color)}
+.preview-info{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-secondary)}
+.preview-info strong{color:var(--idl-blue);font-weight:500}
+
+/* ── Tableaux ── */
+.data-table-wrapper{border:1px solid var(--border-color);border-radius:11px;overflow:hidden}
+.data-table{font-size:12px}
+.data-table th{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:1.1px;
+  font-weight:500;color:var(--text-low);padding:10px 12px;
+  background:linear-gradient(180deg,#f4f6fa,#e9edf4);
+  border-bottom:1px solid var(--border-color)}
+.data-table td{padding:9px 12px;border-bottom:1px solid #f0f3f8}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:#f7f9fc}
+.table-scroll{max-height:260px;scrollbar-width:thin;scrollbar-color:var(--border-hi) transparent}
+.table-scroll::-webkit-scrollbar{width:10px}
+.table-scroll::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:6px;
+  border:3px solid #fff}
+
+/* ── Compteurs ── */
+.stats-grid{gap:12px}
+.stat-card{position:relative;overflow:hidden;border-radius:11px;padding:13px 14px;
+  border:1px solid var(--border-color);background:linear-gradient(180deg,#fff,#fafbfe);
+  box-shadow:var(--shadow-sm),inset 0 1px 0 #fff;
+  transition:transform .2s cubic-bezier(.2,.7,.3,1),box-shadow .2s,border-color .18s}
+.stat-card::after{content:'';position:absolute;left:0;right:0;bottom:0;height:3px;
+  background:linear-gradient(90deg,var(--idl-blue),#5c7bb0)}
+.stat-card:hover{transform:translateY(-3px);border-color:var(--border-hi);
+  box-shadow:0 14px 26px -18px rgba(26,46,85,.75),inset 0 1px 0 #fff}
+.stat-value{font-size:22px;font-weight:700;letter-spacing:-.6px;
+  font-variant-numeric:tabular-nums;color:var(--idl-blue)}
+.stat-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1.1px;color:var(--text-low)}
+
+/* ── Avis ── */
+.toast{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;
+  border-radius:11px;padding:13px 17px;color:#fff;
+  box-shadow:0 18px 40px -16px rgba(20,32,60,.5)}
+.toast.success{background:linear-gradient(180deg,#38916c,var(--success))}
+.toast.error{background:linear-gradient(180deg,#c94640,var(--idl-red))}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+
   </style>
 </head>
 <body>
@@ -830,15 +993,7 @@
                 </div>
               </div>
               <div class="filter-chips" id="niveauChips">
-                <label class="filter-chip" onclick="toggleNiveau(this, event)"><input type="checkbox" value="A1" data-filter="preview-niveau"> A1</label>
-                <label class="filter-chip" onclick="toggleNiveau(this, event)"><input type="checkbox" value="A2" data-filter="preview-niveau"> A2</label>
-                <label class="filter-chip" onclick="toggleNiveau(this, event)"><input type="checkbox" value="A3" data-filter="preview-niveau"> A3</label>
-                <label class="filter-chip" onclick="toggleNiveau(this, event)"><input type="checkbox" value="A4" data-filter="preview-niveau"> A4</label>
-                <label class="filter-chip" onclick="toggleNiveau(this, event)"><input type="checkbox" value="B1" data-filter="preview-niveau"> B1</label>
-                <label class="filter-chip" onclick="toggleNiveau(this, event)"><input type="checkbox" value="C1" data-filter="preview-niveau"> C1</label>
-                <label class="filter-chip" onclick="toggleNiveau(this, event)"><input type="checkbox" value="D1" data-filter="preview-niveau"> D1</label>
-                <label class="filter-chip" onclick="toggleNiveau(this, event)"><input type="checkbox" value="E1" data-filter="preview-niveau"> E1</label>
-                <label class="filter-chip" onclick="toggleNiveau(this, event)"><input type="checkbox" value="F1" data-filter="preview-niveau"> F1</label>
+                <span class="chips-vide">Chargez un fichier pour voir les niveaux disponibles.</span>
               </div>
             </div>
             <button class="btn btn-primary btn-block" onclick="applyPreviewLabels()">Calculer étiquettes</button>
@@ -1767,6 +1922,41 @@
       updateCSVPreview();
     }
     
+    /* Les niveaux ne sont plus ecrits en dur : on prend ceux
+       reellement presents dans le fichier, donc un A5, un A8 ou
+       un G1 apparait tout seul le jour ou il existe. */
+    function trierNiveaux(a, b) {
+      var ma = a.match(/^([A-Za-z]*)(\d*)$/), mb = b.match(/^([A-Za-z]*)(\d*)$/);
+      if (!ma || !mb) return a.localeCompare(b);
+      if (ma[1] !== mb[1]) return ma[1].localeCompare(mb[1]);
+      return (parseInt(ma[2], 10) || 0) - (parseInt(mb[2], 10) || 0);
+    }
+
+    function construireNiveaux() {
+      var zone = document.getElementById('niveauChips');
+      if (!zone) return;
+
+      var vus = {};
+      csvData.forEach(function (d) { if (d.niveau) vus[d.niveau] = true; });
+      var niveaux = Object.keys(vus).sort(trierNiveaux);
+
+      if (!niveaux.length) {
+        zone.innerHTML = '<span class="chips-vide">Aucun niveau détecté dans ce fichier.</span>';
+        updateNiveauCount();
+        return;
+      }
+
+      zone.innerHTML = niveaux.map(function (n) {
+        var nb = csvData.filter(function (d) { return d.niveau === n; }).length;
+        return '<label class="filter-chip active" onclick="toggleNiveau(this, event)" ' +
+               'title="' + nb + ' position' + (nb > 1 ? 's' : '') + '">' +
+               '<input type="checkbox" value="' + n + '" data-filter="preview-niveau" checked> ' +
+               n + '<em>' + nb + '</em></label>';
+      }).join('');
+
+      updateNiveauCount();
+    }
+
     function updateNiveauCount() {
       const count = document.querySelectorAll('#niveauChips .filter-chip.active').length;
       const countEl = document.getElementById('niveauCount');
@@ -2797,6 +2987,7 @@
         filteredData = [...csvData];
         document.getElementById('csvInfo').classList.remove('hidden');
         document.getElementById('csvInfo').innerHTML = `<strong style="color:var(--success);">✅ ${sourceNom}</strong><br>${csvData.length} positions chargées`;
+        construireNiveaux();
         updateStats();
         renderTable();
         updateCSVPreview();
