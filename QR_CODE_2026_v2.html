@@ -746,6 +746,8 @@
     
     <nav class="header-nav">
       <button class="nav-tab" onclick="switchMode('csv')" id="tabCSV">📁 Import CSV</button>
+      <button class="nav-tab" onclick="chargerDepuisServeur()" id="btn-serveur"
+              title="Récupère l'export de stock le plus récent déposé en ligne">☁️ Stock du jour</button>
       <button class="nav-tab active" onclick="switchMode('libre')" id="tabLibre">✨ QR Libre</button>
     </nav>
   </header>
@@ -770,10 +772,6 @@
               <div class="dropzone-hint">ou cliquez pour parcourir</div>
             </div>
             <input type="file" id="csvFile" accept=".csv" style="display:none;" onchange="handleCSV(this)">
-            <button class="btn btn-primary btn-block" id="btn-serveur"
-                    style="margin-top:10px;" onclick="chargerDepuisServeur()">
-              Charger le stock du jour
-            </button>
             <div id="csvInfo" class="hidden" style="margin-top: 10px; padding: 10px; background: var(--bg-tertiary); border-radius: 6px;"></div>
           </div>
         </div>
@@ -2661,14 +2659,14 @@
 
       var btn = document.getElementById('btn-serveur');
       var libelle = btn.textContent.trim();
-      btn.textContent = 'Chargement…';
+      btn.textContent = '⏳ Chargement…';
       btn.disabled = true;
 
       try {
         var r = await fetch(GDS.API + '/fichiers', {
           method: 'POST',
           headers: authGDS({ 'Content-Type': 'application/json' }),
-          body: JSON.stringify({ prefix: PREFIXE_STOCK })
+          body: JSON.stringify({ prefix: '' })
         });
         if (r.status === 401 || r.status === 403) {
           showToast('Session expirée, reconnectez-vous', 'error');
@@ -2704,8 +2702,10 @@
         var d0 = dateExport(choisi.name);
         sourceNom = d0 ? 'Stock du ' + d0.toLocaleDateString('fr-FR') : choisi.name;
         processCSVText(texte);
-        btn.textContent = sourceNom;
+        btn.textContent = '☁️ ' + sourceNom;
+        btn.classList.add('active');
         btn.disabled = false;
+        switchMode('csv');
         return;
 
       } catch (e) {
