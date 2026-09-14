@@ -12,6 +12,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="author" content="Patrick Payen">
   <title>ID Logistics - Générateur QR Codes Pro</title>
+  <script src="config.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
@@ -769,6 +770,10 @@
               <div class="dropzone-hint">ou cliquez pour parcourir</div>
             </div>
             <input type="file" id="csvFile" accept=".csv" style="display:none;" onchange="handleCSV(this)">
+            <button class="btn btn-primary btn-block" id="btn-serveur"
+                    style="margin-top:10px;" onclick="chargerDepuisServeur()">
+              Charger le stock du jour
+            </button>
             <div id="csvInfo" class="hidden" style="margin-top: 10px; padding: 10px; background: var(--bg-tertiary); border-radius: 6px;"></div>
           </div>
         </div>
@@ -2620,6 +2625,97 @@
       });
     }
 
+    let sourceNom = '';
+
+    /* ══════════ SERVEUR ══════════ */
+    var jeton = (typeof GDS !== 'undefined')
+      ? (localStorage.getItem('gds_jeton') || sessionStorage.getItem('gds_jeton') || '')
+      : '';
+
+    function authGDS(sup) {
+      var h = {
+        'Authorization': 'Bearer ' + GDS.CLE_PUBLIQUE,
+        'apikey': GDS.CLE_PUBLIQUE,
+        'X-GDS-Session': jeton
+      };
+      if (sup) for (var k in sup) h[k] = sup[k];
+      return h;
+    }
+
+    var PREFIXE_STOCK = 'StockStatus_FR_STOREDEPOT_';
+
+    function dateExport(nom) {
+      var m = nom.match(/_(\d{2})-(\d{2})-(\d{4})/);
+      return m ? new Date(+m[3], +m[2] - 1, +m[1]) : null;
+    }
+
+    async function chargerDepuisServeur() {
+      if (typeof GDS === 'undefined') {
+        showToast('Fichier config.js introuvable', 'error');
+        return;
+      }
+      if (!jeton) {
+        showToast('Ouvrez cet outil depuis le sommaire', 'error');
+        return;
+      }
+
+      var btn = document.getElementById('btn-serveur');
+      var libelle = btn.textContent.trim();
+      btn.textContent = 'Chargement…';
+      btn.disabled = true;
+
+      try {
+        var r = await fetch(GDS.API + '/fichiers', {
+          method: 'POST',
+          headers: authGDS({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ prefix: PREFIXE_STOCK })
+        });
+        if (r.status === 401 || r.status === 403) {
+          showToast('Session expirée, reconnectez-vous', 'error');
+          return;
+        }
+        if (!r.ok) throw new Error('liste indisponible');
+
+        var d = await r.json();
+        var fichiers = (Array.isArray(d) ? d : [])
+          .filter(function (f) { return f.name && f.name.indexOf(PREFIXE_STOCK) === 0; });
+
+        if (!fichiers.length) {
+          showToast('Aucun fichier de stock en ligne', 'error');
+          return;
+        }
+
+        fichiers.sort(function (a, b) {
+          var da = dateExport(a.name), db = dateExport(b.name);
+          return (db ? db.getTime() : 0) - (da ? da.getTime() : 0);
+        });
+        var choisi = fichiers[0];
+
+        var dl = await fetch(GDS.API + '/fichier/' + encodeURIComponent(choisi.name),
+                             { headers: authGDS() });
+        if (!dl.ok) throw new Error('téléchargement impossible');
+        var texte = await dl.text();
+
+        /* Une page d'erreur renvoyee en 200 se ferait passer pour un CSV. */
+        if (texte.indexOf('Position') === -1 || texte.indexOf('Location Code') === -1) {
+          throw new Error('contenu inattendu');
+        }
+
+        var d0 = dateExport(choisi.name);
+        sourceNom = d0 ? 'Stock du ' + d0.toLocaleDateString('fr-FR') : choisi.name;
+        processCSVText(texte);
+        btn.textContent = sourceNom;
+        btn.disabled = false;
+        return;
+
+      } catch (e) {
+        showToast('Chargement impossible : ' + e.message, 'error');
+      }
+
+      btn.textContent = libelle;
+      btn.disabled = false;
+    }
+
     function handleCSV(input) { if (input.files[0]) processCSV(input.files[0]); }
 
     // Variables pour les index de colonnes
@@ -2627,9 +2723,16 @@
     let allRows = [];
     
     function processCSV(file) {
+      sourceNom = file.name;
       const reader = new FileReader();
-      reader.onload = e => {
-        const text = e.target.result;
+      reader.onload = e => processCSVText(e.target.result);
+      reader.readAsText(file);
+    }
+
+    /* Le contenu peut venir d'un fichier local ou du serveur :
+       le traitement est le meme, seule la source change. */
+    function processCSVText(text) {
+      {
         const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
         allRows = lines.map(line => line.split(','));
         
@@ -2693,13 +2796,12 @@
         
         filteredData = [...csvData];
         document.getElementById('csvInfo').classList.remove('hidden');
-        document.getElementById('csvInfo').innerHTML = `<strong style="color:var(--success);">✅ ${file.name}</strong><br>${csvData.length} positions chargées`;
+        document.getElementById('csvInfo').innerHTML = `<strong style="color:var(--success);">✅ ${sourceNom}</strong><br>${csvData.length} positions chargées`;
         updateStats();
         renderTable();
         updateCSVPreview();
         showToast(`${csvData.length} positions importées`, 'success');
-      };
-      reader.readAsText(file);
+      }
     }
 
     function renderTable() {
