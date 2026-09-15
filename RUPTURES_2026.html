@@ -37,7 +37,7 @@ main{max-width:1440px;margin:0 auto;padding:20px 24px 40px}
 .btn-serveur svg{width:22px;height:22px;flex:none}
 .btn-serveur:disabled{opacity:.6;cursor:wait}
 .btn-serveur:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
-.toast{position:fixed;right:20px;bottom:20px;z-index:50;background:var(--navy);color:#fff;border-left:5px solid var(--orange);border-radius:10px;padding:11px 16px;font-size:13.5px;box-shadow:0 6px 20px rgba(27,42,74,.25);opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;pointer-events:none;max-width:380px}
+.toast{white-space:pre-line;position:fixed;right:20px;bottom:20px;z-index:50;background:var(--navy);color:#fff;border-left:5px solid var(--orange);border-radius:10px;padding:11px 16px;font-size:13.5px;box-shadow:0 6px 20px rgba(27,42,74,.25);opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;pointer-events:none;max-width:380px}
 .toast.on{opacity:1;transform:none}
 .toast.error{border-left-color:#ef4444}
 .panel{display:none}
@@ -136,6 +136,7 @@ if (!window.jspdf) {
 <header>
   <h1>GDS <span>Ruptures</span></h1>
   <div class="src" id="src">Aucun fichier chargé</div>
+  <div class="src" style="margin-left:14px;opacity:.6">v6</div>
 </header>
 <main>
   <div class="source">
@@ -154,14 +155,14 @@ if (!window.jspdf) {
   <section class="panel" id="panel">
     <div class="controls">
       <div class="grp" style="--g:var(--red)">
-        <div class="gt">Rupture critique<small>un seul emplacement, total dépôt</small></div>
-        <div class="ctl"><label for="critP">Colis ≤</label><input type="number" id="critP" min="0" step="1" value="5"></div>
-        <div class="ctl"><label for="critK">Kg ≤</label><input type="number" id="critK" min="0" step="0.5" value="5"></div>
+        <div class="gt">Rupture critique<small>une seule position</small></div>
+        <div class="ctl"><label for="critP">Colis ≤</label><input type="number" id="critP" min="0" step="1" value="1"></div>
+        <div class="ctl"><label for="critK">Kg ≤</label><input type="number" id="critK" min="0" step="0.5" value="1"></div>
       </div>
       <div class="grp" style="--g:var(--orange)">
-        <div class="gt">Rupture<small>plusieurs emplacements, par position</small></div>
-        <div class="ctl"><label for="rupP">Colis ≤</label><input type="number" id="rupP" min="0" step="1" value="1"></div>
-        <div class="ctl"><label for="rupK">Kg ≤</label><input type="number" id="rupK" min="0" step="0.5" value="1"></div>
+        <div class="gt">Rupture<small>une seule position</small></div>
+        <div class="ctl"><label for="rupP">Colis ≤</label><input type="number" id="rupP" min="0" step="1" value="5"></div>
+        <div class="ctl"><label for="rupK">Kg ≤</label><input type="number" id="rupK" min="0" step="0.5" value="5"></div>
       </div>
       <div class="ctl">
         <label for="secSel">Secteur</label>
@@ -170,9 +171,6 @@ if (!window.jspdf) {
       <div class="ctl">
         <label for="fmt">Format</label>
         <select id="fmt"><option value="tous">Colis et poids</option><option value="colis">Colis uniquement</option><option value="kg">Poids uniquement</option></select>
-      </div>
-      <div class="ctl">
-        <label class="check"><input type="checkbox" id="hideRec"> Masquer si stock en réception</label>
       </div>
       <div class="ctl">
         <label for="q">Rechercher</label>
@@ -195,10 +193,10 @@ if (!window.jspdf) {
       </table>
     </div>
     <p class="note">
-      Rupture critique : l'article n'a qu'un seul emplacement en allée sur tout le dépôt, et son stock total ne dépasse pas le seuil critique.
-      Rupture : l'article a au moins deux emplacements en allée, et la position listée ne dépasse pas le seuil de rupture. Une ligne par position concernée.
+      Rupture et rupture critique : l'article n'existe que sur une seule position du dépôt. Toute sa quantité est sur cette position, il n'y en a nulle part ailleurs.
+      Rupture critique : cette quantité est inférieure ou égale au seuil critique (1 par défaut). Rupture : elle est au-dessus du seuil critique et inférieure ou égale au seuil de rupture (5 par défaut).
+      Une position de quai (IN, UNLOADING) compte comme une autre position. Le litige (INSPECTION) est hors stock et n'est pas pris en compte.
       Un article est au poids dès qu'une de ses lignes porte une quantité décimale.
-      Les positions IN et UNLOADING ne comptent pas comme emplacement : leur stock est affiché en réception. INSPECTION est ignoré.
       Un clic sur une carte secteur n'affiche que ce secteur ; un second clic revient à tous les secteurs.
     </p>
   </section>
@@ -263,11 +261,12 @@ function construire(rows, nomFichier){
     const x = rows[r], pos = (x[iP]||'').trim(), mgb = (x[iM]||'').trim();
     if (!mgb || !pos) continue;
     let a = parArt.get(mgb);
-    if (!a){ a = {mgb, desc:x[iD], cond:num(x[iB]), pos:new Map(), rec:0, kg:false}; parArt.set(mgb, a); }
+    if (!a){ a = {mgb, desc:x[iD], cond:num(x[iB]), pos:new Map(), hors:new Map(), rec:0, lit:0, kg:false}; parArt.set(mgb, a); }
     const q = num(x[iQ]);
     if (q % 1 !== 0) a.kg = true;
-    if (LITIGE.test(pos)) continue;
-    if (QUAI_RECEPTION.test(pos)) { a.rec += q; continue; }
+    // le quai est une position où l'article existe
+    if (LITIGE.test(pos)) continue;                       // litige : hors stock, ignoré
+    if (QUAI_RECEPTION.test(pos)) { a.hors.set(pos, (a.hors.get(pos) || 0) + q); continue; }
     if (!/^\d+-/.test(pos)) continue;
     let p = a.pos.get(pos);
     if (!p){ p = {q:0, lignes:0, bbd:null, bbdTxt:''}; a.pos.set(pos, p); }
@@ -289,7 +288,8 @@ function construire(rows, nomFichier){
     });
     a.positions = positions;
     a.total = positions.reduce((s, p) => s + p.q, 0);
-    a.nbPos = positions.length;
+    a.hors = [...a.hors.entries()].map(([pos, q]) => ({pos, q}));
+    a.nbPos = positions.length + a.hors.length;              // allée + quai, litige exclu
     articles.push(a);
   }
 
@@ -314,25 +314,16 @@ function construire(rows, nomFichier){
 function lignesRuptures(){
   const cP = num($('critP').value), cK = num($('critK').value);
   const rP = num($('rupP').value),  rK = num($('rupK').value);
-  const fmt = $('fmt').value, hideRec = $('hideRec').checked;
+  const fmt = $('fmt').value;
   const q = $('q').value.trim().toLowerCase();
   const out = [];
   for (const a of articles){
     if (fmt === 'colis' && a.kg) continue;
     if (fmt === 'kg' && !a.kg) continue;
-    if (hideRec && a.rec > 0) continue;
-    const base = {mgb:a.mgb, desc:a.desc, cond:a.cond, kg:a.kg, rec:a.rec, total:a.total, nbPos:a.nbPos};
-    if (a.nbPos === 1){
-      if (a.total <= (a.kg ? cK : cP)) out.push({...base, ...a.positions[0], type:'C', autres:[]});
-    } else {
-      const seuil = a.kg ? rK : rP;
-      for (const p of a.positions){
-        if (p.q <= seuil){
-          out.push({...base, ...p, type:'R',
-            autres:a.positions.filter(o => o !== p).map(o => o.pos + ' : ' + fmtQ(o.q, a.kg))});
-        }
-      }
-    }
+    if (a.nbPos !== 1) continue;                            // une seule position, sinon ni rupture ni critique
+    const p = a.positions[0];
+    const type = p.q <= (a.kg ? cK : cP) ? 'C' : p.q <= (a.kg ? rK : rP) ? 'R' : null;
+    if (type) out.push({mgb:a.mgb, desc:a.desc, cond:a.cond, kg:a.kg, ...p, type});
   }
   out.forEach(l => l.sec = secteurDe(l.allee));
   return q ? out.filter(l => l.desc.toLowerCase().includes(q) || l.mgb.includes(q) || l.pos.toLowerCase().includes(q)) : out;
@@ -345,12 +336,9 @@ const COLS = [
   {k:'mgb',   t:'MGB'},
   {k:'desc',  t:'Désignation'},
   {k:'cond',  t:'Cond.', num:true},
-  {k:'q',     t:'Qté position', num:true},
-  {k:'total', t:'Total dépôt', num:true},
-  {k:'nbPos', t:'Empl.', num:true},
+  {k:'q',     t:'Quantité', num:true},
   {k:'lignes',t:'Palettes', num:true},
-  {k:'bbd',   t:'DLC la plus proche'},
-  {k:'rec',   t:'En réception', num:true}
+  {k:'bbd',   t:'DLC la plus proche'}
 ];
 
 function comparer(a, b){
@@ -377,7 +365,7 @@ function nomSecteur(){ const id = $('secSel').value; return id ? SECTEURS.find(x
 function titreEdition(){ return `${nomVue()} · ${nomSecteur()} · dépôt ${meta.depot} · StockStatus du ${meta.dateExtr}`; }
 function reglages(){
   const fmt = {tous:'', colis:' · colis uniquement', kg:' · poids uniquement'}[$('fmt').value];
-  return `critique : total <= ${$('critP').value} colis / ${$('critK').value} kg · rupture : position <= ${$('rupP').value} colis / ${$('rupK').value} kg${fmt}${$('hideRec').checked?' · hors stock en réception':''}`;
+  return `une seule position · critique <= ${$('critP').value} colis / ${$('critK').value} kg · rupture <= ${$('rupP').value} colis / ${$('rupK').value} kg${fmt}`;
 }
 function horodatage(){ const n = new Date(), p = x => String(x).padStart(2,'0'); return {f:`${n.getFullYear()}${p(n.getMonth()+1)}${p(n.getDate())}-${p(n.getHours())}${p(n.getMinutes())}`, t:`${p(n.getDate())}/${p(n.getMonth()+1)}/${n.getFullYear()} ${p(n.getHours())}:${p(n.getMinutes())}`}; }
 function suffixeFichier(){
@@ -395,7 +383,7 @@ function exporterPDF(){
   const NAVY = [27,42,74], ORANGE = [242,140,40], ROUGE = [185,28,28];
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
   const edite = horodatage().t;
-  const head = [['Type','Emplacement','Niv.','MGB','Désignation','Cond.','Qté pos.','Total dépôt','Empl.','Pal.','DLC','Réception']];
+  const head = [['Type','Emplacement','Niv.','MGB','Désignation','Cond.','Quantité','Pal.','DLC']];
 
   // regroupement par secteur, une section par secteur
   const groupes = [];
@@ -409,15 +397,14 @@ function exporterPDF(){
     doc.autoTable({
       head,
       body: b.lignes.map(l => [TYPES[l.type], l.pos, l.niv, l.mgb, l.desc + (l.kg ? ' (kg)' : ''), l.cond || '',
-        fmtQ(l.q, l.kg), fmtQ(l.total, l.kg), l.nbPos, l.lignes, l.bbdTxt, l.rec > 0 ? fmtQ(l.rec, l.kg) : '']),
+        fmtQ(l.q, l.kg), l.lignes, l.bbdTxt]),
       startY: 30, margin:{top:30, left:10, right:10, bottom:14},
       theme:'grid',
       styles:{font:'helvetica', fontSize:7.5, cellPadding:1.4, lineColor:[221,226,235], lineWidth:0.1, textColor:NAVY, overflow:'linebreak', valign:'middle'},
       headStyles:{fillColor:NAVY, textColor:255, fontStyle:'bold', fontSize:7.5},
-      columnStyles:{0:{cellWidth:16}, 1:{cellWidth:24}, 2:{cellWidth:9}, 3:{cellWidth:24},
-        4:{cellWidth:'auto'}, 5:{cellWidth:11, halign:'right'}, 6:{cellWidth:16, halign:'right', fontStyle:'bold'},
-        7:{cellWidth:17, halign:'right'}, 8:{cellWidth:10, halign:'right'}, 9:{cellWidth:9, halign:'right'},
-        10:{cellWidth:19}, 11:{cellWidth:17, halign:'right'}},
+      columnStyles:{0:{cellWidth:18}, 1:{cellWidth:26}, 2:{cellWidth:10}, 3:{cellWidth:26},
+        4:{cellWidth:'auto'}, 5:{cellWidth:12, halign:'right'}, 6:{cellWidth:18, halign:'right', fontStyle:'bold'},
+        7:{cellWidth:10, halign:'right'}, 8:{cellWidth:20}},
       didParseCell: d => {
         if (d.section !== 'body') return;
         const l = b.lignes[d.row.index];
@@ -467,9 +454,7 @@ function rendre(){
   });
 
   const vis = visibles(toutes);
-  const nArt = new Set(vis.map(l => l.mgb)).size;
-  $('summary').innerHTML = `<strong>${vis.length}</strong> lignes affichées pour ${nArt} articles, sur ${meta.enAllee.toLocaleString('fr-FR')} articles en allée.`
-    + ` Dont ${vis.filter(l => l.kg).length} au poids et ${vis.filter(l => l.rec > 0).length} avec du stock en réception.`;
+  $('summary').innerHTML = `<strong>${vis.length}</strong> articles affichés, sur ${meta.enAllee.toLocaleString('fr-FR')} articles en allée. Dont ${vis.filter(l => l.kg).length} au poids.`;
   $('printhead').textContent = titreEdition() + ' · ' + reglages() + ' · ' + vis.length + ' lignes';
 
   $('thead').innerHTML = COLS.map(c =>
@@ -503,11 +488,8 @@ function rendre(){
       <td>${esc(l.desc)}${l.kg?'<span class="tag kg">kg</span>':''}${l.dlcProche?'<span class="tag dlc">DLC ≤ 7 j</span>':''}</td>
       <td class="num mono">${l.cond || ''}</td>
       <td class="num q ${l.q===0?'zero':''}">${fmtQ(l.q, l.kg)}</td>
-      <td class="num mono">${fmtQ(l.total, l.kg)}</td>
-      <td class="num mono">${l.nbPos > 1 ? '<span class="tag plus" title="Autres : '+esc(l.autres.join(' / '))+'">'+l.nbPos+'</span>' : 1}</td>
       <td class="num mono">${l.lignes}</td>
       <td class="mono">${esc(l.bbdTxt)}</td>
-      <td class="num">${l.rec>0?'<span class="tag rec">'+fmtQ(l.rec, l.kg)+'</span>':''}</td>
     </tr>`;
   }
   $('tbody').innerHTML = html;
@@ -518,10 +500,9 @@ function exporter(){
   const vis = visibles(lignesRuptures());
   const cell = v => { const s = String(v ?? ''); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s; };
   const dec = n => String(+n.toFixed(3)).replace('.', ',');
-  const lignes = [['Type','Secteur','Emplacement','Allée','Niveau','MGB','Désignation','Format','Conditionnement',
-                   'Quantité position','Total dépôt','Nb emplacements','Autres emplacements','Palettes','DLC la plus proche','Stock en réception']];
+  const lignes = [['Type','Secteur','Emplacement','Allée','Niveau','MGB','Désignation','Format','Conditionnement','Quantité','Palettes','DLC la plus proche']];
   vis.forEach(l => lignes.push([TYPES[l.type], l.sec.nom, l.pos, l.allee, l.niv, l.mgb, l.desc, l.kg?'Kg':'Colis', l.cond,
-    dec(l.q), dec(l.total), l.nbPos, l.autres.join(' / '), l.lignes, l.bbdTxt, l.rec?dec(l.rec):'']));
+    dec(l.q), l.lignes, l.bbdTxt]));
   const csv = '\uFEFF' + lignes.map(r => r.map(cell).join(';')).join('\r\n');
   const nom = `Ruptures_${suffixeFichier()}.csv`;
   const url = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
@@ -561,10 +542,28 @@ async function chargerDepuisServeur(){
     });
     if (r.status === 401 || r.status === 403){ toast('Session expirée, reconnectez-vous', 'error'); txt.textContent = libelle; btn.disabled = false; return; }
     if (!r.ok) throw new Error('liste indisponible');
-    const d = await r.json();
-    const liste = Array.isArray(d) ? d : (d && (d.fichiers || d.files || d.data)) || [];
-    const fichiers = liste.filter(f => f && f.name && f.name.indexOf(PREFIXE_STOCK) === 0 && /\.csv$/i.test(f.name));
-    if (!fichiers.length){ toast('Aucun fichier de stock en ligne', 'error'); txt.textContent = libelle; btn.disabled = false; return; }
+    const brut = await r.text();
+    let d; try { d = JSON.parse(brut); } catch(_) { d = null; }
+
+    // accepte un tableau direct ou enveloppé, et les différents noms de champ possibles
+    const trouverTableau = o => {
+      if (Array.isArray(o)) return o;
+      if (o && typeof o === 'object') for (const k of Object.keys(o)) if (Array.isArray(o[k])) return o[k];
+      return [];
+    };
+    const nomDe = f => typeof f === 'string' ? f : (f && (f.name || f.nom || f.fileName || f.key || f.Key || f.path)) || '';
+    const liste = trouverTableau(d).map(nomDe).filter(Boolean).map(n => n.split('/').pop());
+    const fichiers = liste.filter(n => n.indexOf(PREFIXE_STOCK) === 0 && /\.csv$/i.test(n)).map(n => ({name:n}));
+
+    console.log('[Ruptures] réponse /fichiers', r.status, d ?? brut.slice(0, 500));
+    if (!fichiers.length){
+      const apercu = liste.length
+        ? liste.length + ' fichier(s) reçu(s), dont : ' + liste.slice(0, 3).join(', ')
+        : 'réponse : ' + brut.slice(0, 160);
+      toast('Aucun StockStatus trouvé dans la liste du serveur.\n' + apercu, 'error');
+      clearTimeout(toastT); toastT = setTimeout(() => $('toast').className = 'toast', 15000);
+      txt.textContent = libelle; btn.disabled = false; return;
+    }
     fichiers.sort((a, b) => ((dateExport(b.name) || 0) - (dateExport(a.name) || 0)));
     const choisi = fichiers[0];
 
@@ -599,7 +598,7 @@ $('file').onchange = e => { lire(e.target.files[0]); e.target.value = ''; };
 ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
 ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
 drop.addEventListener('drop', e => lire(e.dataTransfer.files[0]));
-['critP','critK','rupP','rupK','secSel','fmt','hideRec','q'].forEach(id => $(id).addEventListener('input', rendre));
+['critP','critK','rupP','rupK','secSel','fmt','q'].forEach(id => $(id).addEventListener('input', rendre));
 $('exp').onclick = exporter;
 $('pdf').onclick = exporterPDF;
 $('btn-serveur').onclick = chargerDepuisServeur;
