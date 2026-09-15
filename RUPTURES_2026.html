@@ -555,12 +555,15 @@ async function chargerDepuisServeur(){
   try {
     const r = await fetch(GDS.API + '/fichiers', {
       method:'POST', headers:authGDS({'Content-Type':'application/json'}),
-      body:JSON.stringify({prefix:PREFIXE_STOCK})
+      // même appel que le sommaire : liste complète, filtrée ici
+      // (le préfixe envoyé au serveur est traité comme un dossier, d'où la liste vide)
+      body:JSON.stringify({prefix:''})
     });
     if (r.status === 401 || r.status === 403){ toast('Session expirée, reconnectez-vous', 'error'); txt.textContent = libelle; btn.disabled = false; return; }
     if (!r.ok) throw new Error('liste indisponible');
     const d = await r.json();
-    const fichiers = (Array.isArray(d) ? d : []).filter(f => f.name && f.name.indexOf(PREFIXE_STOCK) === 0);
+    const liste = Array.isArray(d) ? d : (d && (d.fichiers || d.files || d.data)) || [];
+    const fichiers = liste.filter(f => f && f.name && f.name.indexOf(PREFIXE_STOCK) === 0 && /\.csv$/i.test(f.name));
     if (!fichiers.length){ toast('Aucun fichier de stock en ligne', 'error'); txt.textContent = libelle; btn.disabled = false; return; }
     fichiers.sort((a, b) => ((dateExport(b.name) || 0) - (dateExport(a.name) || 0)));
     const choisi = fichiers[0];
