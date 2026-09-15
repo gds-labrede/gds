@@ -136,7 +136,7 @@ if (!window.jspdf) {
 <header>
   <h1>GDS <span>Risques de rupture</span></h1>
   <div class="src" id="src">Aucun fichier chargé</div>
-  <div class="src" style="margin-left:14px;opacity:.6">v7</div>
+  <div class="src" style="margin-left:14px;opacity:.6">v8</div>
 </header>
 <main>
   <div class="source">
@@ -438,7 +438,9 @@ function rendre(){
 
   const nb = {C:0, R:0};
   const cnt = {}; SECTEURS.forEach(s => cnt[s.id] = {C:0, R:0});
-  toutes.forEach(l => { nb[l.type]++; cnt[l.sec.id][l.type]++; });
+  const secChoisi = $('secSel').value;
+  // les onglets comptent ce que le tableau peut afficher : secteur choisi compris
+  toutes.forEach(l => { if (!secChoisi || l.sec.id === secChoisi) nb[l.type]++; cnt[l.sec.id][l.type]++; });
 
   $('views').innerHTML = [['C','Risques critiques',nb.C],['R','Risques de rupture',nb.R],['T','Tout',nb.C+nb.R]]
     .map(([v,t,n]) => `<button role="tab" data-v="${v}" class="${vue===v?'on':''}" aria-selected="${vue===v}">${t}<b>${n}</b></button>`).join('');
@@ -454,7 +456,12 @@ function rendre(){
   });
 
   const vis = visibles(toutes);
-  $('summary').innerHTML = `<strong>${vis.length}</strong> articles affichés, sur ${meta.enAllee.toLocaleString('fr-FR')} articles en allée. Dont ${vis.filter(l => l.kg).length} au poids.`;
+  const alertes = [];
+  if (num($('rupP').value) <= num($('critP').value)) alertes.push('en colis');
+  if (num($('rupK').value) <= num($('critK').value)) alertes.push('en kg');
+  const alerteSeuil = alertes.length
+    ? `<br><span style="color:var(--red)">Le seuil de risque ${alertes.join(' et ')} n'est pas supérieur au seuil critique : aucun risque de rupture ${alertes.join(' ni ')} ne peut apparaître.</span>` : '';
+  $('summary').innerHTML = `<strong>${vis.length}</strong> articles affichés, sur ${meta.enAllee.toLocaleString('fr-FR')} articles en allée. Dont ${vis.filter(l => l.kg).length} au poids.${alerteSeuil}`;
   $('printhead').textContent = titreEdition() + ' · ' + reglages() + ' · ' + vis.length + ' lignes';
 
   $('thead').innerHTML = COLS.map(c =>
