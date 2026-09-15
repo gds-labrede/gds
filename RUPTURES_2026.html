@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GDS · Ruptures</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#1B2A4A; --navy-2:#27395f; --orange:#F28C28; --orange-soft:#fde8d2;
+  --bg:#f3f5f9; --card:#ffffff; --ink:#1B2A4A; --muted:#66728a; --line:#dde2eb;
+  --red:#b91c1c; --red-soft:#fde2e2; --crit-row:#fff5f5;
+  --s-amb:#8a6d3b; --s-fra:#2f7ea8; --s-fl:#4d8b31; --s-sur:#5b5fc7; --s-mar:#1f8f8a;
+  --sans:'DM Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:'DM Mono',ui-monospace,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px}
+header{background:var(--navy);color:#fff;padding:14px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+header h1{margin:0;font-size:20px;font-weight:700}
+header h1 span{color:var(--orange)}
+header .src{margin-left:auto;font-size:12.5px;color:#c9d2e3}
+main{max-width:1440px;margin:0 auto;padding:20px 24px 40px}
+
+.drop{border:2px dashed #b7c1d3;border-radius:12px;background:var(--card);padding:36px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+.drop:hover,.drop.over{border-color:var(--orange);background:#fffaf4}
+.drop b{display:block;font-size:16px;margin-bottom:6px}
+.drop small{color:var(--muted)}
+.drop.compact{padding:10px 16px;text-align:left;display:flex;align-items:center;gap:10px}
+.drop.compact b{display:inline;font-size:13.5px;margin:0}
+
+.panel{display:none}
+.panel.on{display:block}
+
+.controls{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:flex-end;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:16px 0}
+.grp{display:flex;gap:8px;align-items:flex-end;padding-left:12px;border-left:4px solid var(--g)}
+.grp .gt{font-size:12.5px;font-weight:700;align-self:center;margin-right:4px;max-width:120px;line-height:1.25}
+.grp .gt small{display:block;font-weight:400;color:var(--muted);font-size:11.5px}
+.ctl label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+.ctl input[type=number],.ctl input[type=search],.ctl select{font-family:var(--mono);font-size:14px;border:1px solid var(--line);border-radius:8px;padding:7px 9px;width:78px;color:var(--ink);background:#fff}
+.ctl input[type=search]{font-family:var(--sans);width:230px}
+.ctl select{font-family:var(--sans);width:auto}
+.ctl input:focus,.ctl select:focus{outline:2px solid var(--orange);outline-offset:1px}
+.check{display:flex;align-items:center;gap:7px;font-size:13px;padding-bottom:8px;cursor:pointer}
+.check input{accent-color:var(--orange);width:16px;height:16px}
+.spacer{flex:1}
+.btn{font-family:var(--sans);font-size:13.5px;font-weight:500;border:0;border-radius:8px;padding:9px 14px;cursor:pointer;background:var(--navy);color:#fff}
+.btn.alt{background:var(--orange);color:var(--navy)}
+.btn:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+
+.views{display:flex;gap:0;margin-bottom:12px;border:1px solid var(--line);border-radius:10px;overflow:hidden;width:max-content;max-width:100%;background:var(--card)}
+.views button{font-family:var(--sans);font-size:14px;border:0;background:transparent;padding:9px 16px;cursor:pointer;color:var(--ink);border-right:1px solid var(--line)}
+.views button:last-child{border-right:0}
+.views button b{font-family:var(--mono);font-weight:500;margin-left:6px}
+.views button.on{background:var(--navy);color:#fff}
+.views button.on[data-v=C]{background:var(--red)}
+.views button:focus-visible{outline:2px solid var(--orange);outline-offset:-2px}
+
+.sectors{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:14px}
+.sec{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--c);border-radius:10px;padding:10px 12px;cursor:pointer;text-align:left;font-family:var(--sans);color:var(--ink)}
+.sec .l{font-size:13.5px;font-weight:700;margin-bottom:4px}
+.sec .l small{font-weight:400;color:var(--muted);font-size:11.5px;margin-left:4px}
+.sec .ct{display:flex;gap:14px;font-size:12px;color:var(--muted)}
+.sec .ct span b{display:block;font-family:var(--mono);font-size:21px;font-weight:500;color:var(--ink);line-height:1.1}
+.sec .ct span.c b{color:var(--red)}
+.sec.off{opacity:.4}
+.sec.sel{box-shadow:0 0 0 2px var(--c) inset}
+.sec:focus-visible{outline:2px solid var(--orange)}
+
+.summary{font-size:13px;color:var(--muted);margin:0 0 8px}
+.summary strong{color:var(--ink)}
+
+.tablewrap{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:auto;max-height:calc(100vh - 150px);min-height:300px}
+table{border-collapse:collapse;width:100%;min-width:1180px}
+th{position:sticky;top:0;z-index:2;background:var(--navy-2);color:#fff;font-weight:500;font-size:12.5px;text-align:left;padding:8px 10px;white-space:nowrap;cursor:pointer;user-select:none}
+th.num,td.num{text-align:right}
+th .ar{color:var(--orange);margin-left:4px}
+td{padding:6px 10px;border-top:1px solid var(--line);vertical-align:top}
+td.mono{font-family:var(--mono);font-size:13px;white-space:nowrap}
+tr.secrow td{background:#eef1f6;font-weight:700;font-size:13px;border-left:5px solid var(--c)}
+tr.crit td{background:var(--crit-row)}
+td.q{font-family:var(--mono);font-weight:500}
+td.q.zero{color:var(--red)}
+.type{display:inline-block;font-size:11.5px;font-weight:700;border-radius:5px;padding:2px 7px;white-space:nowrap}
+.type.C{background:var(--red);color:#fff}
+.type.R{background:var(--orange-soft);color:#8a4a0b}
+.tag{display:inline-block;font-size:11px;border-radius:5px;padding:1px 6px;margin-left:4px;white-space:nowrap}
+.tag.kg{background:#e6ecf6;color:var(--navy)}
+.tag.rec{background:var(--orange-soft);color:#8a4a0b}
+.tag.dlc{background:var(--red-soft);color:var(--red)}
+.tag.plus{background:#e6ecf6;color:var(--navy);cursor:help}
+.lvl{color:var(--muted);font-size:12px;white-space:nowrap}
+.empty{padding:30px;text-align:center;color:var(--muted)}
+.note{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.55;max-width:900px}
+
+@media print{
+  @page{size:A4 landscape;margin:10mm}
+  header,.controls,.drop,.sectors,.views,.note,.summary{display:none!important}
+  body{background:#fff;font-size:10.5px}
+  main{padding:0;max-width:none}
+  .tablewrap{border:0;overflow:visible;max-height:none}
+  table{min-width:0}
+  th{position:static;background:#1B2A4A!important;color:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  tr.crit td,.type,.tag{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  tr.secrow{break-before:page}
+  tr.secrow:first-child{break-before:auto}
+  tr{break-inside:avoid}
+  .printhead{display:block!important;font-size:13px;margin-bottom:6px}
+}
+.printhead{display:none}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script>
+if (!window.jspdf) {
+  document.write('<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"><\/script>');
+  document.write('<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"><\/script>');
+}
+</script>
+</head>
+<body>
+<header>
+  <h1>GDS <span>Ruptures</span></h1>
+  <div class="src" id="src">Aucun fichier chargé</div>
+</header>
+<main>
+  <div class="drop" id="drop" tabindex="0" role="button">
+    <b>Déposer l'export StockStatus</b>
+    <small>ou cliquer pour choisir le fichier CSV</small>
+  </div>
+  <input type="file" id="file" accept=".csv,text/csv" hidden>
+
+  <section class="panel" id="panel">
+    <div class="controls">
+      <div class="grp" style="--g:var(--red)">
+        <div class="gt">Rupture critique<small>un seul emplacement, total dépôt</small></div>
+        <div class="ctl"><label for="critP">Colis ≤</label><input type="number" id="critP" min="0" step="1" value="5"></div>
+        <div class="ctl"><label for="critK">Kg ≤</label><input type="number" id="critK" min="0" step="0.5" value="5"></div>
+      </div>
+      <div class="grp" style="--g:var(--orange)">
+        <div class="gt">Rupture<small>plusieurs emplacements, par position</small></div>
+        <div class="ctl"><label for="rupP">Colis ≤</label><input type="number" id="rupP" min="0" step="1" value="1"></div>
+        <div class="ctl"><label for="rupK">Kg ≤</label><input type="number" id="rupK" min="0" step="0.5" value="1"></div>
+      </div>
+      <div class="ctl">
+        <label for="secSel">Secteur</label>
+        <select id="secSel"><option value="">Tous les secteurs</option></select>
+      </div>
+      <div class="ctl">
+        <label for="fmt">Format</label>
+        <select id="fmt"><option value="tous">Colis et poids</option><option value="colis">Colis uniquement</option><option value="kg">Poids uniquement</option></select>
+      </div>
+      <div class="ctl">
+        <label class="check"><input type="checkbox" id="hideRec"> Masquer si stock en réception</label>
+      </div>
+      <div class="ctl">
+        <label for="q">Rechercher</label>
+        <input type="search" id="q" placeholder="Désignation, MGB, emplacement">
+      </div>
+      <div class="spacer"></div>
+      <button class="btn alt" id="exp">Exporter le fichier ruptures</button>
+      <button class="btn" id="pdf">Télécharger le PDF</button>
+      <button class="btn" id="prt">Imprimer</button>
+    </div>
+
+    <div class="views" id="views" role="tablist"></div>
+    <div class="sectors" id="sectors"></div>
+    <p class="summary" id="summary"></p>
+    <div class="printhead" id="printhead"></div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr id="thead"></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <p class="note">
+      Rupture critique : l'article n'a qu'un seul emplacement en allée sur tout le dépôt, et son stock total ne dépasse pas le seuil critique.
+      Rupture : l'article a au moins deux emplacements en allée, et la position listée ne dépasse pas le seuil de rupture. Une ligne par position concernée.
+      Un article est au poids dès qu'une de ses lignes porte une quantité décimale.
+      Les positions IN et UNLOADING ne comptent pas comme emplacement : leur stock est affiché en réception. INSPECTION est ignoré.
+      Un clic sur une carte secteur n'affiche que ce secteur ; un second clic revient à tous les secteurs.
+    </p>
+  </section>
+</main>
+
+<script>
+const SECTEURS = [
+  {id:'AMB', nom:'Ambiant',          min:1,  max:14, c:'var(--s-amb)'},
+  {id:'FRA', nom:'Frais',            min:19, max:28, c:'var(--s-fra)'},
+  {id:'FL',  nom:'Fruits & légumes', min:30, max:35, c:'var(--s-fl)'},
+  {id:'SUR', nom:'Surgelé',          min:38, max:45, c:'var(--s-sur)'},
+  {id:'MAR', nom:'La Marée',         min:50, max:57, c:'var(--s-mar)'},
+  {id:'AUT', nom:'Hors secteur',     min:-1, max:-1, c:'var(--muted)'}
+];
+const QUAI_RECEPTION = /^(IN|UNLOADING)-/i;
+const LITIGE = /^INSPECTION-/i;
+const TYPES = {C:'Critique', R:'Rupture'};
+
+let articles = [];
+let meta = {};
+let vue = 'C';
+
+let sortKey = 'defaut', sortDir = 1;
+
+const $ = id => document.getElementById(id);
+
+function parseCSV(txt){
+  if (txt.charCodeAt(0) === 0xFEFF) txt = txt.slice(1);
+  const rows = []; let row = [], f = '', q = false;
+  for (let i = 0; i < txt.length; i++){
+    const ch = txt[i];
+    if (q){
+      if (ch === '"'){ if (txt[i+1] === '"'){ f += '"'; i++; } else q = false; }
+      else f += ch;
+    } else if (ch === '"') q = true;
+    else if (ch === ',') { row.push(f); f = ''; }
+    else if (ch === '\n') { row.push(f); rows.push(row); row = []; f = ''; }
+    else if (ch !== '\r') f += ch;
+  }
+  if (f !== '' || row.length) { row.push(f); rows.push(row); }
+  return rows.filter(r => r.length > 1);
+}
+const secteurDe = allee => SECTEURS.find(s => allee >= s.min && allee <= s.max) || SECTEURS[5];
+function dateFR(s){ const m = /^(\d{2})-(\d{2})-(\d{4})/.exec(s || ''); return m ? +(m[3]+m[2]+m[1]) : null; }
+function num(v){ const n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? 0 : n; }
+function fmtQ(n, kg){
+  return kg ? n.toLocaleString('fr-FR',{minimumFractionDigits:3,maximumFractionDigits:3})
+            : n.toLocaleString('fr-FR',{maximumFractionDigits:3});
+}
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ---------- Construction ---------- */
+function construire(rows, nomFichier){
+  const h = rows[0].map(x => x.trim());
+  const col = n => h.indexOf(n);
+  const manque = ['Position','Description','MGB','Bundle Size','Quantity','BBD'].filter(n => col(n) < 0);
+  if (manque.length){ alert("Ce fichier n'est pas un export StockStatus : colonnes absentes (" + manque.join(', ') + ")."); return; }
+  const iP=col('Position'), iD=col('Description'), iM=col('MGB'), iB=col('Bundle Size'), iQ=col('Quantity'), iBBD=col('BBD');
+
+  const parArt = new Map();
+  for (let r = 1; r < rows.length; r++){
+    const x = rows[r], pos = (x[iP]||'').trim(), mgb = (x[iM]||'').trim();
+    if (!mgb || !pos) continue;
+    let a = parArt.get(mgb);
+    if (!a){ a = {mgb, desc:x[iD], cond:num(x[iB]), pos:new Map(), rec:0, kg:false}; parArt.set(mgb, a); }
+    const q = num(x[iQ]);
+    if (q % 1 !== 0) a.kg = true;
+    if (LITIGE.test(pos)) continue;
+    if (QUAI_RECEPTION.test(pos)) { a.rec += q; continue; }
+    if (!/^\d+-/.test(pos)) continue;
+    let p = a.pos.get(pos);
+    if (!p){ p = {q:0, lignes:0, bbd:null, bbdTxt:''}; a.pos.set(pos, p); }
+    p.q += q; p.lignes++;
+    const d = dateFR(x[iBBD]);
+    if (d && (p.bbd === null || d < p.bbd)){ p.bbd = d; p.bbdTxt = x[iBBD]; }
+  }
+
+  const lim = new Date(); lim.setDate(lim.getDate()+7);
+  const limN = +(lim.getFullYear()+String(lim.getMonth()+1).padStart(2,'0')+String(lim.getDate()).padStart(2,'0'));
+
+  articles = [];
+  for (const a of parArt.values()){
+    if (!a.pos.size) continue;
+    const positions = [...a.pos.entries()].map(([pos, p]) => {
+      const parts = pos.split('-');
+      return {pos, allee:+parts[0], trav:+parts[1]||0, niv:parts[2]||'', place:+parts[3]||0,
+              q:p.q, lignes:p.lignes, bbd:p.bbd, bbdTxt:p.bbdTxt, dlcProche:p.bbd !== null && p.bbd <= limN};
+    });
+    a.positions = positions;
+    a.total = positions.reduce((s, p) => s + p.q, 0);
+    a.nbPos = positions.length;
+    articles.push(a);
+  }
+
+  const mDate = /(\d{2}-\d{2}-\d{4})/.exec(nomFichier || '');
+  const mDep = /_(\d{5})_/.exec(nomFichier || '');
+  meta = {fichier:nomFichier, dateExtr:mDate ? mDate[1] : '', depot:mDep ? String(+mDep[1]) : '171',
+          lignes:rows.length-1, enAllee:articles.length};
+
+  $('src').textContent = 'StockStatus du ' + (meta.dateExtr || '?') + ' · dépôt ' + meta.depot + ' · ' + meta.lignes.toLocaleString('fr-FR') + ' lignes';
+  $('drop').classList.add('compact');
+  $('drop').innerHTML = '<b>Changer de fichier</b><small>' + esc(nomFichier) + '</small>';
+  $('panel').classList.add('on');
+  const sel = $('secSel'), garde = sel.value;
+  const presents = new Set(articles.flatMap(a => a.positions.map(p => secteurDe(p.allee).id)));
+  sel.innerHTML = '<option value="">Tous les secteurs</option>' + SECTEURS.filter(x => presents.has(x.id))
+    .map(x => `<option value="${x.id}">${x.nom}</option>`).join('');
+  sel.value = presents.has(garde) ? garde : '';
+  rendre();
+}
+
+/* ---------- Lignes de ruptures ---------- */
+function lignesRuptures(){
+  const cP = num($('critP').value), cK = num($('critK').value);
+  const rP = num($('rupP').value),  rK = num($('rupK').value);
+  const fmt = $('fmt').value, hideRec = $('hideRec').checked;
+  const q = $('q').value.trim().toLowerCase();
+  const out = [];
+  for (const a of articles){
+    if (fmt === 'colis' && a.kg) continue;
+    if (fmt === 'kg' && !a.kg) continue;
+    if (hideRec && a.rec > 0) continue;
+    const base = {mgb:a.mgb, desc:a.desc, cond:a.cond, kg:a.kg, rec:a.rec, total:a.total, nbPos:a.nbPos};
+    if (a.nbPos === 1){
+      if (a.total <= (a.kg ? cK : cP)) out.push({...base, ...a.positions[0], type:'C', autres:[]});
+    } else {
+      const seuil = a.kg ? rK : rP;
+      for (const p of a.positions){
+        if (p.q <= seuil){
+          out.push({...base, ...p, type:'R',
+            autres:a.positions.filter(o => o !== p).map(o => o.pos + ' : ' + fmtQ(o.q, a.kg))});
+        }
+      }
+    }
+  }
+  out.forEach(l => l.sec = secteurDe(l.allee));
+  return q ? out.filter(l => l.desc.toLowerCase().includes(q) || l.mgb.includes(q) || l.pos.toLowerCase().includes(q)) : out;
+}
+
+const COLS = [
+  {k:'type',  t:'Type'},
+  {k:'pos',   t:'Emplacement'},
+  {k:'niv',   t:'Niveau'},
+  {k:'mgb',   t:'MGB'},
+  {k:'desc',  t:'Désignation'},
+  {k:'cond',  t:'Cond.', num:true},
+  {k:'q',     t:'Qté position', num:true},
+  {k:'total', t:'Total dépôt', num:true},
+  {k:'nbPos', t:'Empl.', num:true},
+  {k:'lignes',t:'Palettes', num:true},
+  {k:'bbd',   t:'DLC la plus proche'},
+  {k:'rec',   t:'En réception', num:true}
+];
+
+function comparer(a, b){
+  if (sortKey === 'defaut'){
+    return SECTEURS.indexOf(a.sec) - SECTEURS.indexOf(b.sec) || a.type.localeCompare(b.type) || a.q - b.q
+        || a.allee - b.allee || a.trav - b.trav;
+  }
+  if (sortKey === 'pos'){
+    const va = [a.allee,a.trav,a.niv,a.place], vb = [b.allee,b.trav,b.niv,b.place];
+    for (let i=0;i<4;i++){ if (va[i] < vb[i]) return -sortDir; if (va[i] > vb[i]) return sortDir; } return 0;
+  }
+  let va = a[sortKey], vb = b[sortKey];
+  if (va === null) va = Infinity; if (vb === null) vb = Infinity;
+  if (typeof va === 'string') return va.localeCompare(vb, 'fr') * sortDir;
+  return (va - vb) * sortDir;
+}
+
+function visibles(toutes){
+  return toutes.filter(l => (!$('secSel').value || l.sec.id === $('secSel').value) && (vue === 'T' || l.type === vue)).sort(comparer);
+}
+
+function nomVue(){ return vue === 'C' ? 'Ruptures critiques' : vue === 'R' ? 'Ruptures' : 'Ruptures et ruptures critiques'; }
+function nomSecteur(){ const id = $('secSel').value; return id ? SECTEURS.find(x => x.id === id).nom : 'Tous les secteurs'; }
+function titreEdition(){ return `${nomVue()} · ${nomSecteur()} · dépôt ${meta.depot} · StockStatus du ${meta.dateExtr}`; }
+function reglages(){
+  const fmt = {tous:'', colis:' · colis uniquement', kg:' · poids uniquement'}[$('fmt').value];
+  return `critique : total <= ${$('critP').value} colis / ${$('critK').value} kg · rupture : position <= ${$('rupP').value} colis / ${$('rupK').value} kg${fmt}${$('hideRec').checked?' · hors stock en réception':''}`;
+}
+function horodatage(){ const n = new Date(), p = x => String(x).padStart(2,'0'); return {f:`${n.getFullYear()}${p(n.getMonth()+1)}${p(n.getDate())}-${p(n.getHours())}${p(n.getMinutes())}`, t:`${p(n.getDate())}/${p(n.getMonth()+1)}/${n.getFullYear()} ${p(n.getHours())}:${p(n.getMinutes())}`}; }
+function suffixeFichier(){
+  const quoi = vue === 'C' ? 'CRITIQUES' : vue === 'R' ? 'RUPTURES' : 'TOUT';
+  const sec = $('secSel').value || 'TOUS';
+  return `${meta.depot}_${sec}_${quoi}_${(meta.dateExtr||'').replace(/-/g,'')}_${horodatage().f}`;
+}
+
+/* ---------- PDF ---------- */
+function exporterPDF(){
+  if (!window.jspdf || !window.jspdf.jsPDF){ alert("Le module PDF n'a pas pu se charger sur ce réseau. Utilisez Imprimer puis « Enregistrer au format PDF »."); return; }
+  const vis = visibles(lignesRuptures());
+  if (!vis.length){ alert('Aucune ligne à éditer avec ces réglages.'); return; }
+  const doc = new window.jspdf.jsPDF({orientation:'landscape', unit:'mm', format:'a4'});
+  const NAVY = [27,42,74], ORANGE = [242,140,40], ROUGE = [185,28,28];
+  const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
+  const edite = horodatage().t;
+  const head = [['Type','Emplacement','Niv.','MGB','Désignation','Cond.','Qté pos.','Total dépôt','Empl.','Pal.','DLC','Réception']];
+
+  // regroupement par secteur, une section par secteur
+  const groupes = [];
+  for (const l of vis){ let g = groupes[groupes.length-1]; if (!g || g.sec !== l.sec){ g = {sec:l.sec, lignes:[]}; groupes.push(g); } g.lignes.push(l); }
+  const parSecteur = sortKey === 'defaut';
+  const blocs = parSecteur ? groupes : [{sec:null, lignes:vis}];
+
+  blocs.forEach((b, i) => {
+    if (i > 0) doc.addPage();
+    const c = b.lignes.filter(l => l.type === 'C').length, r = b.lignes.length - c;
+    doc.autoTable({
+      head,
+      body: b.lignes.map(l => [TYPES[l.type], l.pos, l.niv, l.mgb, l.desc + (l.kg ? ' (kg)' : ''), l.cond || '',
+        fmtQ(l.q, l.kg), fmtQ(l.total, l.kg), l.nbPos, l.lignes, l.bbdTxt, l.rec > 0 ? fmtQ(l.rec, l.kg) : '']),
+      startY: 30, margin:{top:30, left:10, right:10, bottom:14},
+      theme:'grid',
+      styles:{font:'helvetica', fontSize:7.5, cellPadding:1.4, lineColor:[221,226,235], lineWidth:0.1, textColor:NAVY, overflow:'linebreak', valign:'middle'},
+      headStyles:{fillColor:NAVY, textColor:255, fontStyle:'bold', fontSize:7.5},
+      columnStyles:{0:{cellWidth:16}, 1:{cellWidth:24}, 2:{cellWidth:9}, 3:{cellWidth:24},
+        4:{cellWidth:'auto'}, 5:{cellWidth:11, halign:'right'}, 6:{cellWidth:16, halign:'right', fontStyle:'bold'},
+        7:{cellWidth:17, halign:'right'}, 8:{cellWidth:10, halign:'right'}, 9:{cellWidth:9, halign:'right'},
+        10:{cellWidth:19}, 11:{cellWidth:17, halign:'right'}},
+      didParseCell: d => {
+        if (d.section !== 'body') return;
+        const l = b.lignes[d.row.index];
+        if (l.type === 'C') d.cell.styles.fillColor = [255,241,241];
+        if (d.column.index === 0) { d.cell.styles.fontStyle = 'bold'; d.cell.styles.textColor = l.type === 'C' ? ROUGE : [138,74,11]; }
+        if (d.column.index === 6 && l.q === 0) d.cell.styles.textColor = ROUGE;
+      },
+      didDrawPage: () => {
+        doc.setFillColor(...NAVY); doc.rect(0, 0, W, 12, 'F');
+        doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(255);
+        doc.text('GDS', 10, 8); doc.setTextColor(...ORANGE); doc.text('Ruptures', 20, 8);
+        doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(255);
+        doc.text(`Dépôt ${meta.depot} · StockStatus du ${meta.dateExtr}`, W - 10, 8, {align:'right'});
+        doc.setTextColor(...NAVY); doc.setFont('helvetica','bold'); doc.setFontSize(12);
+        doc.text(`${nomVue()} · ${b.sec ? b.sec.nom : nomSecteur()}`, 10, 20);
+        doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(102,114,138);
+        doc.text(`${c} critiques · ${r} ruptures · ${reglages()}`, 10, 25.5);
+        doc.setFontSize(7.5);
+        doc.text(`Édité le ${edite} · source ${meta.fichier}`, 10, H - 6);
+      }
+    });
+  });
+  const n = doc.internal.getNumberOfPages();
+  for (let p = 1; p <= n; p++){ doc.setPage(p); doc.setFontSize(7.5); doc.setTextColor(102,114,138); doc.text(`Page ${p} / ${n}`, W - 10, H - 6, {align:'right'}); }
+  doc.save(`Ruptures_${suffixeFichier()}.pdf`);
+}
+
+/* ---------- Rendu ---------- */
+function rendre(){
+  const toutes = lignesRuptures();
+
+  const nb = {C:0, R:0};
+  const cnt = {}; SECTEURS.forEach(s => cnt[s.id] = {C:0, R:0});
+  toutes.forEach(l => { nb[l.type]++; cnt[l.sec.id][l.type]++; });
+
+  $('views').innerHTML = [['C','Ruptures critiques',nb.C],['R','Ruptures',nb.R],['T','Tout',nb.C+nb.R]]
+    .map(([v,t,n]) => `<button role="tab" data-v="${v}" class="${vue===v?'on':''}" aria-selected="${vue===v}">${t}<b>${n}</b></button>`).join('');
+  document.querySelectorAll('.views button').forEach(b => b.onclick = () => { vue = b.dataset.v; rendre(); });
+
+  $('sectors').innerHTML = SECTEURS.filter(s => s.id !== 'AUT' || cnt.AUT.C + cnt.AUT.R).map(s =>
+    `<button class="sec ${$('secSel').value && $('secSel').value !== s.id ? 'off' : ''} ${$('secSel').value === s.id ? 'sel' : ''}" style="--c:${s.c}" data-s="${s.id}" aria-pressed="${$('secSel').value === s.id}">
+       <div class="l">${s.nom}${s.min>0 ? '<small>allées '+s.min+' à '+s.max+'</small>' : ''}</div>
+       <div class="ct"><span class="c"><b>${cnt[s.id].C}</b>critiques</span><span><b>${cnt[s.id].R}</b>ruptures</span></div>
+     </button>`).join('');
+  document.querySelectorAll('.sec').forEach(b => b.onclick = () => {
+    const id = b.dataset.s; $('secSel').value = $('secSel').value === id ? '' : id; rendre();
+  });
+
+  const vis = visibles(toutes);
+  const nArt = new Set(vis.map(l => l.mgb)).size;
+  $('summary').innerHTML = `<strong>${vis.length}</strong> lignes affichées pour ${nArt} articles, sur ${meta.enAllee.toLocaleString('fr-FR')} articles en allée.`
+    + ` Dont ${vis.filter(l => l.kg).length} au poids et ${vis.filter(l => l.rec > 0).length} avec du stock en réception.`;
+  $('printhead').textContent = titreEdition() + ' · ' + reglages() + ' · ' + vis.length + ' lignes';
+
+  $('thead').innerHTML = COLS.map(c =>
+    `<th class="${c.num?'num':''}" data-k="${c.k}">${c.t}${sortKey===c.k?'<span class="ar">'+(sortDir>0?'▲':'▼')+'</span>':''}</th>`).join('');
+  document.querySelectorAll('th').forEach(th => th.onclick = () => {
+    const k = th.dataset.k;
+    if (sortKey === k){ if (sortDir === -1){ sortKey = 'defaut'; sortDir = 1; } else sortDir = -1; }
+    else { sortKey = k; sortDir = 1; }
+    rendre();
+  });
+
+  if (!vis.length){
+    $('tbody').innerHTML = `<tr><td class="empty" colspan="${COLS.length}">Aucune ligne avec ces réglages. Augmentez un seuil, changez d'onglet ou choisissez un autre secteur.</td></tr>`;
+    return;
+  }
+
+  const grouper = sortKey === 'defaut';
+  let html = '', cur = null;
+  for (const l of vis){
+    if (grouper && l.sec !== cur){
+      cur = l.sec;
+      const n = vis.filter(x => x.sec === cur);
+      const c = n.filter(x => x.type === 'C').length, r = n.length - c;
+      html += `<tr class="secrow" style="--c:${cur.c}"><td colspan="${COLS.length}">${cur.nom} · ${c} critiques · ${r} ruptures</td></tr>`;
+    }
+    html += `<tr class="${l.type==='C'?'crit':''}">
+      <td><span class="type ${l.type}">${TYPES[l.type]}</span></td>
+      <td class="mono">${esc(l.pos)}</td>
+      <td class="lvl">${l.niv.charAt(0) === 'A' ? 'Sol (A)' : esc(l.niv.charAt(0))}</td>
+      <td class="mono">${esc(l.mgb)}</td>
+      <td>${esc(l.desc)}${l.kg?'<span class="tag kg">kg</span>':''}${l.dlcProche?'<span class="tag dlc">DLC ≤ 7 j</span>':''}</td>
+      <td class="num mono">${l.cond || ''}</td>
+      <td class="num q ${l.q===0?'zero':''}">${fmtQ(l.q, l.kg)}</td>
+      <td class="num mono">${fmtQ(l.total, l.kg)}</td>
+      <td class="num mono">${l.nbPos > 1 ? '<span class="tag plus" title="Autres : '+esc(l.autres.join(' / '))+'">'+l.nbPos+'</span>' : 1}</td>
+      <td class="num mono">${l.lignes}</td>
+      <td class="mono">${esc(l.bbdTxt)}</td>
+      <td class="num">${l.rec>0?'<span class="tag rec">'+fmtQ(l.rec, l.kg)+'</span>':''}</td>
+    </tr>`;
+  }
+  $('tbody').innerHTML = html;
+}
+
+/* ---------- Export CSV (Excel FR) ---------- */
+function exporter(){
+  const vis = visibles(lignesRuptures());
+  const cell = v => { const s = String(v ?? ''); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s; };
+  const dec = n => String(+n.toFixed(3)).replace('.', ',');
+  const lignes = [['Type','Secteur','Emplacement','Allée','Niveau','MGB','Désignation','Format','Conditionnement',
+                   'Quantité position','Total dépôt','Nb emplacements','Autres emplacements','Palettes','DLC la plus proche','Stock en réception']];
+  vis.forEach(l => lignes.push([TYPES[l.type], l.sec.nom, l.pos, l.allee, l.niv, l.mgb, l.desc, l.kg?'Kg':'Colis', l.cond,
+    dec(l.q), dec(l.total), l.nbPos, l.autres.join(' / '), l.lignes, l.bbdTxt, l.rec?dec(l.rec):'']));
+  const csv = '\uFEFF' + lignes.map(r => r.map(cell).join(';')).join('\r\n');
+  const nom = `Ruptures_${suffixeFichier()}.csv`;
+  const url = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
+  const lnk = Object.assign(document.createElement('a'), {href:url, download:nom});
+  document.body.appendChild(lnk); lnk.click(); lnk.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/* ---------- Événements ---------- */
+function lire(f){
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = () => construire(parseCSV(r.result), f.name);
+  r.readAsText(f, 'UTF-8');
+}
+const drop = $('drop');
+drop.onclick = () => $('file').click();
+drop.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('file').click(); } };
+$('file').onchange = e => { lire(e.target.files[0]); e.target.value = ''; };
+['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => lire(e.dataTransfer.files[0]));
+['critP','critK','rupP','rupK','secSel','fmt','hideRec','q'].forEach(id => $(id).addEventListener('input', rendre));
+$('exp').onclick = exporter;
+$('pdf').onclick = exporterPDF;
+$('prt').onclick = () => window.print();
+</script>
+</body>
+</html>
