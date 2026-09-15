@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GDS · Ruptures</title>
+<title>GDS · Risques de rupture</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -134,9 +134,9 @@ if (!window.jspdf) {
 </head>
 <body>
 <header>
-  <h1>GDS <span>Ruptures</span></h1>
+  <h1>GDS <span>Risques de rupture</span></h1>
   <div class="src" id="src">Aucun fichier chargé</div>
-  <div class="src" style="margin-left:14px;opacity:.6">v6</div>
+  <div class="src" style="margin-left:14px;opacity:.6">v7</div>
 </header>
 <main>
   <div class="source">
@@ -155,12 +155,12 @@ if (!window.jspdf) {
   <section class="panel" id="panel">
     <div class="controls">
       <div class="grp" style="--g:var(--red)">
-        <div class="gt">Rupture critique<small>une seule position</small></div>
+        <div class="gt">Risque critique<small>une seule position</small></div>
         <div class="ctl"><label for="critP">Colis ≤</label><input type="number" id="critP" min="0" step="1" value="1"></div>
         <div class="ctl"><label for="critK">Kg ≤</label><input type="number" id="critK" min="0" step="0.5" value="1"></div>
       </div>
       <div class="grp" style="--g:var(--orange)">
-        <div class="gt">Rupture<small>une seule position</small></div>
+        <div class="gt">Risque de rupture<small>une seule position</small></div>
         <div class="ctl"><label for="rupP">Colis ≤</label><input type="number" id="rupP" min="0" step="1" value="5"></div>
         <div class="ctl"><label for="rupK">Kg ≤</label><input type="number" id="rupK" min="0" step="0.5" value="5"></div>
       </div>
@@ -177,7 +177,7 @@ if (!window.jspdf) {
         <input type="search" id="q" placeholder="Désignation, MGB, emplacement">
       </div>
       <div class="spacer"></div>
-      <button class="btn alt" id="exp">Exporter le fichier ruptures</button>
+      <button class="btn alt" id="exp">Exporter la liste</button>
       <button class="btn" id="pdf">Télécharger le PDF</button>
       <button class="btn" id="prt">Imprimer</button>
     </div>
@@ -193,9 +193,9 @@ if (!window.jspdf) {
       </table>
     </div>
     <p class="note">
-      Rupture et rupture critique : l'article n'existe que sur une seule position du dépôt. Toute sa quantité est sur cette position, il n'y en a nulle part ailleurs.
-      Rupture critique : cette quantité est inférieure ou égale au seuil critique (1 par défaut). Rupture : elle est au-dessus du seuil critique et inférieure ou égale au seuil de rupture (5 par défaut).
-      Une position de quai (IN, UNLOADING) compte comme une autre position. Le litige (INSPECTION) est hors stock et n'est pas pris en compte.
+      Risque de rupture : l'article est encore en stock mais sur le point de manquer. Il n'existe que sur une seule position du dépôt, toute sa quantité est là, il n'y en a nulle part ailleurs.
+      Risque critique : cette quantité est inférieure ou égale au seuil critique (1 par défaut, le dernier colis). Risque de rupture : au-dessus du seuil critique et inférieure ou égale au seuil de rupture (5 par défaut).
+      Du stock en quai (IN, UNLOADING) compte comme une autre position : un réappro est en cours, l'article n'est donc pas sur le point de manquer. Le litige (INSPECTION) est hors stock et ignoré.
       Un article est au poids dès qu'une de ses lignes porte une quantité décimale.
       Un clic sur une carte secteur n'affiche que ce secteur ; un second clic revient à tous les secteurs.
     </p>
@@ -213,7 +213,7 @@ const SECTEURS = [
 ];
 const QUAI_RECEPTION = /^(IN|UNLOADING)-/i;
 const LITIGE = /^INSPECTION-/i;
-const TYPES = {C:'Critique', R:'Rupture'};
+const TYPES = {C:'Critique', R:'Risque'};
 
 let articles = [];
 let meta = {};
@@ -360,16 +360,16 @@ function visibles(toutes){
   return toutes.filter(l => (!$('secSel').value || l.sec.id === $('secSel').value) && (vue === 'T' || l.type === vue)).sort(comparer);
 }
 
-function nomVue(){ return vue === 'C' ? 'Ruptures critiques' : vue === 'R' ? 'Ruptures' : 'Ruptures et ruptures critiques'; }
+function nomVue(){ return vue === 'C' ? 'Risques critiques' : vue === 'R' ? 'Risques de rupture' : 'Tous les risques de rupture'; }
 function nomSecteur(){ const id = $('secSel').value; return id ? SECTEURS.find(x => x.id === id).nom : 'Tous les secteurs'; }
 function titreEdition(){ return `${nomVue()} · ${nomSecteur()} · dépôt ${meta.depot} · StockStatus du ${meta.dateExtr}`; }
 function reglages(){
   const fmt = {tous:'', colis:' · colis uniquement', kg:' · poids uniquement'}[$('fmt').value];
-  return `une seule position · critique <= ${$('critP').value} colis / ${$('critK').value} kg · rupture <= ${$('rupP').value} colis / ${$('rupK').value} kg${fmt}`;
+  return `une seule position · critique <= ${$('critP').value} colis / ${$('critK').value} kg · risque <= ${$('rupP').value} colis / ${$('rupK').value} kg${fmt}`;
 }
 function horodatage(){ const n = new Date(), p = x => String(x).padStart(2,'0'); return {f:`${n.getFullYear()}${p(n.getMonth()+1)}${p(n.getDate())}-${p(n.getHours())}${p(n.getMinutes())}`, t:`${p(n.getDate())}/${p(n.getMonth()+1)}/${n.getFullYear()} ${p(n.getHours())}:${p(n.getMinutes())}`}; }
 function suffixeFichier(){
-  const quoi = vue === 'C' ? 'CRITIQUES' : vue === 'R' ? 'RUPTURES' : 'TOUT';
+  const quoi = vue === 'C' ? 'CRITIQUES' : vue === 'R' ? 'RISQUES' : 'TOUT';
   const sec = $('secSel').value || 'TOUS';
   return `${meta.depot}_${sec}_${quoi}_${(meta.dateExtr||'').replace(/-/g,'')}_${horodatage().f}`;
 }
@@ -415,13 +415,13 @@ function exporterPDF(){
       didDrawPage: () => {
         doc.setFillColor(...NAVY); doc.rect(0, 0, W, 12, 'F');
         doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(255);
-        doc.text('GDS', 10, 8); doc.setTextColor(...ORANGE); doc.text('Ruptures', 20, 8);
+        doc.text('GDS', 10, 8); doc.setTextColor(...ORANGE); doc.text('Risques de rupture', 20, 8);
         doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(255);
         doc.text(`Dépôt ${meta.depot} · StockStatus du ${meta.dateExtr}`, W - 10, 8, {align:'right'});
         doc.setTextColor(...NAVY); doc.setFont('helvetica','bold'); doc.setFontSize(12);
         doc.text(`${nomVue()} · ${b.sec ? b.sec.nom : nomSecteur()}`, 10, 20);
         doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(102,114,138);
-        doc.text(`${c} critiques · ${r} ruptures · ${reglages()}`, 10, 25.5);
+        doc.text(`${c} critiques · ${r} risques · ${reglages()}`, 10, 25.5);
         doc.setFontSize(7.5);
         doc.text(`Édité le ${edite} · source ${meta.fichier}`, 10, H - 6);
       }
@@ -429,7 +429,7 @@ function exporterPDF(){
   });
   const n = doc.internal.getNumberOfPages();
   for (let p = 1; p <= n; p++){ doc.setPage(p); doc.setFontSize(7.5); doc.setTextColor(102,114,138); doc.text(`Page ${p} / ${n}`, W - 10, H - 6, {align:'right'}); }
-  doc.save(`Ruptures_${suffixeFichier()}.pdf`);
+  doc.save(`RisquesRupture_${suffixeFichier()}.pdf`);
 }
 
 /* ---------- Rendu ---------- */
@@ -440,14 +440,14 @@ function rendre(){
   const cnt = {}; SECTEURS.forEach(s => cnt[s.id] = {C:0, R:0});
   toutes.forEach(l => { nb[l.type]++; cnt[l.sec.id][l.type]++; });
 
-  $('views').innerHTML = [['C','Ruptures critiques',nb.C],['R','Ruptures',nb.R],['T','Tout',nb.C+nb.R]]
+  $('views').innerHTML = [['C','Risques critiques',nb.C],['R','Risques de rupture',nb.R],['T','Tout',nb.C+nb.R]]
     .map(([v,t,n]) => `<button role="tab" data-v="${v}" class="${vue===v?'on':''}" aria-selected="${vue===v}">${t}<b>${n}</b></button>`).join('');
   document.querySelectorAll('.views button').forEach(b => b.onclick = () => { vue = b.dataset.v; rendre(); });
 
   $('sectors').innerHTML = SECTEURS.filter(s => s.id !== 'AUT' || cnt.AUT.C + cnt.AUT.R).map(s =>
     `<button class="sec ${$('secSel').value && $('secSel').value !== s.id ? 'off' : ''} ${$('secSel').value === s.id ? 'sel' : ''}" style="--c:${s.c}" data-s="${s.id}" aria-pressed="${$('secSel').value === s.id}">
        <div class="l">${s.nom}${s.min>0 ? '<small>allées '+s.min+' à '+s.max+'</small>' : ''}</div>
-       <div class="ct"><span class="c"><b>${cnt[s.id].C}</b>critiques</span><span><b>${cnt[s.id].R}</b>ruptures</span></div>
+       <div class="ct"><span class="c"><b>${cnt[s.id].C}</b>critiques</span><span><b>${cnt[s.id].R}</b>risques</span></div>
      </button>`).join('');
   document.querySelectorAll('.sec').forEach(b => b.onclick = () => {
     const id = b.dataset.s; $('secSel').value = $('secSel').value === id ? '' : id; rendre();
@@ -478,7 +478,7 @@ function rendre(){
       cur = l.sec;
       const n = vis.filter(x => x.sec === cur);
       const c = n.filter(x => x.type === 'C').length, r = n.length - c;
-      html += `<tr class="secrow" style="--c:${cur.c}"><td colspan="${COLS.length}">${cur.nom} · ${c} critiques · ${r} ruptures</td></tr>`;
+      html += `<tr class="secrow" style="--c:${cur.c}"><td colspan="${COLS.length}">${cur.nom} · ${c} critiques · ${r} risques</td></tr>`;
     }
     html += `<tr class="${l.type==='C'?'crit':''}">
       <td><span class="type ${l.type}">${TYPES[l.type]}</span></td>
@@ -504,7 +504,7 @@ function exporter(){
   vis.forEach(l => lignes.push([TYPES[l.type], l.sec.nom, l.pos, l.allee, l.niv, l.mgb, l.desc, l.kg?'Kg':'Colis', l.cond,
     dec(l.q), l.lignes, l.bbdTxt]));
   const csv = '\uFEFF' + lignes.map(r => r.map(cell).join(';')).join('\r\n');
-  const nom = `Ruptures_${suffixeFichier()}.csv`;
+  const nom = `RisquesRupture_${suffixeFichier()}.csv`;
   const url = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
   const lnk = Object.assign(document.createElement('a'), {href:url, download:nom});
   document.body.appendChild(lnk); lnk.click(); lnk.remove();
