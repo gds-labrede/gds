@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GDS — Fiches FDS</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#eef1f6; --white:#fff;
+  --border:#e2e7ef; --border-hi:#c9d2e0;
+  --text:#16203a; --text-mid:#5c6883; --text-low:#98a1b5;
+  --navy:#1a2e55; --orange:#d46c1a; --rouge:#b8342f;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* ══ BARRE ══ */
+.bar{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:14px;
+  padding:0 32px;height:60px;background:var(--white);
+  border-bottom:1px solid var(--border);box-shadow:0 1px 3px rgba(20,32,60,.07)}
+.logo{display:flex;align-items:baseline;gap:10px}
+.logo b{font-size:18px;font-weight:700;letter-spacing:-.4px}
+.logo span{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--text-low)}
+.sp{flex:1}
+.retour{display:inline-flex;align-items:center;gap:7px;background:var(--white);
+  border:1px solid var(--border);border-radius:8px;padding:8px 13px;color:var(--text-mid);
+  font-family:'DM Sans',sans-serif;font-size:12.5px;text-decoration:none;
+  transition:border-color .18s,color .18s}
+.retour:hover{border-color:var(--border-hi);color:var(--text)}
+.pastille{width:33px;height:33px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,#2a4576,var(--navy));color:#fff;font-size:12px;font-weight:700;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25)}
+
+/* ══ PAGE ══ */
+.page{max-width:1320px;margin:0 auto;padding:32px 32px 60px}
+h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
+.accroche{font-size:13.5px;color:var(--text-mid);margin-top:5px;margin-bottom:22px}
+
+/* ══ COMPTEURS ══ */
+.compteurs{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:20px}
+.cpt{background:linear-gradient(180deg,#fff,#fbfcfe);border:1px solid var(--border);border-radius:12px;
+  padding:14px 18px;box-shadow:0 1px 2px rgba(20,32,60,.05),inset 0 1px 0 #fff}
+.cpt-v{font-size:24px;font-weight:700;letter-spacing:-.6px}
+.cpt-l{font-size:12px;color:var(--text-mid);margin-top:2px}
+.cpt-p{height:6px;background:var(--bg);border-radius:3px;overflow:hidden;margin-top:10px}
+.cpt-b{height:100%;width:0;border-radius:3px;transition:width .6s ease;
+  background:linear-gradient(90deg,#1d7a5f,#37a37f)}
+
+/* ══ OUTILS DE RECHERCHE ══ */
+.outils{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.recherche{flex:1;min-width:240px;padding:11px 14px;border:1px solid var(--border);border-radius:10px;
+  font-family:'DM Sans',sans-serif;font-size:13.5px;color:var(--text);background:var(--white);
+  outline:none;transition:border-color .18s}
+.recherche:focus{border-color:var(--navy)}
+.segments{display:inline-flex;gap:3px;padding:3px;background:var(--white);
+  border:1px solid var(--border);border-radius:10px;box-shadow:0 1px 2px rgba(20,32,60,.05)}
+.seg{border:none;background:transparent;padding:8px 14px;border-radius:8px;cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-size:12.5px;font-weight:600;color:var(--text-low);
+  transition:background .18s,color .18s}
+.seg:hover{color:var(--text-mid)}
+.seg.on{background:var(--navy);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.2)}
+
+/* ══ LISTE ══ */
+.liste{background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;
+  box-shadow:0 1px 2px rgba(20,32,60,.05)}
+.ligne{display:grid;grid-template-columns:150px 1fr 150px 170px;gap:14px;align-items:center;
+  padding:11px 16px;border-top:1px solid var(--border);font-size:13px}
+.ligne:first-child{border-top:none}
+.ligne.tete{background:#f7f9fc;font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:1.4px;
+  color:var(--text-low);text-transform:uppercase;padding:10px 16px}
+.ligne:not(.tete):hover{background:#fafbfd}
+.mgb{font-family:'DM Mono',monospace;font-size:12px;color:var(--text-mid)}
+.desc{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.zone{font-size:12px;color:var(--text-mid);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.act{display:flex;gap:6px;justify-content:flex-end}
+
+.fds{display:inline-flex;align-items:center;gap:7px;border:none;cursor:pointer;
+  padding:7px 12px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;
+  color:#fff;background:linear-gradient(180deg,#d45c55,var(--rouge));
+  box-shadow:0 6px 14px -8px rgba(184,52,47,.9),inset 0 1px 0 rgba(255,255,255,.3);
+  transition:filter .18s,transform .1s}
+.fds:hover{filter:brightness(1.08)}
+.fds:active{transform:translateY(1px)}
+.fds svg{width:14px;height:14px;fill:#fff}
+.sans{font-size:11.5px;color:var(--text-low)}
+.mini{background:var(--white);border:1px solid var(--border);border-radius:7px;padding:6px 10px;
+  font-family:'DM Sans',sans-serif;font-size:11.5px;color:var(--text-mid);cursor:pointer;
+  transition:border-color .16s,color .16s}
+.mini:hover{border-color:var(--navy);color:var(--navy)}
+.mini:disabled{opacity:.5;cursor:default}
+
+.info{padding:34px;text-align:center;color:var(--text-low);font-size:13px}
+.plus{padding:12px;text-align:center;color:var(--text-low);font-size:12px;border-top:1px solid var(--border)}
+
+/* ══ LECTEUR ══ */
+.voile{position:fixed;inset:0;z-index:50;background:rgba(14,22,42,.55);backdrop-filter:blur(3px);
+  display:none;align-items:center;justify-content:center;padding:24px}
+.voile.on{display:flex}
+.lecteur{width:min(1100px,100%);height:min(92vh,1200px);background:var(--white);border-radius:14px;
+  overflow:hidden;display:flex;flex-direction:column;box-shadow:0 30px 70px -20px rgba(0,0,0,.6)}
+.lect-h{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,#fff,#f7f9fc)}
+.lect-t{flex:1;min-width:0}
+.lect-nom{font-size:15px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lect-mgb{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-low);margin-top:2px}
+.lecteur iframe{flex:1;border:none;background:#525659}
+.lect-attente{flex:1;display:flex;align-items:center;justify-content:center;color:var(--text-low);font-size:13px}
+
+/* ══ MESSAGES ══ */
+.toasts{position:fixed;bottom:22px;right:22px;z-index:100;display:flex;flex-direction:column;gap:9px;align-items:flex-end}
+.toast{background:var(--navy);color:#fff;padding:12px 17px;border-radius:10px;font-size:13px;
+  box-shadow:0 10px 30px -8px rgba(20,32,60,.5);animation:entre .28s cubic-bezier(.2,.8,.3,1)}
+.toast.ok{background:linear-gradient(180deg,#22916f,#1d7a5f)}
+.toast.err{background:linear-gradient(180deg,#c44540,#b8342f)}
+@keyframes entre{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+*:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media(max-width:760px){
+  .bar{padding:0 16px}
+  .page{padding:22px 16px 44px}
+  .ligne{grid-template-columns:1fr auto}
+  .ligne .mgb,.ligne .zone{display:none}
+  .ligne.tete{display:none}
+}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="logo"><b>GDS</b><span>LA BRÈDE</span></div>
+  <div class="sp"></div>
+  <a class="retour" href="sommaire.html#danger">← Tableau de bord</a>
+  <div class="pastille" id="pastille">–</div>
+</header>
+
+<main class="page">
+  <h1>Fiches de données de sécurité</h1>
+  <p class="accroche" id="accroche">Chargement du stock…</p>
+
+  <div class="compteurs">
+    <div class="cpt"><div class="cpt-v" id="n-art">—</div><div class="cpt-l">Articles en stock</div></div>
+    <div class="cpt"><div class="cpt-v" id="n-fds">—</div><div class="cpt-l">Articles avec FDS</div>
+      <div class="cpt-p"><div class="cpt-b" id="b-fds"></div></div></div>
+    <div class="cpt"><div class="cpt-v" id="n-tot">—</div><div class="cpt-l">Fiches dans l'archive</div></div>
+  </div>
+
+  <div class="outils">
+    <input type="text" class="recherche" id="rech" placeholder="Rechercher un MGB ou une désignation…">
+    <div class="segments">
+      <button class="seg"    data-f="tous" onclick="filtre('tous')">Tous</button>
+      <button class="seg on" data-f="avec" onclick="filtre('avec')">Avec FDS</button>
+      <button class="seg"    data-f="sans" onclick="filtre('sans')">Sans FDS</button>
+    </div>
+  </div>
+
+  <div class="liste" id="liste"><div class="info">Chargement…</div></div>
+</main>
+
+<div class="voile" id="voile" onclick="if(event.target===this) fermerLecteur()">
+  <div class="lecteur">
+    <div class="lect-h">
+      <div class="lect-t">
+        <div class="lect-nom" id="l-nom">—</div>
+        <div class="lect-mgb" id="l-mgb">—</div>
+      </div>
+      <button class="mini" id="l-tel">Télécharger</button>
+      <button class="mini" onclick="fermerLecteur()">Fermer</button>
+    </div>
+    <div class="lect-attente" id="l-attente">Ouverture de la fiche…</div>
+    <iframe id="l-cadre" title="Fiche de données de sécurité" style="display:none"></iframe>
+  </div>
+</div>
+
+<input type="file" id="choix" accept="application/pdf,.pdf" style="display:none">
+<div class="toasts" id="toasts"></div>
+
+<script src="config.js"></script>
+<script>
+if (typeof GDS === 'undefined') {
+  document.body.innerHTML = '<p style="font-family:sans-serif;padding:40px">Fichier config.js absent.</p>';
+  throw new Error('config.js absent');
+}
+
+var API          = GDS.API;
+var CLE_PUBLIQUE = GDS.CLE_PUBLIQUE;
+
+/* Convention : une FDS = FDS/{MGB}.pdf dans l'archive */
+var DOSSIER = 'FDS/';
+var MAX_LIGNES = 300;
+
+/* ══════════ SESSION ══════════ */
+var jeton = sessionStorage.getItem('gds_jeton');
+var role  = sessionStorage.getItem('gds_role');
+var nom   = sessionStorage.getItem('gds_nom');
+if(!jeton){ location.replace('index.html'); }
+
+var peutDeposer = role === 'admin' || role === 'admin_restreint';
+
+document.getElementById('pastille').textContent =
+  (nom || '?').split(' ').map(function(m){ return m[0]; }).join('').slice(0,2).toUpperCase();
+
+function auth(sup){
+  var h = { 'Authorization':'Bearer ' + CLE_PUBLIQUE, 'apikey':CLE_PUBLIQUE, 'X-GDS-Session':jeton };
+  if(sup) for(var k in sup) h[k] = sup[k];
+  return h;
+}
+
+function dire(texte, type){
+  var d = document.createElement('div');
+  d.className = 'toast' + (type ? ' ' + type : '');
+  d.textContent = texte;
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){ d.remove(); }, 3600);
+}
+
+function expire(r){
+  if(r.status === 401){ sessionStorage.clear(); location.replace('index.html'); return true; }
+  return false;
+}
+
+/* ══════════ LECTURE DU CSV ══════════ */
+/* Tout est lu en texte : un MGB comme 0819517001002 garde ses zéros. */
+function lireCSV(texte){
+  var premiere = texte.slice(0, texte.indexOf('\n'));
+  var sep = (premiere.split(';').length > premiere.split(',').length) ? ';' : ',';
+  var lignes = [], champ = '', ligne = [], guill = false;
+
+  for(var i = 0; i < texte.length; i++){
+    var c = texte[i];
+    if(guill){
+      if(c === '"'){
+        if(texte[i+1] === '"'){ champ += '"'; i++; }
+        else guill = false;
+      } else champ += c;
+    } else if(c === '"') guill = true;
+    else if(c === sep){ ligne.push(champ); champ = ''; }
+    else if(c === '\n' || c === '\r'){
+      if(c === '\r' && texte[i+1] === '\n') i++;
+      ligne.push(champ); champ = '';
+      if(ligne.length > 1 || ligne[0] !== '') lignes.push(ligne);
+      ligne = [];
+    } else champ += c;
+  }
+  if(champ !== '' || ligne.length){ ligne.push(champ); lignes.push(ligne); }
+  return lignes;
+}
+
+function decoder(buf){
+  var t = new TextDecoder('utf-8').decode(buf);
+  if(t.indexOf('�') !== -1) t = new TextDecoder('windows-1252').decode(buf);
+  return t.replace(/^﻿/, '');
+}
+
+function nettoyerMGB(v){
+  return String(v || '').trim().replace(/^'/, '').replace(/\s+/g, '');
+}
+
+/* ══════════ CHARGEMENT ══════════ */
+var articles = [];              /* un par MGB */
+var fiches   = {};              /* MGB → nom du fichier */
+var mode     = 'avec';
+
+async function dernierStockStatus(){
+  var r = await fetch(API + '/fichiers', {
+    method:'POST', headers: auth({ 'Content-Type':'application/json' }),
+    body: JSON.stringify({ prefix: '' })
+  });
+  if(expire(r)) return null;
+  if(!r.ok) throw new Error('liste');
+  var l = await r.json();
+  var ss = (Array.isArray(l) ? l : []).filter(function(f){
+    return f.name && f.name.indexOf('StockStatus_') === 0;
+  });
+  ss.sort(function(a, b){
+    return new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at);
+  });
+  return ss[0] || null;
+}
+
+async function chargerStock(){
+  var f = await dernierStockStatus();
+  if(!f){
+    document.getElementById('accroche').textContent =
+      'Aucun StockStatus dans l\'espace courant. Déposez-le depuis l\'onglet Fichiers.';
+    return;
+  }
+
+  var d = f.name.match(/(\d{2})-(\d{2})-(\d{4})/);
+  document.getElementById('accroche').textContent =
+    'Articles du StockStatus' + (d ? ' du ' + d[1] + '/' + d[2] + '/' + d[3] : '') +
+    '. Cliquez sur « FDS » pour ouvrir la fiche.';
+
+  var r = await fetch(API + '/fichier/' + encodeURIComponent(f.name), { headers: auth() });
+  if(expire(r)) return;
+  if(!r.ok) throw new Error('stock');
+  var lignes = lireCSV(decoder(await r.arrayBuffer()));
+
+  var tete = lignes[0].map(function(h){ return h.trim().toLowerCase(); });
+  var iM = tete.indexOf('mgb');
+  var iD = tete.indexOf('description');
+  var iZ = tete.indexOf('picking area');
+  if(iM === -1) throw new Error('colonne MGB introuvable');
+
+  var vus = {};
+  for(var i = 1; i < lignes.length; i++){
+    var m = nettoyerMGB(lignes[i][iM]);
+    if(!m || vus[m]) continue;
+    vus[m] = true;
+    articles.push({
+      mgb: m,
+      desc: iD !== -1 ? (lignes[i][iD] || '').trim() : '',
+      zone: iZ !== -1 ? (lignes[i][iZ] || '').trim() : ''
+    });
+  }
+  articles.sort(function(a, b){ return a.desc.localeCompare(b.desc, 'fr'); });
+}
+
+async function chargerFiches(){
+  var r = await fetch(API + '/archive', {
+    method:'POST', headers: auth({ 'Content-Type':'application/json' }),
+    body: JSON.stringify({ prefix: DOSSIER })
+  });
+  if(expire(r)) return;
+  if(!r.ok) throw new Error('archive');
+  var d = await r.json();
+  fiches = {};
+  (d.files || []).forEach(function(f){
+    var n = f.fileName.slice(DOSSIER.length);
+    if(/\.pdf$/i.test(n)) fiches[n.replace(/\.pdf$/i, '')] = f.fileName;
+  });
+}
+
+/* ══════════ AFFICHAGE ══════════ */
+var ICO_FDS = '<svg viewBox="0 0 24 24"><path d="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm7 1.5V9h5.5zM11 11v5h2v-5zm0 6.5v2h2v-2z"/></svg>';
+
+function compteurs(){
+  var avec = articles.filter(function(a){ return fiches[a.mgb]; }).length;
+  document.getElementById('n-art').textContent = articles.length.toLocaleString('fr-FR');
+  document.getElementById('n-fds').textContent = avec.toLocaleString('fr-FR');
+  document.getElementById('n-tot').textContent = Object.keys(fiches).length.toLocaleString('fr-FR');
+  document.getElementById('b-fds').style.width =
+    (articles.length ? Math.max(2, avec / articles.length * 100) : 0) + '%';
+}
+
+function filtre(f){
+  mode = f;
+  document.querySelectorAll('.seg').forEach(function(b){ b.classList.toggle('on', b.dataset.f === f); });
+  afficher();
+}
+
+function afficher(){
+  var q = document.getElementById('rech').value.trim().toLowerCase();
+  var l = articles.filter(function(a){
+    if(mode === 'avec' && !fiches[a.mgb]) return false;
+    if(mode === 'sans' &&  fiches[a.mgb]) return false;
+    return !q || a.mgb.toLowerCase().indexOf(q) !== -1 || a.desc.toLowerCase().indexOf(q) !== -1;
+  });
+
+  var zone = document.getElementById('liste');
+  if(!l.length){
+    zone.innerHTML = '<div class="info">' +
+      (mode === 'avec' && !q ? 'Aucune fiche FDS pour les articles en stock.' : 'Aucun article.') + '</div>';
+    return;
+  }
+
+  zone.innerHTML =
+    '<div class="ligne tete"><span>MGB</span><span>Désignation</span><span>Zone</span><span style="text-align:right">Fiche</span></div>';
+
+  l.slice(0, MAX_LIGNES).forEach(function(a){
+    var d = document.createElement('div');
+    d.className = 'ligne';
+    d.innerHTML = '<span class="mgb"></span><span class="desc"></span><span class="zone"></span><span class="act"></span>';
+    d.querySelector('.mgb').textContent  = a.mgb;
+    d.querySelector('.desc').textContent = a.desc || '—';
+    d.querySelector('.desc').title       = a.desc;
+    d.querySelector('.zone').textContent = a.zone || '—';
+
+    var act = d.querySelector('.act');
+    if(fiches[a.mgb]){
+      var b = document.createElement('button');
+      b.className = 'fds';
+      b.innerHTML = ICO_FDS + 'FDS';
+      b.onclick = function(){ ouvrir(a); };
+      act.appendChild(b);
+    } else {
+      var s = document.createElement('span');
+      s.className = 'sans'; s.textContent = 'Aucune fiche';
+      act.appendChild(s);
+    }
+    if(peutDeposer){
+      var m = document.createElement('button');
+      m.className = 'mini';
+      m.textContent = fiches[a.mgb] ? 'Remplacer' : 'Ajouter';
+      m.onclick = function(){ deposer(a, m); };
+      act.appendChild(m);
+    }
+    zone.appendChild(d);
+  });
+
+  if(l.length > MAX_LIGNES){
+    var p = document.createElement('div');
+    p.className = 'plus';
+    p.textContent = (l.length - MAX_LIGNES).toLocaleString('fr-FR') +
+      ' articles de plus — affinez la recherche.';
+    zone.appendChild(p);
+  }
+}
+
+document.getElementById('rech').addEventListener('input', afficher);
+
+/* ══════════ LECTEUR ══════════ */
+var urlCourante = null;
+
+async function ouvrir(a){
+  document.getElementById('l-nom').textContent = a.desc || a.mgb;
+  document.getElementById('l-mgb').textContent = 'MGB ' + a.mgb;
+  document.getElementById('l-attente').style.display = 'flex';
+  document.getElementById('l-attente').textContent = 'Ouverture de la fiche…';
+  document.getElementById('l-cadre').style.display = 'none';
+  document.getElementById('voile').classList.add('on');
+
+  try {
+    var r = await fetch(API + '/archive/' + encodeURIComponent(fiches[a.mgb]), { headers: auth() });
+    if(expire(r)) return;
+    if(!r.ok) throw new Error();
+    var b = await r.blob();
+    b = new Blob([b], { type:'application/pdf' });
+    if(urlCourante) URL.revokeObjectURL(urlCourante);
+    urlCourante = URL.createObjectURL(b);
+
+    var cadre = document.getElementById('l-cadre');
+    cadre.src = urlCourante;
+    cadre.style.display = 'block';
+    document.getElementById('l-attente').style.display = 'none';
+
+    document.getElementById('l-tel').onclick = function(){
+      var x = document.createElement('a');
+      x.href = urlCourante; x.download = 'FDS_' + a.mgb + '.pdf'; x.click();
+    };
+  } catch(e){
+    document.getElementById('l-attente').textContent = 'Impossible d\'ouvrir la fiche.';
+  }
+}
+
+function fermerLecteur(){
+  document.getElementById('voile').classList.remove('on');
+  document.getElementById('l-cadre').src = 'about:blank';
+}
+
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape') fermerLecteur();
+});
+
+/* ══════════ DÉPÔT ══════════ */
+/* Le fichier est renommé d'office en FDS/{MGB}.pdf : aucune
+   erreur de nommage possible, et rien d'autre n'entre dans le dossier. */
+var cible = null, boutonCible = null;
+var choix = document.getElementById('choix');
+
+function deposer(a, bouton){
+  cible = a; boutonCible = bouton;
+  choix.value = '';
+  choix.click();
+}
+
+choix.addEventListener('change', async function(){
+  var f = choix.files[0];
+  if(!f || !cible) return;
+  if(!/\.pdf$/i.test(f.name) && f.type !== 'application/pdf'){
+    dire('Seuls les fichiers PDF sont acceptés', 'err'); return;
+  }
+
+  var a = cible, b = boutonCible;
+  b.disabled = true; b.textContent = 'Envoi…';
+  try {
+    var nomFichier = DOSSIER + a.mgb + '.pdf';
+    var r = await fetch(API + '/archive/' + encodeURIComponent(nomFichier), {
+      method:'POST', headers: auth({ 'Content-Type':'application/pdf' }), body: f
+    });
+    if(expire(r)) return;
+    if(!r.ok) throw new Error();
+    fiches[a.mgb] = nomFichier;
+    dire('Fiche FDS enregistrée pour ' + a.mgb, 'ok');
+    compteurs(); afficher();
+  } catch(e){
+    b.disabled = false; b.textContent = fiches[a.mgb] ? 'Remplacer' : 'Ajouter';
+    dire('Envoi impossible', 'err');
+  }
+});
+
+/* ══════════ DÉMARRAGE ══════════ */
+(async function(){
+  try {
+    await Promise.all([chargerStock(), chargerFiches()]);
+    /* Rien en stock n'a de fiche : on montre tout plutôt qu'une liste vide */
+    if(!articles.some(function(a){ return fiches[a.mgb]; })) filtre('tous');
+    compteurs(); afficher();
+  } catch(e){
+    document.getElementById('liste').innerHTML = '<div class="info">Chargement impossible.</div>';
+    dire('Erreur de chargement', 'err');
+  }
+})();
+</script>
+</body>
+</html>

@@ -454,7 +454,9 @@ var FAMILLES = [
     { nom:'Opti',                    f:'opti.html',                    ico:'eclair' },
     { nom:'Analyseur MGB Dispersés', f:'analyseur_mgb_disperses.html', ico:'loupe' }
   ]},
-  { id:'danger', nom:'Produits Dangereux', ico:'alerte', c:'#b8342f', desc:'Suivi et conformité réglementaire', admin:false, outils:[] },
+  { id:'danger', nom:'Produits Dangereux', ico:'alerte', c:'#b8342f', desc:'Suivi et conformité réglementaire', admin:false, outils:[
+    { nom:'Fiches FDS', f:'fds.html', ico:'feuille', meme:true }
+  ]},
   { id:'outils', nom:'Outils', ico:'cle', c:'#5b4b8a', desc:'Utilitaires et outils divers', admin:false, outils:[
     { nom:'QR Code 2026 v2',       f:'QR_CODE_2026_v2.html',       ico:'etiq' },
     { nom:'Team Email Manager v2', f:'Team-email-manager-v2.html', ico:'mail' },
@@ -493,9 +495,9 @@ var FAMILLES = [
 ];
 
 /* ══════════ SESSION ══════════ */
-var jeton = localStorage.getItem('gds_jeton') || sessionStorage.getItem('gds_jeton');
-var role  = localStorage.getItem('gds_role')  || sessionStorage.getItem('gds_role');
-var nom   = localStorage.getItem('gds_nom')   || sessionStorage.getItem('gds_nom');
+var jeton = sessionStorage.getItem('gds_jeton');
+var role  = sessionStorage.getItem('gds_role');
+var nom   = sessionStorage.getItem('gds_nom');
 if(!jeton){ location.replace('index.html'); }
 
 var LIBELLE = { admin:'Administrateur', admin_restreint:'Admin restreint', user:'Utilisateur' };
@@ -506,7 +508,7 @@ document.getElementById('pastille').textContent =
 document.getElementById('accroche').textContent =
   'Bonjour ' + (nom || '') + ' — sélectionnez une famille.';
 
-function quitter(){ sessionStorage.clear(); localStorage.clear(); location.replace('index.html'); }
+function quitter(){ sessionStorage.clear(); location.replace('index.html'); }
 function svg(n){ return '<svg viewBox="0 0 48 48">' + (I[n] || I.feuille) + '</svg>'; }
 
 function auth(sup){
@@ -574,10 +576,7 @@ function ouvrirVue(id){
     f.outils.forEach(function(o){
       var a = document.createElement('a');
       a.className = 'outil';
-      /* 'opener' et non 'noopener' : sans la relation avec l'onglet
-         d'origine, le navigateur n'y recopie pas le sessionStorage,
-         et les outils qui appellent l'API perdent la session. */
-      a.href = BASE + o.f; a.target = '_blank'; a.rel = 'opener';
+      a.href = BASE + o.f; if(!o.meme){ a.target = '_blank'; a.rel = 'noopener'; }
       a.style.setProperty('--c', f.c);
       a.innerHTML = '<div class="o-ico">' + svg(o.ico) + '</div>' +
                     '<div class="o-nom">' + o.nom + '</div>' +
@@ -891,56 +890,31 @@ function avance(pct, texte){
   document.getElementById('je-msg').textContent = texte;
 }
 
-/* Le navigateur suffixe « (1) », « (2) »… quand on telecharge
-   plusieurs fois le meme export. On repart du nom d'origine,
-   sinon chaque telechargement cree une variante en ligne. */
-function nomPropre(nom){
-  return nom.replace(/ *\((\d+)\)(?=\.[^.]+$)/, '')
-            .replace(/ *\((\d+)\)$/, '');
-}
-
 async function envoyer(f){
   if(!f) return;
   var cible = espace;
-  var nomCible = nomPropre(f.name);
   try {
-    avance(10, 'Vérification de « ' + nomCible + ' »…');
+    avance(10, 'Vérification de « ' + f.name + ' »…');
     var liste = await lister(cible);
 
     if(cible === 'courant'){
       var prefixe = PREFIXES.filter(function(p){ return f.name.indexOf(p) === 0; })[0];
 
       if(prefixe){
-        /* Nom variable : on efface les anciens du meme prefixe,
-           sinon ils s'accumulent au lieu d'etre remplaces.
-           Un par un et avec controle : un echec silencieux laissait
-           deux exports en ligne sans que personne le voie. */
+        /* Nom variable : on efface les anciens du même préfixe,
+           sinon ils s'accumulent au lieu d'être remplacés. */
         var vieux = liste.filter(function(x){ return x.nom.indexOf(prefixe) === 0; })
                          .map(function(x){ return x.nom; });
-        var rates = [];
-        for(var i = 0; i < vieux.length; i++){
-          avance(20 + Math.round(25 * (i + 1) / vieux.length),
-                 'Suppression de l\'ancienne version ' + (i + 1) + '/' + vieux.length + '…');
-          try {
-            var rs = await fetch(API + '/fichiers', {
-              method:'DELETE',
-              headers: auth({ 'Content-Type':'application/json' }),
-              body: JSON.stringify({ prefixes: [vieux[i]] })
-            });
-            if(!rs.ok) rates.push(vieux[i]);
-          } catch(err){ rates.push(vieux[i]); }
-        }
-        if(rates.length){
-          avance(0, 'Remplacement impossible.');
-          dire('Impossible de supprimer : ' + rates.join(', '), 'err');
-          setTimeout(function(){
-            document.getElementById('jauge-envoi').classList.remove('on');
-          }, 3000);
-          choix.value = '';
-          return;
+        if(vieux.length){
+          avance(30, 'Suppression de ' + vieux.length + ' ancienne(s) version(s)…');
+          await fetch(API + '/fichiers', {
+            method:'DELETE',
+            headers: auth({ 'Content-Type':'application/json' }),
+            body: JSON.stringify({ prefixes: vieux })
+          });
         }
       } else {
-        var existant = liste.filter(function(x){ return x.nom === nomCible; })[0];
+        var existant = liste.filter(function(x){ return x.nom === f.name; })[0];
         if(existant && existant.date){
           var dEnLigne = new Date(existant.date);
           if(dEnLigne > new Date(f.lastModified)){
@@ -958,8 +932,8 @@ async function envoyer(f){
       }
     }
 
-    avance(60, 'Envoi de « ' + nomCible + ' »…');
-    var r = await fetch(API + ESPACES[cible].unite + encodeURIComponent(nomCible), {
+    avance(60, 'Envoi vers « ' + ESPACES[cible].titre + ' »…');
+    var r = await fetch(API + ESPACES[cible].unite + encodeURIComponent(f.name), {
       method:'POST',
       headers: auth({ 'Content-Type': f.type || 'application/octet-stream' }),
       body: f
@@ -967,7 +941,7 @@ async function envoyer(f){
     if(!r.ok) throw new Error();
 
     avance(100, 'Fichier déposé.');
-    dire('« ' + nomCible + ' » déposé', 'ok');
+    dire('« ' + f.name + ' » déposé', 'ok');
     setTimeout(function(){
       document.getElementById('jauge-envoi').classList.remove('on');
       document.getElementById('je-barre').style.width = '0%';
