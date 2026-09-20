@@ -564,6 +564,10 @@ function dire(texte, type){
 if(role === 'admin') document.getElementById('ong-admin').style.display = 'block';
 
 function onglet(v){
+  /* L'onglet Outils ramène toujours aux familles, jamais à la
+     famille qu'on venait de consulter. */
+  if(v === 'outils') retour();
+
   document.querySelectorAll('.ong').forEach(function(b){
     b.classList.toggle('on', b.dataset.vue === v);
   });
