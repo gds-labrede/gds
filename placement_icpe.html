@@ -297,7 +297,7 @@ td.edit select{min-width:220px;padding:5px 8px;font-size:13px}
             <select id="f-situ"><option value="">Toutes</option><option>À mettre sur bac</option><option>Partiellement sur bac</option><option>Conforme</option><option>Occupe un bac sans besoin</option><option>À vérifier</option><option>Sur bac (à vérifier)</option><option>Sur bac, code ICPE à renseigner</option><option>Place de bac libre</option><option>Place de bac bloquée</option></select>
           </div>
           <div class="champ seul-ano"><label>Priorité</label>
-            <select id="f-prio"><option value="">Toutes</option><option value="P1">P1 — incompatibilité</option><option value="P2">P2 — hors bac</option><option value="P3">P3 — place à libérer</option><option value="P4">P4 — code ICPE manquant</option></select>
+            <select id="f-prio"><option value="">Toutes</option><option value="P1">P1 — incompatibilité</option><option value="P2">P2 — hors bac</option><option value="P3">P3 — place à libérer</option><option value="P4">P4 — produit non classé</option></select>
           </div>
           <div class="champ seul-empl"><label>Emplacements</label>
             <select id="f-occup"><option value="occ">Occupés</option><option value="vide">Vides</option><option value="">Tous</option></select>
@@ -487,10 +487,11 @@ const ROLES_ADMIS = ['admin','admin_restreint'];
 const entetes = sup => Object.assign({'Authorization':'Bearer '+CLE,'apikey':CLE,'X-GDS-Session':jeton}, sup||{});
 const FRAICHEUR = 15 * 60 * 1000;   // 15 minutes
 const SOURCES = [
-  {cle:'stock',  titre:'Stock du jour',           prefixe:'StockStatus_FR_STOREDEPOT_',            frais:true},
-  {cle:'struct', titre:'Structure des emplacements', prefixe:'M_DEPOT report_Emplacement de stk_Table', frais:true},
-  {cle:'ref',    titre:'Référentiel ICPE',        prefixe:'icpe_REFS',                             frais:false}
+  {cle:'stock',  titre:'Stock du jour',              motif:/^stockstatus/i,                 frais:true},
+  {cle:'struct', titre:'Structure des emplacements', motif:/m_depot.*emplacement.*stk/i,    frais:true},
+  {cle:'ref',    titre:'Référentiel ICPE',           motif:/^(icpe_refs|icpe[_ -]?\d{4})/i, frais:false}
 ];
+let forcer = false;
 let fichiersServeur = {};
 
 function age(d){
@@ -529,19 +530,27 @@ async function chargerDepuisServeur(){
     const liste = await listerServeur();
     const etat = {};
     SOURCES.forEach(s => {
-      const c = liste.filter(f => f.nom.indexOf(s.prefixe) === 0).sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
+      const c = liste.filter(f => s.motif.test(f.nom.replace(/_/g,' ').trim()) || s.motif.test(f.nom)).sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
       if (c.length) etat[s.cle] = c[0];
     });
     fichiersServeur = etat;
     dessinerSources(etat);
-    const vieux = SOURCES.filter(s => s.frais && (!etat[s.cle] || age(etat[s.cle].date) > 15));
-    if (vieux.length){
-      alerteSource('Fichier trop ancien ou absent : ' + vieux.map(v => v.titre.toLowerCase()).join(' et ') +
-        '. Déposez un export de moins de 15 minutes dans l’espace courant, puis rechargez.');
-      $('src-info').textContent = 'Données non exploitables';
+    const manquants = SOURCES.filter(s => s.frais && !etat[s.cle]);
+    const vieux = SOURCES.filter(s => s.frais && etat[s.cle] && age(etat[s.cle].date) > 15);
+    if (manquants.length){
+      alerteSource('Fichier absent du serveur : ' + manquants.map(v => v.titre.toLowerCase()).join(' et ') + '. Déposez-le dans l’espace courant, puis rechargez.', false);
+      $('src-info').textContent = 'Données incomplètes';
       $('resultats').classList.add('cache');
       return;
     }
+    if (vieux.length && !forcer){
+      alerteSource('Fichier de plus de 15 minutes : ' + vieux.map(v => v.titre.toLowerCase() + ' (' + libAge(age(etat[v.cle].date)) + ')').join(' et ') +
+        '. Déposez un export à jour, ou forcez l’analyse en sachant que les emplacements peuvent avoir bougé.', true);
+      $('src-info').textContent = 'Données à confirmer';
+      $('resultats').classList.add('cache');
+      return;
+    }
+    const enRetard = vieux.length;
     alerteSource('');
     for (const s of SOURCES){
       if (!etat[s.cle]) continue;
@@ -549,16 +558,22 @@ async function chargerDepuisServeur(){
       const file = new File([blob], etat[s.cle].nom, {type: blob.type});
       await new Promise(res => { lireFichier(file, res); setTimeout(res, 15000); });
     }
-    $('src-info').textContent = 'Chargé · stock de ' + libAge(age(etat.stock.date));
+    $('src-info').textContent = 'Chargé · stock de ' + libAge(age(etat.stock.date)) + (enRetard ? ' · analyse forcée' : '');
+    if (enRetard) alerteSource('Analyse forcée sur des fichiers de plus de 15 minutes : vérifiez les emplacements sur le terrain.', false, true);
   } catch(e){
     console.error(e);
     alerteSource('Serveur injoignable ou session expirée. Revenez au sommaire et reconnectez-vous.');
     $('src-info').textContent = 'Erreur';
   }
 }
-function alerteSource(txt){
+function alerteSource(txt, avecForcage, doux){
   const el = $('src-alerte');
-  el.textContent = txt; el.classList.toggle('cache', !txt);
+  el.classList.toggle('cache', !txt);
+  el.style.borderColor = doux ? 'var(--ambre)' : 'var(--rouge)';
+  el.style.background = doux ? 'var(--ambre-l)' : 'var(--rouge-l)';
+  el.style.color = doux ? 'var(--ambre)' : 'var(--rouge)';
+  el.innerHTML = echap(txt) + (avecForcage ? ' <button class="bouton" id="b-forcer" style="margin-left:10px">Forcer l’analyse</button>' : '');
+  if (avecForcage) $('b-forcer').onclick = () => { forcer = true; chargerDepuisServeur(); };
 }
 
 function demarrer(){
@@ -611,8 +626,9 @@ function colonne(row, motif){ return Object.keys(row).find(k => motif.test(k.tri
 
 function chargerRef(rows, nom){
   if (!rows.length){ toast('Référentiel vide'); return; }
-  const k12 = colonne(rows[0], /^mgb\s*12$/i), k6 = colonne(rows[0], /^mgb\s*6$/i), k9 = colonne(rows[0], /^mgb\s*9$/i), kLib = colonne(rows[0], /libell/i), kIcpe = colonne(rows[0], /icpe/i);
-  if (!k12 || !kIcpe){ toast('Colonnes « MGB 12 » ou « Code ICPE » introuvables'); return; }
+  const k12 = colonne(rows[0], /^mgb\s*12$/i) || colonne(rows[0], /^mgb$/i), k6 = colonne(rows[0], /^mgb\s*6$/i), k9 = colonne(rows[0], /^mgb\s*9$/i),
+        kLib = colonne(rows[0], /libell|d[ée]signation/i), kIcpe = colonne(rows[0], /icpe/i);
+  if (!k12 || !kIcpe){ toast('Colonnes « MGB » ou « Code ICPE » introuvables dans le référentiel'); return; }
   refBrut = rows.map(r => ({m6:norm(k6 && r[k6]), m9:norm(k9 && r[k9]), m12:norm(r[k12]), lib:norm(r[kLib]), code:norm(r[kIcpe]).replace(/\.0$/,'')}));
   refNom = nom;
   refLignes = rows.map(r => ({mgb:normMgb(r[k12]), art: artDe(normMgb(r[k12])), lib:norm(r[kLib]), code:norm(r[kIcpe]).replace(/\.0$/,'')})).filter(r=>r.mgb);
@@ -777,7 +793,7 @@ function calculer(){
     } else if (!g && m && e.code){
       prio = 'P3'; ano = 'Occupe une place de bac sans en avoir besoin'; cible = 'Hors bac'; arr = 'RELOC';
     } else if (!g && m && !e.code){
-      prio = 'P4'; ano = 'Sur un bac sans code ICPE : à renseigner'; cible = 'Code ICPE à saisir'; arr = '';
+      prio = 'P4'; ano = 'Sur un bac, produit inconnu du référentiel : à classer'; cible = 'Code ICPE à saisir'; arr = '';
     }
     // acide dans une alvéole voisine d'un meuble Javel
     if (!prio && ACIDE.test(e.lib)){
@@ -981,7 +997,7 @@ function majCompteModifs(){
 }
 
 /* ---------- Bilan du placement ---------- */
-const LIB_PRIO = {P1:'incompatibilité, à traiter en urgence',P2:'rétention obligatoire, hors bac',P3:'place de bac à libérer',P4:'code ICPE à renseigner'};
+const LIB_PRIO = {P1:'incompatibilité, à traiter en urgence',P2:'rétention obligatoire, hors bac',P3:'place de bac à libérer',P4:'produit non classé, à vérifier'};
 function dessinerPlacement(){
   const n = pr => anomalies.filter(a => a.prio === pr).length;
   $('pl-bilan').innerHTML = ['P1','P2','P3','P4'].map(pr =>
