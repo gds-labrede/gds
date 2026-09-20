@@ -599,9 +599,11 @@ function fermer(){
   document.getElementById('vue-familles').style.display = 'block';
 }
 
+/* Ferme la vue sans toucher à l'historique : un retour arrière
+   renverrait à la page d'où l'on vient (un outil, par exemple). */
 function retour(){
-  if(location.hash){ history.back(); return; }
   fermer();
+  if(location.hash) history.replaceState({}, '', location.pathname);
 }
 
 window.addEventListener('popstate', function(e){
