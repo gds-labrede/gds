@@ -262,10 +262,9 @@ if(jeton && role !== 'admin' && role !== 'admin_restreint'){
 }
 /* Seule l'administration modifie le référentiel */
 var peutEditer = (role === 'admin');
-if(peutEditer){
-  document.getElementById('b-ref').style.display   = 'inline-flex';
-  document.getElementById('b-annul').style.display = 'inline-flex';
-}
+/* Le bouton d'import n'apparaît que si le référentiel est absent :
+   une fois en place, il n'y a plus moyen de l'écraser par mégarde. */
+if(peutEditer) document.getElementById('b-annul').style.display = 'inline-flex';
 document.getElementById('pastille').textContent =
   (nom || '?').split(' ').map(function(m){ return m[0]; }).join('').slice(0,2).toUpperCase();
 
@@ -336,6 +335,7 @@ var fiches = {};     /* MGB → nom du fichier FDS */
 var refs = {};       /* référentiel complet : MGB → code */
 var ordreRefs = [];  /* ordre d'origine du fichier */
 var texteOrigine = '';       /* référentiel tel que trouvé à l'ouverture */
+var refAbsent = false;       /* vrai seulement au tout premier démarrage */
 var sauvegardeFaite = false;
 var mode = 'sensible';
 
@@ -360,7 +360,10 @@ async function texteDe(nomFichier){
 /* Le référentiel n'est pas listé : on le lit directement. */
 async function lireRef(){
   var r = await fetch(API + '/fichier/' + encodeURIComponent(FICHIER_REFS), { headers: auth() });
-  if(r.status === 404) throw new Error('référentiel ICPE absent — à importer');
+  if(r.status === 404){
+    refAbsent = true;
+    throw new Error('référentiel ICPE absent — à importer');
+  }
   if(refus(r)) throw new Error('refus');
   if(!r.ok) throw new Error('lecture du référentiel');
   texteOrigine = decoder(await r.arrayBuffer());
@@ -877,10 +880,13 @@ document.addEventListener('keydown', function(e){ if(e.key === 'Escape') fermerL
     vue('sensible');
   } catch(e){
     document.getElementById('accroche').textContent = 'Chargement impossible — ' + (e.message || '') + '.';
+
+    /* Premier démarrage : c'est le seul moment où l'import est proposé. */
+    if(peutEditer && refAbsent) document.getElementById('b-ref').style.display = 'inline-flex';
+
     document.getElementById('liste').innerHTML =
-      '<div class="info">' + (role === 'admin'
-        ? 'Vérifiez qu\'un StockStatus est présent dans l\'espace courant. '
-          + 'Le référentiel ICPE s\'importe avec le bouton « Référentiel ».'
+      '<div class="info">' + (peutEditer && refAbsent
+        ? 'Importez le référentiel ICPE avec le bouton « Référentiel ».'
         : 'Vérifiez qu\'un StockStatus est présent dans l\'espace courant.') + '</div>';
   }
 })();
