@@ -178,6 +178,7 @@ select.etat.attente{background:#eef0fb;color:#4a55a8;border-color:#ccd2ee}
     <button class="export" onclick="exporter()">Exporter</button>
     <button class="lien" id="b-ref" style="display:none" onclick="document.getElementById('f-ref').click()">Référentiel</button>
     <input type="file" id="f-ref" accept=".csv" style="display:none" onchange="deposerRef(this)">
+    <button class="lien" id="b-annul" style="display:none" onclick="restaurer()">Annuler la séance</button>
   </div>
 
   <div class="liste" id="liste"><div class="info">Chargement…</div></div>
@@ -215,7 +216,10 @@ var API = GDS.API, CLE_PUBLIQUE = GDS.CLE_PUBLIQUE;
 /* Référentiel ICPE (MGB;CODE). Il vit dans le dossier technique :
    l'application le lit, mais il n'apparaît pas dans l'onglet Fichiers
    des comptes non administrateurs. */
-var FICHIER_REFS = 'systeme/icpe_refs.csv';
+var FICHIER_REFS  = 'systeme/icpe_refs.csv';
+
+/* Copie de sécurité : l'état du référentiel à l'ouverture de la séance */
+var FICHIER_SAUVE = 'systeme/icpe_refs_precedent.csv';
 
 /* 1510 est la rubrique générique entrepôt : elle couvre la moitié
    du stock et ne signale aucun risque particulier. Les autres codes
@@ -249,7 +253,10 @@ if(!jeton){
 }
 /* Seule l'administration modifie le référentiel */
 var peutEditer = (role === 'admin');
-if(peutEditer) document.getElementById('b-ref').style.display = 'inline-flex';
+if(peutEditer){
+  document.getElementById('b-ref').style.display   = 'inline-flex';
+  document.getElementById('b-annul').style.display = 'inline-flex';
+}
 document.getElementById('pastille').textContent =
   (nom || '?').split(' ').map(function(m){ return m[0]; }).join('').slice(0,2).toUpperCase();
 
@@ -319,6 +326,8 @@ var articles = [];   /* un par MGB */
 var fiches = {};     /* MGB → nom du fichier FDS */
 var refs = {};       /* référentiel complet : MGB → code */
 var ordreRefs = [];  /* ordre d'origine du fichier */
+var texteOrigine = '';       /* référentiel tel que trouvé à l'ouverture */
+var sauvegardeFaite = false;
 var mode = 'sensible';
 
 async function listerCourant(){
@@ -345,7 +354,47 @@ async function lireRef(){
   if(r.status === 404) throw new Error('référentiel ICPE absent — à importer');
   if(refus(r)) throw new Error('refus');
   if(!r.ok) throw new Error('lecture du référentiel');
-  return decoder(await r.arrayBuffer());
+  texteOrigine = decoder(await r.arrayBuffer());
+  return texteOrigine;
+}
+
+/* Copie de l'état trouvé à l'ouverture, écrite une seule fois par
+   session, juste avant la première modification. Elle permet de
+   revenir en arrière si la séance de saisie a mal tourné. */
+async function sauvegarder(){
+  if(sauvegardeFaite || !texteOrigine) return;
+  sauvegardeFaite = true;
+  try {
+    await fetch(API + '/fichier/' + encodeURIComponent(FICHIER_SAUVE), {
+      method:'POST', headers: auth({ 'Content-Type':'text/csv' }),
+      body: new Blob([texteOrigine], { type:'text/csv' })
+    });
+  } catch(e){ sauvegardeFaite = false; }
+}
+
+/* Retour à la copie de sécurité. */
+async function restaurer(){
+  if(!confirm(
+      'Revenir au référentiel tel qu\'il était avant vos dernières modifications ?\n\n' +
+      'Tout ce qui a été saisi depuis sera perdu.')) return;
+  try {
+    var r = await fetch(API + '/fichier/' + encodeURIComponent(FICHIER_SAUVE), { headers: auth() });
+    if(r.status === 404){ dire('Aucune copie de sécurité disponible', 'err'); return; }
+    if(refus(r)) return;
+    if(!r.ok) throw new Error();
+    var contenu = await r.blob();
+
+    var w = await fetch(API + '/fichier/' + encodeURIComponent(FICHIER_REFS), {
+      method:'POST', headers: auth({ 'Content-Type':'text/csv' }), body: contenu
+    });
+    if(refus(w)) return;
+    if(!w.ok) throw new Error();
+    enAttente = 0;
+    dire('Référentiel restauré', 'ok');
+    setTimeout(function(){ location.reload(); }, 900);
+  } catch(e){
+    dire('Restauration impossible', 'err');
+  }
 }
 
 /* Import du référentiel, réservé à l'administration. */
@@ -353,8 +402,17 @@ async function deposerRef(champ){
   var f = champ.files && champ.files[0];
   champ.value = '';
   if(!f) return;
+
+  var combien = Object.keys(refs).length;
+  if(combien && !confirm(
+      'Remplacer le référentiel entier par « ' + f.name + ' ' + '» ?\n\n' +
+      combien.toLocaleString('fr-FR') + ' lignes actuelles seront écrasées, ' +
+      'codes et états FDS compris.\n\n' +
+      'Une copie de l\'état actuel sera conservée.')) return;
+
   dire('Envoi du référentiel…');
   try {
+    await sauvegarder();
     var r = await fetch(API + '/fichier/' + encodeURIComponent(FICHIER_REFS), {
       method:'POST', headers: auth({ 'Content-Type':'text/csv' }), body: f
     });
@@ -710,6 +768,7 @@ function appliquer(a){
 
 async function enregistrerRef(){
   var nb = enAttente;
+  await sauvegarder();
   var lignes = ['MGB;CODE;FDS'];
   ordreRefs.forEach(function(m){
     var e = refs[m];
