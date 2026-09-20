@@ -190,6 +190,10 @@ td.edit select{min-width:220px;padding:5px 8px;font-size:13px}
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
         <button class="bouton fort" id="b-recharger">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 1 1 2.3 5.6M4 20v-5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Recharger depuis le serveur</button>
+        <label class="bouton" style="position:relative;overflow:hidden">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 19V5m0 0-4 4m4-4 4 4M5 21h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Référentiel depuis le poste
+          <input type="file" accept=".xlsx,.xls,.csv" id="f-ref-local" style="position:absolute;inset:0;opacity:0;cursor:pointer">
+        </label>
         <span class="aide" id="src-aide" style="font-size:12.5px;color:var(--gris)">Le stock et la structure doivent dater de moins de 15 minutes.</span>
       </div>
       <div id="src-alerte" class="cache" style="margin-top:12px;border:1px solid var(--rouge);background:var(--rouge-l);color:var(--rouge);border-radius:10px;padding:12px 14px;font-weight:600"></div>
@@ -487,11 +491,13 @@ const ROLES_ADMIS = ['admin','admin_restreint'];
 const entetes = sup => Object.assign({'Authorization':'Bearer '+CLE,'apikey':CLE,'X-GDS-Session':jeton}, sup||{});
 const FRAICHEUR = 15 * 60 * 1000;   // 15 minutes
 const SOURCES = [
-  {cle:'stock',  titre:'Stock du jour',              motif:/^stockstatus/i,                 frais:true},
-  {cle:'struct', titre:'Structure des emplacements', motif:/m_depot.*emplacement.*stk/i,    frais:true},
-  {cle:'ref',    titre:'Référentiel ICPE',           motif:/^(icpe_refs|icpe[_ -]?\d{4})/i, frais:false}
+  {cle:'stock',  titre:'Stock du jour',              motif:/^stockstatus/i,              frais:true},
+  {cle:'struct', titre:'Structure des emplacements', motif:/m_depot.*emplacement.*stk/i, frais:true}
 ];
+/* Référentiel de l'outil Contrôle ICPE : fichier technique, non listé */
+const FICHIER_REFS = 'systeme/icpe_refs.csv';
 let forcer = false;
+let refOK = null;
 let fichiersServeur = {};
 
 function age(d){
@@ -514,12 +520,15 @@ async function telechargerServeur(nom){
 }
 
 function dessinerSources(etat){
-  $('src-lignes').innerHTML = SOURCES.map(s => {
+  const toutes = SOURCES.concat([{cle:'ref', titre:'Référentiel ICPE', frais:false}]);
+  $('src-lignes').innerHTML = toutes.map(s => {
     const f = etat[s.cle];
     const m = f ? age(f.date) : null;
     const ko = !f || (s.frais && m !== null && m > 15);
+    const etatTxt = !f ? 'Manquant' : f.technique ? (refOK ? 'Chargé' : 'Lecture…') : ko ? 'Trop ancien' : 'À jour';
+    const cls = !f || (f.technique && refOK === false) ? 'p-abs' : ko ? 'p-abs' : 'p-connu';
     return `<tr><td><b>${s.titre}</b></td><td class="mono" style="font-size:12px">${f ? echap(f.nom) : '<span style="color:var(--rouge)">absent du serveur</span>'}</td>` +
-      `<td>${f ? libAge(m) : '—'}</td><td><span class="pastille ${ko ? 'p-abs' : 'p-connu'}">${!f ? 'Manquant' : ko ? 'Trop ancien' : 'À jour'}</span></td></tr>`;
+      `<td>${f && !f.technique ? libAge(m) : '—'}</td><td><span class="pastille ${cls}">${etatTxt}</span></td></tr>`;
   }).join('');
 }
 
@@ -533,6 +542,7 @@ async function chargerDepuisServeur(){
       const c = liste.filter(f => s.motif.test(f.nom.replace(/_/g,' ').trim()) || s.motif.test(f.nom)).sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
       if (c.length) etat[s.cle] = c[0];
     });
+    etat.ref = {nom: FICHIER_REFS, date: null, technique: true};
     fichiersServeur = etat;
     dessinerSources(etat);
     const manquants = SOURCES.filter(s => s.frais && !etat[s.cle]);
@@ -552,6 +562,12 @@ async function chargerDepuisServeur(){
     }
     const enRetard = vieux.length;
     alerteSource('');
+    try {
+      const blobRef = await telechargerServeur(FICHIER_REFS);
+      await new Promise(res => { lireFichier(new File([blobRef], 'icpe_refs.csv', {type:'text/csv'}), res); setTimeout(res, 15000); });
+      refOK = true;
+    } catch(e){ refOK = false; toast('Référentiel ICPE introuvable : ' + FICHIER_REFS); }
+    dessinerSources(etat);
     for (const s of SOURCES){
       if (!etat[s.cle]) continue;
       const blob = await telechargerServeur(etat[s.cle].nom);
@@ -615,7 +631,7 @@ function lireFichier(f, fini){
       const cols = (res.meta.fields||[]).map(c=>c.trim());
       if (cols.includes('Location Code')) chargerStock(res.data, f.name);
       else if (cols.includes('location_nr') && cols.includes('stk_content_type')) chargerStructure(res.data, f.name);
-      else if (cols.some(c=>/icpe/i.test(c))) chargerRef(res.data, f.name);
+      else if (cols.some(c=>/icpe/i.test(c)) || (cols.some(c=>/^mgb/i.test(c)) && cols.some(c=>/^code$/i.test(c)))) chargerRef(res.data, f.name);
       else toast('Fichier non reconnu : ' + f.name);
       fin();
     }});
@@ -627,7 +643,7 @@ function colonne(row, motif){ return Object.keys(row).find(k => motif.test(k.tri
 function chargerRef(rows, nom){
   if (!rows.length){ toast('Référentiel vide'); return; }
   const k12 = colonne(rows[0], /^mgb\s*12$/i) || colonne(rows[0], /^mgb$/i), k6 = colonne(rows[0], /^mgb\s*6$/i), k9 = colonne(rows[0], /^mgb\s*9$/i),
-        kLib = colonne(rows[0], /libell|d[ée]signation/i), kIcpe = colonne(rows[0], /icpe/i);
+        kLib = colonne(rows[0], /libell|d[ée]signation/i), kIcpe = colonne(rows[0], /icpe/i) || colonne(rows[0], /^code$/i);
   if (!k12 || !kIcpe){ toast('Colonnes « MGB » ou « Code ICPE » introuvables dans le référentiel'); return; }
   refBrut = rows.map(r => ({m6:norm(k6 && r[k6]), m9:norm(k9 && r[k9]), m12:norm(r[k12]), lib:norm(r[kLib]), code:norm(r[kIcpe]).replace(/\.0$/,'')}));
   refNom = nom;
@@ -1072,6 +1088,7 @@ document.querySelectorAll('#vue button').forEach(b => b.onclick = () => {
 });
 document.querySelectorAll('.chiffre').forEach(c => c.onclick = () => { $('f-statut').value = c.dataset.statut; limite=500; afficher(); });
 $('b-recharger').onclick = () => chargerDepuisServeur();
+$('f-ref-local').addEventListener('change', e => { const f = e.target.files[0]; if (f) lireFichier(f); e.target.value=''; });
 document.addEventListener('DOMContentLoaded', demarrer);
 $('b-plus').onclick = () => { limite += 500; dessinerTableau(vue==='emplacement'); };
 $('b-raz').onclick = () => { $('f-stock').value='oui'; $('f-statut').value=''; $('f-code').value=''; $('f-type').value=''; $('f-bac').value=''; $('f-situ').value=''; $('f-prio').value=''; $('f-occup').value='occ'; $('f-templ').value=''; $('f-fam').value=''; $('f-secteur').value=''; $('f-texte').value=''; tri={col:null,sens:1}; limite=500; afficher(); };
