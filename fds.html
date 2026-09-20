@@ -253,9 +253,14 @@ var MAX_LIGNES = 400;
 var EN_PARALLELE = 3;
 
 /* ══════════ SESSION ══════════ */
-var jeton = sessionStorage.getItem('gds_jeton');
-var role  = sessionStorage.getItem('gds_role');
-var nom   = sessionStorage.getItem('gds_nom');
+function lire(c){
+  try { return sessionStorage.getItem(c) || localStorage.getItem(c); }
+  catch(e){ return null; }
+}
+
+var jeton = lire('gds_jeton');
+var role  = lire('gds_role');
+var nom   = lire('gds_nom');
 if(!jeton){ location.replace('index.html'); }
 
 var peutDeposer = role === 'admin' || role === 'admin_restreint';

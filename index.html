@@ -373,9 +373,16 @@ async function connecter(){
       /* Le jeton vit le temps de l'onglet : refermer la fen\u00eatre
          d\u00e9connecte, ce qui limite les sessions oubli\u00e9es
          sur un poste partag\u00e9. */
-      sessionStorage.setItem('gds_jeton', d.jeton);
-      sessionStorage.setItem('gds_role',  d.role);
-      sessionStorage.setItem('gds_nom',   d.nom || id);
+      /* Deux stockages : sessionStorage pour cet onglet, localStorage
+         pour que les outils ouverts à côté retrouvent la session.
+         Les deux sont effacés à la déconnexion. */
+      [sessionStorage, localStorage].forEach(function(s){
+        try {
+          s.setItem('gds_jeton', d.jeton);
+          s.setItem('gds_role',  d.role);
+          s.setItem('gds_nom',   d.nom || id);
+        } catch(e){}
+      });
       entrer();
       return;
     }

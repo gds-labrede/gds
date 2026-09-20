@@ -495,9 +495,20 @@ var FAMILLES = [
 ];
 
 /* ══════════ SESSION ══════════ */
-var jeton = sessionStorage.getItem('gds_jeton');
-var role  = sessionStorage.getItem('gds_role');
-var nom   = sessionStorage.getItem('gds_nom');
+function lire(c){
+  try { return sessionStorage.getItem(c) || localStorage.getItem(c); }
+  catch(e){ return null; }
+}
+function oublier(){
+  try { sessionStorage.clear(); } catch(e){}
+  try { localStorage.removeItem('gds_jeton');
+        localStorage.removeItem('gds_role');
+        localStorage.removeItem('gds_nom'); } catch(e){}
+}
+
+var jeton = lire('gds_jeton');
+var role  = lire('gds_role');
+var nom   = lire('gds_nom');
 if(!jeton){ location.replace('index.html'); }
 
 var LIBELLE = { admin:'Administrateur', admin_restreint:'Admin restreint', user:'Utilisateur' };
@@ -508,7 +519,7 @@ document.getElementById('pastille').textContent =
 document.getElementById('accroche').textContent =
   'Bonjour ' + (nom || '') + ' — sélectionnez une famille.';
 
-function quitter(){ sessionStorage.clear(); location.replace('index.html'); }
+function quitter(){ oublier(); location.replace('index.html'); }
 function svg(n){ return '<svg viewBox="0 0 48 48">' + (I[n] || I.feuille) + '</svg>'; }
 
 function auth(sup){
@@ -576,11 +587,7 @@ function ouvrirVue(id){
     f.outils.forEach(function(o){
       var a = document.createElement('a');
       a.className = 'outil';
-      a.href = BASE + o.f;
-      /* La session est liée à l'onglet : un outil ouvert dans un
-         nouvel onglet démarrerait sans elle. Les documents, eux,
-         n'en ont pas besoin et s'ouvrent à côté. */
-      if(/\.(pdf|xlsx|xls|csv|docx?)$/i.test(o.f)){ a.target = '_blank'; a.rel = 'noopener'; }
+      a.href = BASE + o.f; a.target = '_blank'; a.rel = 'noopener';
       a.style.setProperty('--c', f.c);
       a.innerHTML = '<div class="o-ico">' + svg(o.ico) + '</div>' +
                     '<div class="o-nom">' + o.nom + '</div>' +
@@ -626,7 +633,7 @@ document.addEventListener('keydown', function(e){
 });
 
 /* ══════════ INACTIVITÉ ══════════ */
-var DELAI = 2 * 60;
+var DELAI = 10 * 60;   /* 10 min : un outil ouvert à côté reste utilisable */
 var restant = DELAI;
 
 ['mousemove','keydown','click','scroll','touchstart'].forEach(function(ev){
@@ -639,8 +646,8 @@ setInterval(function(){
   var m = Math.floor(restant / 60), s = restant % 60;
   el.textContent = 'Déco dans ' + m + ':' + String(s).padStart(2, '0');
   el.classList.remove('warn', 'danger');
-  if(restant <= 30)      el.classList.add('danger');
-  else if(restant <= 60) el.classList.add('warn');
+  if(restant <= 60)       el.classList.add('danger');
+  else if(restant <= 180) el.classList.add('warn');
   if(restant <= 0){ dire('Session expirée par inactivité'); setTimeout(quitter, 900); }
 }, 1000);
 
