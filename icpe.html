@@ -159,6 +159,8 @@ select:focus{border-color:var(--navy)}
     <select id="f-sect"><option value="">Tous les secteurs</option></select>
     <select id="f-allee"><option value="">Toutes les allées</option></select>
     <button class="export" onclick="exporter()">Exporter</button>
+    <button class="lien" id="b-ref" style="display:none" onclick="document.getElementById('f-ref').click()">Référentiel</button>
+    <input type="file" id="f-ref" accept=".csv" style="display:none" onchange="deposerRef(this)">
   </div>
 
   <div class="liste" id="liste"><div class="info">Chargement…</div></div>
@@ -193,8 +195,10 @@ var API = GDS.API, CLE_PUBLIQUE = GDS.CLE_PUBLIQUE;
    Réglages métier
    ───────────────────────────────────────────────────────── */
 
-/* Référentiel ICPE, déposé dans l'espace courant (MGB;CODE) */
-var FICHIER_REFS = 'icpe_refs.csv';
+/* Référentiel ICPE (MGB;CODE). Il vit dans le dossier technique :
+   l'application le lit, mais il n'apparaît pas dans l'onglet Fichiers
+   des comptes non administrateurs. */
+var FICHIER_REFS = 'systeme/icpe_refs.csv';
 
 /* 1510 est la rubrique générique entrepôt : elle couvre la moitié
    du stock et ne signale aucun risque particulier. Les autres codes
@@ -221,6 +225,7 @@ var jeton = lire('gds_jeton'), role = lire('gds_role'), nom = lire('gds_nom');
 if(!jeton){
   alert('Session absente.\n\nOuvrez cet outil depuis le sommaire.');
 }
+if(role === 'admin') document.getElementById('b-ref').style.display = 'inline-flex';
 document.getElementById('pastille').textContent =
   (nom || '?').split(' ').map(function(m){ return m[0]; }).join('').slice(0,2).toUpperCase();
 
@@ -308,6 +313,34 @@ async function texteDe(nomFichier){
   return decoder(await r.arrayBuffer());
 }
 
+/* Le référentiel n'est pas listé : on le lit directement. */
+async function lireRef(){
+  var r = await fetch(API + '/fichier/' + encodeURIComponent(FICHIER_REFS), { headers: auth() });
+  if(r.status === 404) throw new Error('référentiel ICPE absent — à importer');
+  if(refus(r)) throw new Error('refus');
+  if(!r.ok) throw new Error('lecture du référentiel');
+  return decoder(await r.arrayBuffer());
+}
+
+/* Import du référentiel, réservé à l'administration. */
+async function deposerRef(champ){
+  var f = champ.files && champ.files[0];
+  champ.value = '';
+  if(!f) return;
+  dire('Envoi du référentiel…');
+  try {
+    var r = await fetch(API + '/fichier/' + encodeURIComponent(FICHIER_REFS), {
+      method:'POST', headers: auth({ 'Content-Type':'text/csv' }), body: f
+    });
+    if(refus(r)) return;
+    if(!r.ok) throw new Error();
+    dire('Référentiel mis à jour', 'ok');
+    setTimeout(function(){ location.reload(); }, 900);
+  } catch(e){
+    dire('Envoi impossible', 'err');
+  }
+}
+
 async function chargerFDS(){
   try {
     var r = await fetch(API + '/archive', {
@@ -333,10 +366,7 @@ async function charger(){
   });
   if(!ss.length) throw new Error('aucun StockStatus dans l\'espace courant');
 
-  var refDispo = liste.some(function(f){ return f.name === FICHIER_REFS; });
-  if(!refDispo) throw new Error('référentiel « ' + FICHIER_REFS + ' » absent de l\'espace courant');
-
-  var res = await Promise.all([ texteDe(ss[0].name), texteDe(FICHIER_REFS), chargerFDS() ]);
+  var res = await Promise.all([ texteDe(ss[0].name), lireRef(), chargerFDS() ]);
 
   /* ── Référentiel ── */
   var refs = {};
@@ -599,8 +629,10 @@ document.addEventListener('keydown', function(e){ if(e.key === 'Escape') fermerL
   } catch(e){
     document.getElementById('accroche').textContent = 'Chargement impossible — ' + (e.message || '') + '.';
     document.getElementById('liste').innerHTML =
-      '<div class="info">Vérifiez que le StockStatus et le fichier « ' + FICHIER_REFS +
-      ' » sont bien dans l\'espace courant.</div>';
+      '<div class="info">' + (role === 'admin'
+        ? 'Vérifiez qu\'un StockStatus est présent dans l\'espace courant. '
+          + 'Le référentiel ICPE s\'importe avec le bouton « Référentiel ».'
+        : 'Vérifiez qu\'un StockStatus est présent dans l\'espace courant.') + '</div>';
   }
 })();
 </script>
