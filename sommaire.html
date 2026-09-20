@@ -509,6 +509,16 @@ function oublier(){
 var jeton = lire('gds_jeton');
 var role  = lire('gds_role');
 var nom   = lire('gds_nom');
+
+/* Les outils s'ouvrent dans un autre onglet et lisent la session
+   dans localStorage : le sommaire l'y recopie à chaque chargement. */
+if(jeton){
+  try {
+    localStorage.setItem('gds_jeton', jeton);
+    localStorage.setItem('gds_role',  role || '');
+    localStorage.setItem('gds_nom',   nom  || '');
+  } catch(e){}
+}
 if(!jeton){ location.replace('index.html'); }
 
 var LIBELLE = { admin:'Administrateur', admin_restreint:'Admin restreint', user:'Utilisateur' };
