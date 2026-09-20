@@ -42,12 +42,28 @@ pre{background:#0d1526;color:#d7e3f5;padding:14px;border-radius:10px;font-size:1
     <div class="t">3. Résultat</div>
     <pre id="res">En attente…</pre>
   </div>
+
+  <div class="b">
+    <div class="t">4. Ouvrir l'application avec cette session</div>
+    <p class="s" style="margin-bottom:12px">
+      Disponible une fois le test réussi : enregistre la session puis ouvre le sommaire,
+      sans passer par la page de connexion.</p>
+    <button id="go" onclick="allerSommaire()" disabled>Ouvrir le sommaire</button>
+  </div>
 </div>
 
 <script src="config.js"></script>
 <script>
 var cfg = document.getElementById('cfg');
 var res = document.getElementById('res');
+var reponse = null;
+
+function allerSommaire(){
+  sessionStorage.setItem('gds_jeton', reponse.jeton);
+  sessionStorage.setItem('gds_role',  reponse.role);
+  sessionStorage.setItem('gds_nom',   reponse.nom || '');
+  location.href = 'sommaire.html';
+}
 
 if (typeof GDS === 'undefined') {
   cfg.textContent = 'ERREUR : config.js absent ou illisible.';
@@ -84,6 +100,14 @@ async function essai(){
     res.textContent =
       'Statut HTTP : ' + r.status + '\n' +
       'Réponse     : ' + texte.slice(0, 500);
+
+    try {
+      var d = JSON.parse(texte);
+      if(d.etat === 'ok'){
+        reponse = d;
+        document.getElementById('go').disabled = false;
+      }
+    } catch(e){}
   } catch(e){
     res.textContent =
       'L\'appel n\'a pas abouti (réseau, CORS ou origine non autorisée).\n\n' +
