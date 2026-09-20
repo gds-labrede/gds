@@ -462,8 +462,8 @@ var FAMILLES = [
     { nom:'Opti',                    f:'opti.html',                    ico:'eclair' },
     { nom:'Analyseur MGB Dispersés', f:'analyseur_mgb_disperses.html', ico:'loupe' }
   ]},
-  { id:'danger', nom:'Produits Dangereux', ico:'alerte', c:'#b8342f', desc:'Suivi et conformité réglementaire', admin:false, roles:['admin','admin_restreint'], outils:[
-    { nom:'Contrôle ICPE', f:'icpe.html', ico:'alerte' },
+  { id:'danger', nom:'Produits Dangereux', ico:'alerte', c:'#b8342f', desc:'Suivi et conformité réglementaire', admin:false, outils:[
+    { nom:'Contrôle ICPE', f:'icpe.html', ico:'alerte', roles:['admin','admin_restreint'] },
     { nom:'Fiches FDS',    f:'fds.html',  ico:'feuille' }
   ]},
   { id:'outils', nom:'Outils', ico:'cle', c:'#5b4b8a', desc:'Utilitaires et outils divers', admin:false, outils:[
@@ -577,14 +577,18 @@ function onglet(v){
 
 /* ══════════ TUILES ══════════ */
 var grille = document.getElementById('grille');
-/* roles : liste explicite des profils admis. À défaut, la règle
-   historique — tout le monde, sauf les familles marquées admin. */
+/* roles : liste explicite des profils admis, sur une famille entière
+   ou sur un seul outil. À défaut, la règle historique — tout le monde,
+   sauf ce qui est marqué admin. */
+function permis(x){ return !x.roles || x.roles.indexOf(role) !== -1; }
+function outilsVus(f){ return f.outils.filter(permis); }
+
 FAMILLES.filter(function(f){
-  if(f.roles) return f.roles.indexOf(role) !== -1;
+  if(f.roles) return permis(f);
   return !f.admin || role === 'admin';
 }).forEach(function(f){
   var b = document.createElement('button');
-  b.className = 'tuile' + (f.outils.length ? '' : ' vide');
+  b.className = 'tuile' + (outilsVus(f).length ? '' : ' vide');
   b.style.setProperty('--c', f.c);
   b.title = f.desc;
   b.onclick = function(){ ouvrir(f.id); };
@@ -605,10 +609,11 @@ function ouvrirVue(id){
 
   var liste = document.getElementById('liste');
   liste.innerHTML = '';
-  if(!f.outils.length){
+  var vus = outilsVus(f);
+  if(!vus.length){
     liste.innerHTML = '<div class="aucun">Aucun outil dans cette famille pour le moment.</div>';
   } else {
-    f.outils.forEach(function(o){
+    vus.forEach(function(o){
       var a = document.createElement('a');
       a.className = 'outil';
       a.href = BASE + o.f; a.target = '_blank'; a.rel = 'noopener';
