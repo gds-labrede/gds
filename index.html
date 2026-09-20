@@ -238,7 +238,7 @@ if (typeof GDS === 'undefined') {
     '<b style="font-size:16px">Fichier config.js absent</b>' +
     '<p style="margin-top:10px;line-height:1.55;font-size:14px">' +
     'Le fichier <code>config.js</code> doit se trouver dans le même dossier ' +
-    'que cette page, et contenir votre clé publique Supabase.</p></div>';
+    'que cette page, et contenir la clé publique du serveur.</p></div>';
   throw new Error('config.js absent');
 }
 
@@ -316,6 +316,26 @@ function dire(id, texte, type){
   el.className = 'msg' + (type ? ' ' + type : '');
 }
 
+/* La redirection est parfois bloquée par le navigateur ou une extension.
+   Si rien ne se passe au bout d'une seconde, on propose un lien à cliquer
+   plutôt que de laisser l'utilisateur devant un écran figé. */
+function entrer(){
+  var cible = new URL('sommaire.html', location.href).href;
+
+  setTimeout(function(){
+    var el = document.getElementById('m-in');
+    el.className = 'msg ok';
+    el.innerHTML = '';
+    var a = document.createElement('a');
+    a.href = cible;
+    a.textContent = 'Connecté — entrer dans l\'application';
+    a.style.cssText = 'color:#2fd39a;font-weight:600;text-decoration:underline';
+    el.appendChild(a);
+  }, 1000);
+
+  location.assign(cible);
+}
+
 function occupe(idBtn, actif, texte){
   var b = document.getElementById(idBtn);
   b.disabled = actif;
@@ -350,14 +370,13 @@ async function connecter(){
     occupe('b-in', false, 'Se connecter');
 
     if(d.etat === 'ok'){
-      /* localStorage et non sessionStorage : les outils s'ouvrent
-         dans un nouvel onglet, qui n'herite pas du stockage de session.
-         L'echeance est portee par le jeton lui-meme (12 h) et par la
-         minuterie d'inactivite. */
-      localStorage.setItem('gds_jeton', d.jeton);
-      localStorage.setItem('gds_role',  d.role);
-      localStorage.setItem('gds_nom',   d.nom || id);
-      location.href = 'sommaire.html';
+      /* Le jeton vit le temps de l'onglet : refermer la fen\u00eatre
+         d\u00e9connecte, ce qui limite les sessions oubli\u00e9es
+         sur un poste partag\u00e9. */
+      sessionStorage.setItem('gds_jeton', d.jeton);
+      sessionStorage.setItem('gds_role',  d.role);
+      sessionStorage.setItem('gds_nom',   d.nom || id);
+      entrer();
       return;
     }
     if(d.etat === 'attente'){ dire('m-in', MSG.attente, 'err'); return; }
