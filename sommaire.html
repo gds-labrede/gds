@@ -455,7 +455,7 @@ var FAMILLES = [
     { nom:'Analyseur MGB Dispersés', f:'analyseur_mgb_disperses.html', ico:'loupe' }
   ]},
   { id:'danger', nom:'Produits Dangereux', ico:'alerte', c:'#b8342f', desc:'Suivi et conformité réglementaire', admin:false, outils:[
-    { nom:'Fiches FDS', f:'fds.html', ico:'feuille', meme:true }
+    { nom:'Fiches FDS', f:'fds.html', ico:'feuille' }
   ]},
   { id:'outils', nom:'Outils', ico:'cle', c:'#5b4b8a', desc:'Utilitaires et outils divers', admin:false, outils:[
     { nom:'QR Code 2026 v2',       f:'QR_CODE_2026_v2.html',       ico:'etiq' },
@@ -576,7 +576,11 @@ function ouvrirVue(id){
     f.outils.forEach(function(o){
       var a = document.createElement('a');
       a.className = 'outil';
-      a.href = BASE + o.f; if(!o.meme){ a.target = '_blank'; a.rel = 'noopener'; }
+      a.href = BASE + o.f;
+      /* La session est liée à l'onglet : un outil ouvert dans un
+         nouvel onglet démarrerait sans elle. Les documents, eux,
+         n'en ont pas besoin et s'ouvrent à côté. */
+      if(/\.(pdf|xlsx|xls|csv|docx?)$/i.test(o.f)){ a.target = '_blank'; a.rel = 'noopener'; }
       a.style.setProperty('--c', f.c);
       a.innerHTML = '<div class="o-ico">' + svg(o.ico) + '</div>' +
                     '<div class="o-nom">' + o.nom + '</div>' +
