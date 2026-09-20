@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GDS · Placement ICPE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+:root{
+  --navy:#1a2e55; --navy2:#253f70; --orange:#f07d1a; --orange-l:#fff1e3;
+  --bg:#eef1f6; --carte:#ffffff; --trait:#dde3ec; --texte:#1c2433; --gris:#6b7689;
+  --vert:#1f8a5b; --vert-l:#e3f4ec; --rouge:#c23b2e; --rouge-l:#fbe7e5; --ambre:#b7791f; --ambre-l:#fdf3df;
+  --bleu-l:#e7eefa;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--texte);font-family:'DM Sans',system-ui,sans-serif;font-size:14px}
+.mono{font-family:'DM Mono',monospace}
+svg{flex:none}
+
+/* Bandeau */
+.bandeau{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);color:#fff;padding:18px 28px;display:flex;align-items:center;gap:16px;position:relative;overflow:hidden;box-shadow:0 4px 18px rgba(26,46,85,.25)}
+.bandeau::after{content:"";position:absolute;inset:0 auto 0 -40%;width:40%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.10),transparent);animation:balai 7s ease-in-out infinite}
+@keyframes balai{0%,60%{left:-40%}100%{left:120%}}
+.logo{width:46px;height:46px;border-radius:12px;background:linear-gradient(160deg,rgba(255,255,255,.22),rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.25);display:grid;place-items:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.35)}
+.bandeau h1{margin:0;font-size:20px;font-weight:700;letter-spacing:.2px}
+.bandeau p{margin:2px 0 0;font-size:12.5px;opacity:.75}
+.version{margin-left:auto;font-family:'DM Mono',monospace;font-size:11px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);padding:4px 9px;border-radius:20px}
+
+main{max-width:1500px;margin:0 auto;padding:22px 24px 40px}
+
+.carte{background:var(--carte);border:1px solid var(--trait);border-radius:14px;box-shadow:0 1px 2px rgba(26,46,85,.05),0 6px 18px rgba(26,46,85,.05);margin-bottom:18px}
+.carte-tete{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--trait)}
+.carte-tete h2{margin:0;font-size:15px;font-weight:600;color:var(--navy)}
+.carte-corps{padding:16px 18px}
+
+/* Dépôt des fichiers */
+.depots{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.depot{border:2px dashed #c5cfdd;border-radius:12px;padding:16px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:.15s;background:#fafbfd;position:relative}
+.depot:hover,.depot.survol{border-color:var(--orange);background:var(--orange-l)}
+.depot.ok{border-style:solid;border-color:var(--vert);background:var(--vert-l)}
+.depot input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.depot b{display:block;color:var(--navy);font-size:14px}
+.depot span{font-size:12.5px;color:var(--gris)}
+.depot.ok span{color:var(--vert)}
+
+/* Chiffres */
+.chiffres{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.chiffre{background:var(--carte);border:1px solid var(--trait);border-radius:14px;padding:14px 16px;position:relative;overflow:hidden;cursor:pointer;transition:.15s}
+.chiffre:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(26,46,85,.08)}
+.chiffre.actif{outline:2px solid var(--orange)}
+.chiffre::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c,var(--navy))}
+.chiffre .n{font-size:26px;font-weight:700;color:var(--navy);font-family:'DM Mono',monospace}
+.chiffre .l{font-size:12.5px;color:var(--gris);margin-top:2px}
+
+/* Rubriques */
+.rubriques{display:flex;flex-wrap:wrap;gap:8px}
+.rub{display:flex;align-items:center;gap:8px;border:1px solid var(--trait);background:#fff;border-radius:10px;padding:7px 11px;cursor:pointer;transition:.15s;max-width:100%}
+.rub:hover{border-color:var(--orange)}
+.rub.actif{background:var(--navy);border-color:var(--navy);color:#fff}
+.rub.actif .rub-n{background:var(--orange);color:#fff}
+.rub-code{font-family:'DM Mono',monospace;font-weight:500}
+.rub-lib{font-size:12px;color:var(--gris);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px}
+.rub.actif .rub-lib{color:rgba(255,255,255,.75)}
+.rub-n{font-family:'DM Mono',monospace;font-size:12px;background:var(--bleu-l);color:var(--navy);border-radius:20px;padding:1px 8px}
+
+/* Filtres */
+.filtres{display:flex;flex-wrap:wrap;gap:10px;align-items:end}
+.champ{display:flex;flex-direction:column;gap:4px}
+.champ label{font-size:11.5px;font-weight:600;color:var(--gris);text-transform:uppercase;letter-spacing:.4px}
+select,input[type=text]{font:inherit;border:1px solid var(--trait);border-radius:9px;padding:8px 10px;background:#fff;color:var(--texte);min-width:150px}
+input[type=text]{min-width:260px}
+#f-code{max-width:360px}
+select:focus,input:focus{outline:2px solid var(--orange);outline-offset:-1px}
+.bascule{display:inline-flex;border:1px solid var(--trait);border-radius:9px;overflow:hidden}
+.bascule button{font:inherit;border:0;background:#fff;padding:8px 13px;cursor:pointer;color:var(--gris)}
+.bascule button.actif{background:var(--navy);color:#fff}
+.bouton{font:inherit;display:inline-flex;align-items:center;gap:7px;border:1px solid var(--trait);background:#fff;border-radius:9px;padding:8px 13px;cursor:pointer;color:var(--navy);font-weight:500}
+.bouton:hover{border-color:var(--navy)}
+.bouton.fort{background:var(--orange);border-color:var(--orange);color:#fff}
+.bouton.fort:hover{filter:brightness(1.05)}
+.bouton:disabled{opacity:.45;cursor:not-allowed}
+.actions{margin-left:auto;display:flex;gap:8px}
+
+/* Tableau */
+.info-tab{display:flex;align-items:center;gap:10px;margin-left:auto;font-size:12.5px;color:var(--gris)}
+.tab-zone{max-height:62vh;overflow:auto}
+table{width:100%;border-collapse:collapse}
+th{position:sticky;top:0;background:#f4f6fa;color:var(--navy);text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;padding:10px 12px;border-bottom:1px solid var(--trait);cursor:pointer;white-space:nowrap;z-index:1}
+th:hover{background:#e9edf4}
+th .tri{opacity:.4;font-size:10px}
+td{padding:8px 12px;border-bottom:1px solid #eef1f5;vertical-align:top}
+tr:hover td{background:#fafbfd}
+td.num{text-align:right;font-family:'DM Mono',monospace}
+td.lib{max-width:380px;min-width:220px}
+td.empl{font-family:'DM Mono',monospace;font-size:12px;color:var(--gris);max-width:260px}
+.pastille{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:20px;white-space:nowrap}
+.p-connu{background:var(--vert-l);color:var(--vert)}
+.p-nr{background:var(--ambre-l);color:var(--ambre)}
+.p-abs{background:var(--rouge-l);color:var(--rouge)}
+.p-oui{background:var(--bleu-l);color:var(--navy)}
+.p-dang{background:var(--rouge-l);color:var(--rouge)}
+.p-comb{background:var(--orange-l);color:#a85510}
+.p-bac-oui{background:#dfe9fb;color:#1d4fa3}
+.p-bac-verif{background:var(--ambre-l);color:var(--ambre)}
+.p-bac-bat{background:#e6f3ee;color:#1f7a55}
+.p-bac-non{background:#f0f1f4;color:var(--gris)}
+.p-p1{background:var(--rouge-l);color:var(--rouge)}
+.p-p2{background:var(--ambre-l);color:var(--ambre)}
+.p-p3{background:var(--orange-l);color:#a85510}
+.p-p4{background:#eef1f6;color:var(--navy)}
+.p-templ{background:#eef1f6;color:var(--navy)}
+.p-non{background:#f0f1f4;color:var(--gris)}
+.code{font-family:'DM Mono',monospace;font-weight:500;color:var(--navy)}
+.intitule{font-size:12.5px;color:var(--gris);max-width:320px}
+td.edit{cursor:pointer;white-space:nowrap}
+td.edit:hover{background:var(--orange-l)!important}
+td.edit .crayon{opacity:0;margin-left:6px;vertical-align:-2px;transition:.15s}
+td.edit:hover .crayon{opacity:.7}
+.point-modif{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--orange);margin-left:6px;vertical-align:1px}
+td.edit select{min-width:220px;padding:5px 8px;font-size:13px}
+.p-modif{background:var(--orange-l);color:#a85510}
+.base{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.base .compte-modif{font-size:14px;color:var(--texte)}
+.base .compte-modif b{font-family:'DM Mono',monospace;color:#a85510;font-size:18px}
+.base .aide{font-size:12.5px;color:var(--gris);flex:1 1 300px}
+.bac-bilan{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:14px}
+.bac-bilan div{border:1px solid var(--trait);border-radius:10px;padding:10px 12px;cursor:pointer}
+.bac-bilan div:hover{border-color:var(--orange)}
+.bac-bilan b{display:block;font-family:'DM Mono',monospace;font-size:22px;color:var(--navy)}
+.bac-bilan span{font-size:12px;color:var(--gris)}
+.bac-bilan .alerte b{color:var(--rouge)}
+.bac-tab th{position:static;cursor:default}
+.regles{margin:0 0 14px;border:1px solid var(--trait);border-radius:10px;padding:10px 14px;background:#fafbfd}
+.regles summary{cursor:pointer;font-weight:600;color:var(--navy)}
+.regles table{margin-top:10px}
+.regles td{vertical-align:top}
+.regles .note{font-size:12.5px;color:var(--gris);margin:10px 0 0;line-height:1.5}
+.bac-tab td{font-size:13px}
+#bac-zones td:nth-child(n+3){text-align:right}
+.bac-tab.zones th:nth-child(n+3){text-align:right}
+@media (max-width:900px){.bac-bilan{grid-template-columns:1fr 1fr}}
+.vide{padding:40px;text-align:center;color:var(--gris)}
+.plus{padding:12px;text-align:center}
+.secteur{display:inline-block;font-size:11.5px;padding:2px 8px;border-radius:6px;background:#f0f2f6;margin:1px 2px 1px 0;white-space:nowrap}
+.s-Ambiant{background:#efe9dd;color:#7a5b22}
+.s-Frais{background:#f6e3de;color:#9b3b26}
+.s-Fruits{background:#e3f2e3;color:#2d7a34}
+.s-Surgelé{background:#e2eef9;color:#255f94}
+.s-Marée{background:#dff3f2;color:#1f7a74}
+.s-Quai{background:#eee;color:#555}
+
+.toast{position:fixed;bottom:22px;right:22px;background:var(--navy);color:#fff;padding:11px 16px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);font-size:13px;opacity:0;transform:translateY(8px);transition:.25s;pointer-events:none;z-index:10}
+.toast.voir{opacity:1;transform:none}
+.cache{display:none!important}
+
+@media (max-width:1100px){.depots{grid-template-columns:1fr}}
+@media (max-width:900px){.chiffres{grid-template-columns:1fr 1fr}main{padding:14px}input[type=text]{min-width:0;width:100%}}
+@media (max-width:560px){.depots,.chiffres{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header class="bandeau">
+  <div class="logo">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 2.5 3.5 6.5v5.2c0 5 3.6 8.9 8.5 9.8 4.9-.9 8.5-4.8 8.5-9.8V6.5L12 2.5Z" fill="rgba(240,125,26,.35)" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 8v5" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16.2" r="1.2" fill="#fff"/></svg>
+  </div>
+  <div>
+    <h1>Placement ICPE</h1>
+    <p>Produits dangereux mal placés, par priorité de risque · dépôt 171 La Brède</p>
+  </div>
+  <span class="version">v1</span>
+</header>
+
+<main>
+
+  <section class="carte" id="c-sources">
+    <div class="carte-tete">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3.5 7.5c0-1.7 3.8-3 8.5-3s8.5 1.3 8.5 3-3.8 3-8.5 3-8.5-1.3-8.5-3Z" fill="#e7eefa" stroke="#1a2e55" stroke-width="1.5"/><path d="M3.5 7.5v9c0 1.7 3.8 3 8.5 3s8.5-1.3 8.5-3v-9M3.5 12c0 1.7 3.8 3 8.5 3s8.5-1.3 8.5-3" stroke="#1a2e55" stroke-width="1.5"/></svg>
+      <h2>Fichiers du serveur</h2>
+      <span class="info-tab" id="src-info">Chargement…</span>
+    </div>
+    <div class="carte-corps">
+      <table class="bac-tab zones" style="margin-bottom:12px"><thead><tr><th>Fichier</th><th>Nom sur le serveur</th><th>Âge</th><th>État</th></tr></thead><tbody id="src-lignes"></tbody></table>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <button class="bouton fort" id="b-recharger">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 1 1 2.3 5.6M4 20v-5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Recharger depuis le serveur</button>
+        <span class="aide" id="src-aide" style="font-size:12.5px;color:var(--gris)">Le stock et la structure doivent dater de moins de 15 minutes.</span>
+      </div>
+      <div id="src-alerte" class="cache" style="margin-top:12px;border:1px solid var(--rouge);background:var(--rouge-l);color:var(--rouge);border-radius:10px;padding:12px 14px;font-weight:600"></div>
+    </div>
+  </section>
+
+  <div id="resultats" class="cache">
+
+    <section class="carte">
+      <div class="carte-tete">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3 2.8 19.5h18.4L12 3Z" fill="#fbe7e5" stroke="#c23b2e" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 9.5v4.5" stroke="#c23b2e" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="16.8" r="1" fill="#c23b2e"/></svg>
+        <h2>Contrôle du placement</h2>
+        <span class="info-tab" id="pl-info"></span>
+      </div>
+      <div class="carte-corps">
+        <div class="bac-bilan" id="pl-bilan"></div>
+        <table class="bac-tab zones"><thead><tr><th>Meuble</th><th>Alvéoles</th><th>Familles admises</th><th>Sur bac</th><th>Au-dessus</th><th>Libres</th><th>À rentrer</th></tr></thead><tbody id="pl-meubles"></tbody></table>
+      </div>
+    </section>
+
+    <section class="carte">
+      <div class="carte-tete">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="6" rx="7.5" ry="3" fill="#fde3cb" stroke="#1a2e55" stroke-width="1.6"/><path d="M4.5 6v12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V6M4.5 12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3" stroke="#1a2e55" stroke-width="1.6"/></svg>
+        <h2>Base ICPE</h2>
+      </div>
+      <div class="carte-corps base">
+        <span class="compte-modif"><b id="n-modif">0</b> article<span id="s-modif">s</span> modifié<span id="s-modif2">s</span></span>
+        <span class="aide">Cliquer sur un code ICPE dans le listing pour le modifier. La modification s'applique à toutes les variantes de l'article, et elle reste enregistrée sur ce poste jusqu'à l'export.</span>
+        <button class="bouton" id="b-voir-modif">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="2.8" stroke="currentColor" stroke-width="1.7"/></svg>Voir les modifications</button>
+        <button class="bouton" id="b-annuler-modif">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 7h14M10 7V4.5h4V7M7 7l1 13h8l1-13" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>Annuler les modifications</button>
+        <button class="bouton fort" id="b-export-ref">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="4" y="3" width="16" height="18" rx="2.5" fill="rgba(255,255,255,.25)" stroke="currentColor" stroke-width="1.6"/><path d="M8 9l3 3.5L8 16M16 9l-3 3.5 3 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Exporter le référentiel à jour</button>
+      </div>
+    </section>
+
+    <section class="carte">
+      <div class="carte-tete">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 9h18l-1.6 9.2a2 2 0 0 1-2 1.8H6.6a2 2 0 0 1-2-1.8L3 9Z" fill="#fde3cb" stroke="#1a2e55" stroke-width="1.6" stroke-linejoin="round"/><path d="M7 9V6.5M12 9V5M17 9V6.5" stroke="#1a2e55" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <h2>Bacs de rétention</h2>
+        <span class="info-tab" id="bac-info"></span>
+      </div>
+      <div class="carte-corps">
+        <div class="bac-bilan" id="bac-bilan"></div>
+        <details class="regles">
+          <summary>Règles de rétention appliquées et sources</summary>
+          <table class="bac-tab">
+            <thead><tr><th>Codes ICPE</th><th>Rétention</th><th>Règle</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">1436, 4330, 4331, 4734</td><td><span class="pastille p-bac-oui">Obligatoire</span></td><td>Liquides inflammables. Rétention ≥ 100 % du plus grand récipient et ≥ 50 % du total. La réduction « petits contenants » ne s'applique pas.</td></tr>
+              <tr><td class="mono">4741, 4441</td><td><span class="pastille p-bac-oui">Obligatoire</span></td><td>Liquides polluants (Javel, liquides comburants). Récipients ≤ 250 L : rétention ≥ 20 % du total, minimum 800 L.</td></tr>
+              <tr><td class="mono">1630, 4510, 4511, 41xx</td><td><span class="pastille p-bac-oui">Obligatoire</span> si liquide, sinon <span class="pastille p-bac-verif">À vérifier</span></td><td>Même règle 20 % / 800 L quand le produit est liquide. Un solide n'a pas besoin de rétention.</td></tr>
+              <tr><td class="mono">4755</td><td><span class="pastille p-bac-bat">Rétention bâtiment</span></td><td>Rétention obligatoire (100 % / 50 %, sans réduction), mais « interne ou externe » : elle peut être assurée par une rétention déportée ou le confinement de la cellule. Pas de bac imposé. À confirmer dans l'arrêté préfectoral du site.</td></tr>
+              <tr><td class="mono">1510, 4320, 4321, 4718, 4801, 1450, 4440</td><td><span class="pastille p-bac-non">Non</span></td><td>Combustibles ordinaires, aérosols, gaz, solides : pas de rétention liquide.</td></tr>
+            </tbody>
+          </table>
+          <p class="note">Également dans le point 10 : des produits pouvant réagir dangereusement ensemble (ex. Javel et acides/détartrants) ne doivent pas partager la même rétention. Point 9 : les matières dangereuses liquides ne sont pas stockées à plus de 5 m du sol — à vérifier pour la réserve au-dessus des bacs.<br>
+          Source : arrêté du 11 avril 2017, prescriptions générales des entrepôts couverts 1510 (déclaration, enregistrement, autorisation), annexe II, points 9 et 10. L'arrêté préfectoral du site prime.</p>
+        </details>
+        <table class="bac-tab zones"><thead><tr><th>Zone</th><th>Type</th><th>Sur bac</th><th>Réserve au-dessus</th><th>Libres</th><th>Bloquées</th><th>Rétention obligatoire</th><th>Sans code ICPE</th><th>Sans besoin</th></tr></thead><tbody id="bac-zones"></tbody></table>
+      </div>
+    </section>
+
+    <div class="chiffres">
+      <div class="chiffre" data-statut="" style="--c:var(--navy)"><div class="n" id="c-tot">0</div><div class="l">Articles en stock</div></div>
+      <div class="chiffre" data-statut="connu" style="--c:var(--vert)"><div class="n" id="c-connu">0</div><div class="l">ICPE connu</div></div>
+      <div class="chiffre" data-statut="nr" style="--c:var(--ambre)"><div class="n" id="c-nr">0</div><div class="l">ICPE non renseigné</div></div>
+      <div class="chiffre" data-statut="abs" style="--c:var(--rouge)"><div class="n" id="c-abs">0</div><div class="l">Absent du référentiel</div></div>
+    </div>
+
+    <section class="carte">
+      <div class="carte-tete">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3 2.8 19.5h18.4L12 3Z" fill="#fde3cb" stroke="#1a2e55" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 9.5v4.5" stroke="#1a2e55" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="16.8" r="1" fill="#1a2e55"/></svg>
+        <h2>Codes ICPE</h2>
+        <span class="info-tab" id="rub-info"></span>
+      </div>
+      <div class="carte-corps"><div class="rubriques" id="rubriques"></div></div>
+    </section>
+
+    <section class="carte">
+      <div class="carte-tete">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 5h16l-6 7.5V19l-4-2v-4.5L4 5Z" fill="#e7eefa" stroke="#1a2e55" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        <h2>Listing</h2>
+        <span class="info-tab" id="compte"></span>
+      </div>
+      <div class="carte-corps" style="border-bottom:1px solid var(--trait)">
+        <div class="filtres">
+          <div class="champ"><label>Vue</label>
+            <div class="bascule" id="vue"><button data-v="anomalie" class="actif">Mal placés</button><button data-v="article">Par article</button><button data-v="emplacement">Par emplacement</button></div>
+          </div>
+          <div class="champ"><label>Stock</label>
+            <select id="f-stock"><option value="oui">En stock</option><option value="non">Hors stock</option><option value="">Tous</option></select>
+          </div>
+          <div class="champ"><label>Statut ICPE</label>
+            <select id="f-statut"><option value="">Tous</option><option value="connu">ICPE connu</option><option value="nr">Non renseigné</option><option value="abs">Absent du référentiel</option><option value="modif">Modifiés dans l'appli</option></select>
+          </div>
+          <div class="champ"><label>Type</label>
+            <select id="f-type"><option value="">Tous</option><option>Dangereux</option><option>Combustible</option></select>
+          </div>
+          <div class="champ"><label>Rétention</label>
+            <select id="f-bac"><option value="">Tous</option><option>Obligatoire</option><option>Rétention bâtiment</option><option>À vérifier</option><option>Non</option></select>
+          </div>
+          <div class="champ"><label>Situation bac</label>
+            <select id="f-situ"><option value="">Toutes</option><option>À mettre sur bac</option><option>Partiellement sur bac</option><option>Conforme</option><option>Occupe un bac sans besoin</option><option>À vérifier</option><option>Sur bac (à vérifier)</option><option>Sur bac, code ICPE à renseigner</option><option>Place de bac libre</option><option>Place de bac bloquée</option></select>
+          </div>
+          <div class="champ seul-ano"><label>Priorité</label>
+            <select id="f-prio"><option value="">Toutes</option><option value="P1">P1 — incompatibilité</option><option value="P2">P2 — hors bac</option><option value="P3">P3 — place à libérer</option><option value="P4">P4 — code ICPE manquant</option></select>
+          </div>
+          <div class="champ seul-empl"><label>Emplacements</label>
+            <select id="f-occup"><option value="occ">Occupés</option><option value="vide">Vides</option><option value="">Tous</option></select>
+          </div>
+          <div class="champ seul-empl"><label>Type d'emplacement</label><select id="f-templ"><option value="">Tous</option></select></div>
+          <div class="champ seul-empl"><label>Famille de stockage</label><select id="f-fam"><option value="">Toutes</option></select></div>
+          <div class="champ"><label>Code ICPE</label><select id="f-code"><option value="">Toutes</option></select></div>
+          <div class="champ"><label>Secteur</label>
+            <select id="f-secteur"><option value="">Tous</option><option>Ambiant</option><option>Frais</option><option>Fruits &amp; légumes</option><option>Surgelé</option><option>La Marée</option><option>Quai</option></select>
+          </div>
+          <div class="champ"><label>Recherche</label><input type="text" id="f-texte" placeholder="MGB, libellé, emplacement…"></div>
+          <div class="actions">
+            <button class="bouton" id="b-raz" title="Effacer les filtres">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Effacer</button>
+            <button class="bouton" id="b-csv">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>CSV</button>
+            <button class="bouton fort" id="b-pdf">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M7 3h7l5 5v11.5A1.5 1.5 0 0 1 17.5 21h-10A1.5 1.5 0 0 1 6 19.5v-15A1.5 1.5 0 0 1 7 3Z" fill="rgba(255,255,255,.25)" stroke="currentColor" stroke-width="1.6"/><path d="M14 3v5h5" stroke="currentColor" stroke-width="1.6"/></svg>PDF</button>
+          </div>
+        </div>
+      </div>
+      <div class="tab-zone" id="zone"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table><div id="plus" class="plus cache"><button class="bouton" id="b-plus">Afficher 500 lignes de plus</button></div></div>
+    </section>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- Intitulés des rubriques ICPE (nomenclature des installations classées) ---------- */
+const RUBRIQUES = {
+  '1436':'Liquides de point éclair compris entre 60 °C et 93 °C (hors boissons alcoolisées)',
+  '1450':'Solides inflammables',
+  '1510':'Entrepôts couverts — matières ou produits combustibles',
+  '1511':'Entrepôts frigorifiques',
+  '1530':'Papiers, cartons et matériaux combustibles analogues',
+  '1532':'Bois et matériaux combustibles analogues',
+  '1630':'Soude ou potasse caustique (lessives de)',
+  '2662':'Polymères (matières plastiques, caoutchoucs, résines…) — stockage',
+  '2663':'Pneumatiques et produits composés d’au moins 50 % de polymères — stockage',
+  '4320':'Aérosols inflammables cat. 1 ou 2 contenant des gaz ou liquides inflammables cat. 1',
+  '4321':'Aérosols inflammables cat. 1 ou 2 sans gaz ni liquides inflammables cat. 1',
+  '4330':'Liquides inflammables de catégorie 1',
+  '4331':'Liquides inflammables de catégorie 2 ou 3',
+  '4440':'Solides comburants',
+  '4441':'Liquides comburants',
+  '4510':'Dangereux pour l’environnement aquatique — aiguë 1 ou chronique 1',
+  '4511':'Dangereux pour l’environnement aquatique — chronique 2',
+  '4718':'Gaz inflammables liquéfiés cat. 1 et 2 (dont GPL) et gaz naturel',
+  '4734':'Produits pétroliers et carburants de substitution',
+  '4741':'Mélanges d’hypochlorite de sodium (eau de Javel) — toxicité aquatique aiguë 1',
+  '4755':'Alcools de bouche d’origine agricole (spiritueux, distillats, infusions…)',
+  '4801':'Houille, coke, lignite, charbon de bois, goudron, asphalte, brais'
+};
+const COMBUSTIBLES = ['1510','1511','1530','1532','2662','2663'];
+const typeDe = c => !c ? '' : (COMBUSTIBLES.includes(c) ? 'Combustible' : 'Dangereux');
+/* ---------- Rétention ----------
+   Source : arrêté du 11 avril 2017 (entrepôts couverts 1510, régimes D, E et A), annexe II, point 10 :
+   - tout stockage de matières liquides susceptibles de polluer l'eau ou le sol a une rétention
+     (100 % du plus grand récipient, 50 % du total) ;
+   - récipients de 250 L au plus : 20 % du total, minimum 800 L (ou 100 % si total < 800 L),
+     SAUF pour les liquides des rubriques 1436, 4330, 4331, 4734, 4755 (réduction non applicable) ;
+   - des produits pouvant réagir dangereusement ensemble ne partagent pas la même rétention.
+   Point 9 : hauteur des matières dangereuses liquides limitée à 5 m.
+   Rétention « interne ou externe » : bac (rétention locale) ou rétention déportée / confinement de cellule. */
+const RET_INFLAMMABLES = ['1436','4330','4331','4734'];            // liquides inflammables : bac
+const RET_POLLUANTS    = ['4741','4441'];                          // Javel, liquides comburants : bac
+const RET_SI_LIQUIDE   = ['1630','4110','4120','4130','4140','4510','4511'];   // selon l'état (poudre / liquide)
+const RET_BATIMENT     = ['4755'];                                 // alcools de bouche : rétention du bâtiment
+const REGLE_100 = 'Rétention 100 % du plus grand récipient et 50 % du total (petits contenants : pas de réduction) — AM 11/04/2017, annexe II pt 10';
+const REGLE_20  = 'Récipients ≤ 250 L : rétention 20 % du total, minimum 800 L — AM 11/04/2017, annexe II pt 10';
+const LIQUIDE = /(\d+([.,]\d+)?\s*(l|cl|ml|litres?)\b)|\b(bidon|flacon|jerr?ican|bib|bouteille|liquide)\b/i;
+function retentionDe(code, lib){
+  if (!code) return ['', ''];
+  if (RET_INFLAMMABLES.includes(code)) return ['Obligatoire', REGLE_100];
+  if (RET_POLLUANTS.includes(code)) return ['Obligatoire', REGLE_20];
+  if (RET_SI_LIQUIDE.includes(code)) return LIQUIDE.test(lib || '') ? ['Obligatoire', REGLE_20] : ['À vérifier', 'Obligatoire seulement si le produit est liquide — ' + REGLE_20];
+  if (RET_BATIMENT.includes(code)) return ['Rétention bâtiment', 'Rétention obligatoire (100 % / 50 %, sans réduction petits contenants) mais assurable par rétention déportée ou confinement de la cellule, pas forcément par bac — AM 11/04/2017 pt 10 ; à confirmer dans l’arrêté préfectoral du site'];
+  return ['Non', 'Produit non liquide ou non visé par la rétention (solide, gaz, aérosol, combustible ordinaire)'];
+}
+const bacDe = (code, lib) => retentionDe(code, lib)[0];
+/* ---------- Meubles à rétention (bacs) et familles ----------
+   Un meuble = des alvéoles (bac au sol + hauteur au-dessus) et les familles de produits admises. */
+const MEUBLES = [
+  {nom:'PD INFLAMMABLE', alv:['5-16','5-18','5-20'], groupes:['B'], bac:'Orange'},
+  {nom:'PD CORROSIF ENV', alv:['5-15','5-17'],       groupes:['C'], bac:'Orange'},
+  {nom:'JAVEL',           alv:['5-23','5-25'],       groupes:['J'], bac:'Métallique'},
+  {nom:'PD NETTOYANTS',   alv:['2-8','2-10','2-12','2-14'], groupes:['B','C'], bac:'Orange'}
+];
+const ALV_MEUBLE = new Map(); MEUBLES.forEach(m => m.alv.forEach(a => ALV_MEUBLE.set(a, m)));
+const alvDe = pos => String(pos).split('-').slice(0,2).join('-');
+const meubleDe = pos => ALV_MEUBLE.get(alvDe(pos)) || null;
+const GROUPES = {B:'Liquides inflammables', C:'Corrosifs et dangereux pour l’environnement', J:'Javel et chlorés'};
+function groupeDe(code, lib){
+  if (['4331','1436','4330','4734'].includes(code)) return 'B';
+  if (code === '4741') return 'J';
+  if (['1630','4510','4511','4110','4120','4130','4140'].includes(code)) return LIQUIDE.test(lib||'') ? 'C' : '';
+  return '';
+}
+const ACIDE = /d[ée]tartr|anticalc|anti-calc|\bacide\b|gel\s*wc/i;
+const AMMO = /ammoniaq/i;
+const meublePour = g => MEUBLES.find(m => m.groupes.length===1 && m.groupes[0]===g) || MEUBLES.find(m => m.groupes.includes(g));
+
+/* ---------- Bacs de rétention installés ----------
+   Une plage va d'une alvéole à l'autre du même côté de l'allée (pas de 2), positions incluses. */
+const BACS = MEUBLES.map(m => ({type:m.bac, nom:m.nom, zone:m.alv.join(', '), positions:[]}));
+const BAC_POS = new Map();
+const BAC_ALV = new Map(); MEUBLES.forEach((m,i) => m.alv.forEach(a => BAC_ALV.set(a, BACS[i])));
+function bacPos(pos){
+  const m = ALV_MEUBLE.get(alvDe(pos));
+  if (!m || !/^\d+-\d+-[A-Z]\d+-\d+$/.test(pos)) return null;
+  return {type: m.bac, nom: m.nom, place: pos.split('-')[2] === 'A1' ? 'sol' : 'réserve'};
+}
+const libSurBac = b => !b ? 'Non' : (b.place === 'sol' ? 'Oui — ' : 'Au-dessus — ') + b.type;
+function situationBac(bac, nSur, nTot){
+  if (bac === 'Rétention bâtiment') return '';
+  if (bac === 'Obligatoire') return nSur === nTot ? 'Conforme' : nSur ? 'Partiellement sur bac' : 'À mettre sur bac';
+  if (bac === 'À vérifier') return nSur ? 'Sur bac (à vérifier)' : 'À vérifier';
+  if (!bac) return nSur ? 'Sur bac, code ICPE à renseigner' : '';
+  return nSur ? 'Occupe un bac sans besoin' : '';
+}
+/* ---------- Types d'emplacement (validés avec l'exploitation) ---------- */
+const TYPES_WMS = {
+  SHELF_40:['Étagère',''], PETIT_CASIER:['Étagère','petits emplacements'], HALF_PALLET:['Dynamique',''],
+  PALLET:['Palette 80×120','palette standard'], PALLET_BRA:['Palette 100×120','palette bras, à centrer'],
+  PALETTE_LOURDE:['Palette lourde','80 × 120 ou 100 × 120 de plus de 850 kg, lisses rouges'],
+  STOCKAGE_PALETTE_BASSE:['Palette basse','palette de faible hauteur'],
+  DEMI_NIVEAU_FRAIS:['Demi-niveau','80 × 120'], DEMI_NIVEAU_AMBIANT:['Demi-niveau','80 × 120']
+};
+const AVEC_HAUTEUR = ['Palette 80×120','Palette 100×120','Palette lourde','Palette basse','Demi-niveau'];
+function typeEmplacement(typeWms, niveau, famille){
+  if (/AEROSOL/i.test(famille)) return ['Armoire', 'armoire aérosols (déclarée ' + typeWms + ' dans le WMS)'];
+  const t = TYPES_WMS[typeWms] || [typeWms || '?', ''];
+  const lib = AVEC_HAUTEUR.includes(t[0]) ? t[0] + (String(niveau).startsWith('A') ? ' sol' : ' réserve') : t[0];
+  return [lib, t[1]];
+}
+const intitule = c => RUBRIQUES[c] || (c ? 'Rubrique non référencée dans l’outil' : '');
+
+/* ---------- Secteurs par allée ---------- */
+const SECTEURS = [['Ambiant',1,14],['Frais',19,28],['Fruits & légumes',30,35],['Surgelé',38,45],['La Marée',50,57]];
+function secteurDe(position){
+  const a = parseInt(String(position).split('-')[0],10);
+  if (isNaN(a)) return 'Quai';
+  for (const [n,d,f] of SECTEURS) if (a>=d && a<=f) return n;
+  return 'Quai';
+}
+const classeSecteur = s => 's-' + s.split(' ')[0].replace('La','Marée');
+
+/* ---------- État ---------- */
+let stockLignes = null;   // lignes StockStatus (hors litige)
+let refLignes = null;     // lignes référentiel
+let refBrut = null;       // lignes du fichier, telles quelles (pour l'export)
+let refNom = '';
+let codeOrigine = new Map(); // code du référentiel par article (MGB 6)
+let refArts = new Set();
+let modifs = {};            // {art: {code, avant, mgb, lib, date, par}}
+let articles = [];        // vue par article
+let emplacements = [];    // vue par emplacement
+let vue = 'anomalie';
+let tri = {col:null, sens:1};
+let limite = 500;
+let courant = [];
+let structure = null;     // position -> {typeWms, typeEmpl, format, famille, bloque}
+let vides = [];           // emplacements de la structure sans stock
+let anomalies = [];       // lignes mal placées
+
+const $ = id => document.getElementById(id);
+const txt = (id,v) => { const e = $(id); if (e) e.textContent = v; };
+const CLE_MODIFS = 'gds_icpe_modifs';
+function lireModifs(){ try { return JSON.parse(localStorage.getItem(CLE_MODIFS)) || {}; } catch(e){ return {}; } }
+function ecrireModifs(){ try { localStorage.setItem(CLE_MODIFS, JSON.stringify(modifs)); } catch(e){} }
+modifs = lireModifs();
+function utilisateur(){ try { return localStorage.getItem('gds_nom') || ''; } catch(e){ return ''; } }
+const norm = v => String(v ?? '').trim();
+const normMgb = v => norm(v).replace(/\.0+$/,'').replace(/^0+(?=\d)/,'');
+const artDe = mgb => String(mgb).slice(0,-6).replace(/^0+(?=\d)/,'');
+const echap = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtQ = q => (Math.round(q*1000)/1000).toLocaleString('fr-FR',{maximumFractionDigits:3});
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('voir');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('voir'),3200)}
+
+/* ---------- Session et serveur ---------- */
+const API = (window.GDS && GDS.API) || '';
+const CLE = (window.GDS && GDS.CLE_PUBLIQUE) || '';
+const jeton = (()=>{ try { return localStorage.getItem('gds_jeton') || ''; } catch(e){ return ''; } })();
+const role  = (()=>{ try { return localStorage.getItem('gds_role') || ''; } catch(e){ return ''; } })();
+const ROLES_ADMIS = ['admin','admin_restreint'];
+const entetes = sup => Object.assign({'Authorization':'Bearer '+CLE,'apikey':CLE,'X-GDS-Session':jeton}, sup||{});
+const FRAICHEUR = 15 * 60 * 1000;   // 15 minutes
+const SOURCES = [
+  {cle:'stock',  titre:'Stock du jour',           prefixe:'StockStatus_FR_STOREDEPOT_',            frais:true},
+  {cle:'struct', titre:'Structure des emplacements', prefixe:'M_DEPOT report_Emplacement de stk_Table', frais:true},
+  {cle:'ref',    titre:'Référentiel ICPE',        prefixe:'icpe_REFS',                             frais:false}
+];
+let fichiersServeur = {};
+
+function age(d){
+  if (!d) return null;
+  const min = Math.round((Date.now() - new Date(d).getTime()) / 60000);
+  return min;
+}
+const libAge = m => m === null ? '—' : m < 1 ? "à l'instant" : m < 60 ? m + ' min' : Math.floor(m/60) + ' h ' + (m%60) + ' min';
+
+async function listerServeur(){
+  const r = await fetch(API + '/fichiers', {method:'POST', headers: entetes({'Content-Type':'application/json'}), body: JSON.stringify({prefix:''})});
+  if (!r.ok) throw new Error('liste');
+  const d = await r.json();
+  return (Array.isArray(d) ? d : []).filter(f => f.name).map(f => ({nom:f.name, date: f.updated_at || f.created_at || null}));
+}
+async function telechargerServeur(nom){
+  const r = await fetch(API + '/fichier/' + encodeURIComponent(nom), {headers: entetes()});
+  if (!r.ok) throw new Error('téléchargement');
+  return await r.blob();
+}
+
+function dessinerSources(etat){
+  $('src-lignes').innerHTML = SOURCES.map(s => {
+    const f = etat[s.cle];
+    const m = f ? age(f.date) : null;
+    const ko = !f || (s.frais && m !== null && m > 15);
+    return `<tr><td><b>${s.titre}</b></td><td class="mono" style="font-size:12px">${f ? echap(f.nom) : '<span style="color:var(--rouge)">absent du serveur</span>'}</td>` +
+      `<td>${f ? libAge(m) : '—'}</td><td><span class="pastille ${ko ? 'p-abs' : 'p-connu'}">${!f ? 'Manquant' : ko ? 'Trop ancien' : 'À jour'}</span></td></tr>`;
+  }).join('');
+}
+
+async function chargerDepuisServeur(){
+  if (!API){ alerteSource('config.js introuvable : impossible de joindre le serveur.'); return; }
+  $('src-info').textContent = 'Chargement…';
+  try {
+    const liste = await listerServeur();
+    const etat = {};
+    SOURCES.forEach(s => {
+      const c = liste.filter(f => f.nom.indexOf(s.prefixe) === 0).sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
+      if (c.length) etat[s.cle] = c[0];
+    });
+    fichiersServeur = etat;
+    dessinerSources(etat);
+    const vieux = SOURCES.filter(s => s.frais && (!etat[s.cle] || age(etat[s.cle].date) > 15));
+    if (vieux.length){
+      alerteSource('Fichier trop ancien ou absent : ' + vieux.map(v => v.titre.toLowerCase()).join(' et ') +
+        '. Déposez un export de moins de 15 minutes dans l’espace courant, puis rechargez.');
+      $('src-info').textContent = 'Données non exploitables';
+      $('resultats').classList.add('cache');
+      return;
+    }
+    alerteSource('');
+    for (const s of SOURCES){
+      if (!etat[s.cle]) continue;
+      const blob = await telechargerServeur(etat[s.cle].nom);
+      const file = new File([blob], etat[s.cle].nom, {type: blob.type});
+      await new Promise(res => { lireFichier(file, res); setTimeout(res, 15000); });
+    }
+    $('src-info').textContent = 'Chargé · stock de ' + libAge(age(etat.stock.date));
+  } catch(e){
+    console.error(e);
+    alerteSource('Serveur injoignable ou session expirée. Revenez au sommaire et reconnectez-vous.');
+    $('src-info').textContent = 'Erreur';
+  }
+}
+function alerteSource(txt){
+  const el = $('src-alerte');
+  el.textContent = txt; el.classList.toggle('cache', !txt);
+}
+
+function demarrer(){
+  if (!jeton){ barrer('Session expirée', 'Revenez au sommaire GDS et reconnectez-vous.'); return; }
+  if (ROLES_ADMIS.indexOf(role) === -1){ barrer('Accès réservé', 'Cet outil est réservé aux profils administrateur et admin restreint.'); return; }
+  chargerDepuisServeur();
+}
+function barrer(titre, texte){
+  document.querySelector('main').innerHTML = `<section class="carte"><div class="carte-corps" style="text-align:center;padding:50px">
+    <h2 style="color:var(--rouge);margin:0 0 10px">${titre}</h2><p style="color:var(--gris);margin:0">${texte}</p>
+    <p style="margin-top:18px"><a class="bouton" href="sommaire.html">Retour au sommaire</a></p></div></section>`;
+}
+
+/* ---------- Chargement ---------- */
+document.querySelectorAll('.depot').forEach(d=>{
+  const inp = d.querySelector('input');
+  inp.addEventListener('change', e => { [...e.target.files].forEach(lireFichier); e.target.value=''; });
+  d.addEventListener('dragover', e => { e.preventDefault(); d.classList.add('survol'); });
+  d.addEventListener('dragleave', () => d.classList.remove('survol'));
+  d.addEventListener('drop', e => { e.preventDefault(); d.classList.remove('survol'); [...e.dataTransfer.files].forEach(lireFichier); });
+});
+
+function lireFichier(f, fini){
+  const fin = () => { if (fini) { const g = fini; fini = null; g(); } };
+  const nom = f.name.toLowerCase();
+  if (nom.endsWith('.xlsx') || nom.endsWith('.xls')){
+    const r = new FileReader();
+    r.onload = e => {
+      try{
+        const wb = XLSX.read(e.target.result, {type:'array'});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, {defval:'', raw:false});
+        chargerRef(rows, f.name); fin();
+      }catch(err){ toast('Lecture impossible : ' + f.name); console.error(err); fin(); }
+    };
+    r.readAsArrayBuffer(f);
+  } else {
+    Papa.parse(f, {header:true, skipEmptyLines:true, dynamicTyping:false, complete: res => {
+      const cols = (res.meta.fields||[]).map(c=>c.trim());
+      if (cols.includes('Location Code')) chargerStock(res.data, f.name);
+      else if (cols.includes('location_nr') && cols.includes('stk_content_type')) chargerStructure(res.data, f.name);
+      else if (cols.some(c=>/icpe/i.test(c))) chargerRef(res.data, f.name);
+      else toast('Fichier non reconnu : ' + f.name);
+      fin();
+    }});
+  }
+}
+
+function colonne(row, motif){ return Object.keys(row).find(k => motif.test(k.trim())); }
+
+function chargerRef(rows, nom){
+  if (!rows.length){ toast('Référentiel vide'); return; }
+  const k12 = colonne(rows[0], /^mgb\s*12$/i), k6 = colonne(rows[0], /^mgb\s*6$/i), k9 = colonne(rows[0], /^mgb\s*9$/i), kLib = colonne(rows[0], /libell/i), kIcpe = colonne(rows[0], /icpe/i);
+  if (!k12 || !kIcpe){ toast('Colonnes « MGB 12 » ou « Code ICPE » introuvables'); return; }
+  refBrut = rows.map(r => ({m6:norm(k6 && r[k6]), m9:norm(k9 && r[k9]), m12:norm(r[k12]), lib:norm(r[kLib]), code:norm(r[kIcpe]).replace(/\.0$/,'')}));
+  refNom = nom;
+  refLignes = rows.map(r => ({mgb:normMgb(r[k12]), art: artDe(normMgb(r[k12])), lib:norm(r[kLib]), code:norm(r[kIcpe]).replace(/\.0$/,'')})).filter(r=>r.mgb);
+  if ($('d-ref')) $('d-ref').classList.add('ok');
+  if ($('t-ref')) $('t-ref').textContent = nom + ' · ' + new Set(refLignes.map(r=>r.art)).size.toLocaleString('fr-FR') + ' articles';
+  calculer();
+}
+
+function chargerStructure(rows, nom){
+  structure = new Map();
+  for (const r of rows){
+    const al = norm(r.stk_aisle), ho = norm(r.stk_house), lv = norm(r.stk_level) + norm(r.stk_sublevel), po = norm(r.stk_position);
+    if (!al || !ho) continue;
+    const pos = `${al}-${ho}-${lv}-${po}`;
+    const famille = norm(r.stk_storage_group_name);
+    const [typeEmpl, format] = typeEmplacement(norm(r.stk_content_type), lv, famille);
+    structure.set(pos, {typeWms: norm(r.stk_content_type), typeEmpl, format, famille, bloque: norm(r.blocked_for_in_operations) === 'true', niveau: lv});
+  }
+  const m = String(rows[0] && rows[0].upd_date || '').match(/^(\d+ \S+ \d{4})/);
+  if ($('d-struct')) $('d-struct').classList.add('ok');
+  if ($('t-struct')) $('t-struct').textContent = structure.size.toLocaleString('fr-FR') + ' emplacements' + (m ? ' · structure du ' + m[1] : '');
+  calculer();
+}
+
+function chargerStock(rows, nom){
+  stockLignes = rows.map(r => ({
+    pos:norm(r['Position']), loc:norm(r['Location Code']), mgb:normMgb(r['MGB']), lib:norm(r['Description']),
+    qte:parseFloat(String(r['Quantity']).replace(',','.'))||0
+  })).filter(r => r.mgb && !r.pos.toUpperCase().startsWith('INSPECTION'));
+  const m = nom.match(/(\d{2}-\d{2}-\d{4})/);
+  if ($('d-stock')) $('d-stock').classList.add('ok');
+  if ($('t-stock')) $('t-stock').textContent = (m ? 'Stock du ' + m[1].replace(/-/g,'/') : nom) + ' · ' + stockLignes.length.toLocaleString('fr-FR') + ' lignes (litige exclu)';
+  calculer();
+}
+
+/* ---------- Croisement ---------- */
+function calculer(){
+  if (!stockLignes || !refLignes) return;
+
+  // Référentiel : le code ICPE est porté par l'article (MGB 12 sans ses 6 derniers chiffres).
+  // Il n'est souvent renseigné que sur une variante du MGB 12 : on l'applique à toutes les variantes.
+  const parMgb = new Map(), parArt = new Map(), articlesRef = new Map();
+  const meilleur = (m, k, r) => { const p = m.get(k); if (!p || (!p.code && r.code)) m.set(k, r); };
+  for (const r of refLignes){
+    meilleur(parMgb, r.mgb, r);
+    meilleur(parArt, r.art, r);
+    meilleur(articlesRef, r.art, r);
+  }
+  codeOrigine = new Map(); refArts = new Set();
+  for (const [k, r] of parArt){ codeOrigine.set(k, r.code); refArts.add(k); }
+  // Une modification devenue identique au référentiel (fichier rechargé après export) n'en est plus une
+  let nettoye = false;
+  for (const k of Object.keys(modifs)) if (codeOrigine.has(k) && codeOrigine.get(k) === modifs[k].code){ delete modifs[k]; nettoye = true; }
+  if (nettoye) ecrireModifs();
+
+  const trouver = mgb => {
+    const exact = parMgb.get(mgb), art = parArt.get(artDe(mgb));
+    if (!exact && !art) return null;
+    const base = exact || art;
+    return {mgb: base.mgb, art: base.art, lib: base.lib, code: (exact && exact.code) || (art && art.code) || ''};
+  };
+
+  // Stock regroupé par article
+  const enStock = new Map();
+  emplacements = [];
+  for (const l of stockLignes){
+    const ref = trouver(l.mgb);
+    const art = (ref && ref.art) || artDe(l.mgb);
+    const m = modifs[art];
+    const code = m ? m.code : (ref ? ref.code : '');
+    const statut = code ? 'connu' : (ref ? 'nr' : 'abs');
+    const modif = !!m;
+    const sect = secteurDe(l.pos);
+    emplacements.push({art, modif, mgb:l.mgb, lib:l.lib || (ref&&ref.lib), code, type:typeDe(code), intitule:intitule(code), statut, stock:'oui', secteurs:[sect], emplacement:l.pos, qte:l.qte});
+    let a = enStock.get(l.mgb);
+    if (!a){ a = {art, modif, mgb:l.mgb, lib:l.lib || (ref&&ref.lib) || '', code, type:typeDe(code), intitule:intitule(code), statut, stock:'oui', qte:0, npos:0, secteurs:[], emplacementsL:[], refArt: ref && ref.art}; enStock.set(l.mgb, a); }
+    a.qte += l.qte; a.npos++;
+    if (!a.secteurs.includes(sect)) a.secteurs.push(sect);
+    a.emplacementsL.push(l.pos);
+  }
+  articles = [...enStock.values()];
+  articles.forEach(a => a.emplacement = a.emplacementsL.sort(triAlpha).join(', '));
+
+  // Articles du référentiel hors stock (une ligne par article MGB 6)
+  const artEnStock = new Set();
+  articles.forEach(a => { artEnStock.add(artDe(a.mgb)); if (a.refArt) artEnStock.add(a.refArt); });
+  for (const [k, r] of articlesRef){
+    if (artEnStock.has(k) || artEnStock.has(artDe(r.mgb))) continue;
+    const m = modifs[k];
+    const code = m ? m.code : (r.code || (parArt.get(artDe(r.mgb))||{}).code || '');
+    articles.push({art:k, modif:!!m, mgb:r.mgb, lib:r.lib, code, type:typeDe(code), intitule:intitule(code), statut: code ? 'connu' : 'nr', stock:'non', qte:0, npos:0, secteurs:[], emplacement:''});
+  }
+
+  // Structure : type d'emplacement, famille de stockage, emplacements vides
+  const occupes = new Set();
+  emplacements.forEach(x => {
+    occupes.add(x.emplacement);
+    const st = structure && structure.get(x.emplacement);
+    const rack = /^\d+-\d+-[A-Z]\d+-\d+$/.test(x.emplacement);
+    x.typeEmpl = st ? st.typeEmpl : (structure && rack ? 'Absent de la structure' : (rack ? '' : 'Quai'));
+    x.typeWms = st ? st.typeWms : ''; x.format = st ? st.format : ''; x.famille = st ? st.famille : ''; x.bloque = st && st.bloque ? 'Oui' : '';
+  });
+  vides = [];
+  if (structure) for (const [pos, st] of structure){
+    if (occupes.has(pos)) continue;
+    const b = bacPos(pos);
+    vides.push({vide:true, art:'', modif:false, mgb:'', lib:'', code:'', type:'', intitule:'', statut:'', stock:'vide', qte:0,
+      secteurs:[secteurDe(pos)], emplacement:pos, typeEmpl:st.typeEmpl, typeWms:st.typeWms, format:st.format, famille:st.famille, bloque: st.bloque ? 'Oui' : '',
+      bac:'', surbac: libSurBac(b), situ: b ? (st.bloque ? 'Place de bac bloquée' : 'Place de bac libre') : ''});
+  }
+  if (structure){
+    BACS.forEach(b => b.positions = []);
+    for (const pos of structure.keys()){
+      const b = BAC_ALV.get(alvDe(pos));
+      if (b && pos.split('-')[2] === 'A1'){ b.positions.push(pos); BAC_POS.set(pos, {type:b.type}); }
+    }
+  }
+  const lesTypes = [...new Set([...emplacements, ...vides].map(x=>x.typeEmpl).filter(Boolean))].sort(triAlpha);
+  const lesFam = [...new Set([...emplacements, ...vides].map(x=>x.famille).filter(Boolean))].sort(triAlpha);
+  const garder = (id, liste, tous) => { const v = $(id).value; $(id).innerHTML = `<option value="">${tous}</option>` + liste.map(t=>`<option>${echap(t)}</option>`).join(''); if (liste.includes(v)) $(id).value = v; };
+  garder('f-templ', lesTypes, 'Tous'); garder('f-fam', lesFam, 'Toutes');
+
+  emplacements.forEach(x => {
+    [x.bac, x.regle] = retentionDe(x.code, x.lib);
+    const b = bacPos(x.emplacement);
+    x.surbac = libSurBac(b);
+    x.situ = situationBac(x.bac, b ? 1 : 0, 1);
+  });
+  articles.forEach(x => {
+    [x.bac, x.regle] = retentionDe(x.code, x.lib);
+    if (x.stock !== 'oui'){ x.surbac = ''; x.situ = ''; return; }
+    const n = (x.emplacementsL || []).filter(p => bacPos(p)).length;
+    x.surbac = !n ? 'Non' : n === x.npos ? 'Oui' : `Partiel ${n}/${x.npos}`;
+    x.situ = situationBac(x.bac, n, x.npos);
+  });
+  // ---------- Contrôle du placement ----------
+  const parAlv = new Map();
+  emplacements.forEach(e => { const a = alvDe(e.emplacement); if (!parAlv.has(a)) parAlv.set(a, []); parAlv.get(a).push(e); });
+  const voisines = a => { const [al, tr] = a.split('-').map(Number); return [`${al}-${tr-2}`, `${al}-${tr+2}`]; };
+  anomalies = [];
+  const libres = new Map();   // meuble -> {sol:[], res:[]}
+  MEUBLES.forEach(m => libres.set(m.nom, {sol:[], res:[]}));
+  (vides||[]).forEach(v => {
+    const m = meubleDe(v.emplacement); if (!m || v.bloque === 'Oui') return;
+    libres.get(m.nom)[v.emplacement.split('-')[2] === 'A1' ? 'sol' : 'res'].push(v.emplacement);
+  });
+  libres.forEach(o => { o.sol.sort(triAlpha); o.res.sort(triAlpha); });
+  const prendre = (nom, picking) => { const o = libres.get(nom); if (!o) return ''; const l = picking ? (o.sol.length ? o.sol : o.res) : (o.res.length ? o.res : o.sol); return l.length ? l.shift() : 'Aucune place libre'; };
+
+  const fusion = new Map();
+  emplacements.forEach(e => { const k = e.mgb + '|' + e.emplacement; if (fusion.has(k)) fusion.get(k).qte += e.qte; else fusion.set(k, e); });
+  const lignes = [...fusion.values()].sort((a,b) => b.qte - a.qte);
+  for (const e of lignes){
+    const g = groupeDe(e.code, e.lib), m = meubleDe(e.emplacement), picking = /^A/.test(e.emplacement.split('-')[2] || 'A');
+    let prio = '', ano = '', cible = '', arr = '';
+    if (g && m && !m.groupes.includes(g)){
+      prio = 'P1'; ano = 'Sur un bac de la mauvaise famille : ' + GROUPES[g]; cible = (meublePour(g)||{}).nom || ''; arr = cible ? prendre(cible, picking) : '';
+    } else if (m && m.groupes.includes('J') && ACIDE.test(e.lib)){
+      prio = 'P1'; ano = 'Acide sur le bac Javel : dégagement de chlore'; cible = 'Hors bac Javel'; arr = 'RELOC';
+    } else if (g && !m){
+      prio = 'P2'; ano = 'Rétention obligatoire : produit hors bac'; cible = (meublePour(g)||{}).nom || ''; arr = cible ? prendre(cible, picking) : '';
+    } else if (!g && m && e.code){
+      prio = 'P3'; ano = 'Occupe une place de bac sans en avoir besoin'; cible = 'Hors bac'; arr = 'RELOC';
+    } else if (!g && m && !e.code){
+      prio = 'P4'; ano = 'Sur un bac sans code ICPE : à renseigner'; cible = 'Code ICPE à saisir'; arr = '';
+    }
+    // acide dans une alvéole voisine d'un meuble Javel
+    if (!prio && ACIDE.test(e.lib)){
+      const vois = voisines(alvDe(e.emplacement)).map(v => ALV_MEUBLE.get(v)).filter(Boolean);
+      if (vois.some(v => v.groupes.includes('J'))){ prio = 'P1'; ano = 'Acide dans l’alvéole voisine du meuble Javel'; cible = 'À éloigner'; arr = 'RELOC'; }
+    }
+    e.prio = prio; e.anomalie = ano; e.cible = cible; e.arr = arr;
+    e.groupe = g ? GROUPES[g] : '';
+    if (prio) anomalies.push(e);
+  }
+  dessinerPlacement();
+  dessinerBacs();
+
+  // Liste des rubriques rencontrées
+  const codes = [...new Set(articles.map(a=>a.code).filter(Boolean))].sort();
+  const choixCode = $('f-code').value;
+  $('f-code').innerHTML = '<option value="">Toutes</option>' + codes.map(c=>`<option value="${c}">${c} — ${echap(intitule(c))}</option>`).join('');
+
+  if (codes.includes(choixCode)) $('f-code').value = choixCode;
+  majCompteModifs();
+  $('resultats').classList.remove('cache');
+  afficher();
+}
+const triAlpha = (a,b) => String(a).localeCompare(String(b),'fr',{numeric:true});
+
+/* ---------- Filtres ---------- */
+function filtres(){
+  return {stock:$('f-stock').value, statut:$('f-statut').value, code:$('f-code').value, type:$('f-type').value, bac:$('f-bac').value, situ:$('f-situ').value, occup:$('f-occup').value, templ:$('f-templ').value, fam:$('f-fam').value, prio:$('f-prio').value, secteur:$('f-secteur').value, texte:$('f-texte').value.trim().toLowerCase()};
+}
+function passe(x, f, sans){
+  if (sans!=='stock' && f.stock && x.stock !== f.stock) return false;
+  if (sans!=='statut' && f.statut && (f.statut==='modif' ? !x.modif : x.statut !== f.statut)) return false;
+  if (sans!=='code' && f.code && x.code !== f.code) return false;
+  if (f.type && x.type !== f.type) return false;
+  if (f.bac && x.bac !== f.bac) return false;
+  if (f.situ && x.situ !== f.situ) return false;
+  if (f.secteur && !x.secteurs.includes(f.secteur)) return false;
+  if (vue === 'anomalie' && f.prio && x.prio !== f.prio) return false;
+  if (vue === 'emplacement' && 'typeEmpl' in x){
+    if (f.templ && x.typeEmpl !== f.templ) return false;
+    if (f.fam && x.famille !== f.fam) return false;
+  }
+  if (f.texte){
+    const t = (x.mgb+' '+x.lib+' '+x.emplacement+' '+x.code+' '+x.intitule+' '+(x.famille||'')+' '+(x.typeEmpl||'')).toLowerCase();
+    if (!f.texte.split(/\s+/).every(m => t.includes(m))) return false;
+  }
+  return true;
+}
+
+function afficher(){
+  const f = filtres();
+  const hs = vue === 'emplacement';
+  const an = vue === 'anomalie';
+  document.querySelectorAll('.seul-empl').forEach(c => c.classList.toggle('cache', vue !== 'emplacement'));
+  document.querySelectorAll('.seul-ano').forEach(c => c.classList.toggle('cache', vue !== 'anomalie'));
+  $('f-stock').closest('.champ').classList.toggle('cache', hs);
+
+  // Chiffres : articles, selon stock + secteur + texte + rubrique (pas le statut)
+  const baseC = articles.filter(a => passe(a, f, 'statut'));
+  $('c-tot').textContent = baseC.length.toLocaleString('fr-FR');
+  $('c-connu').textContent = baseC.filter(a=>a.statut==='connu').length.toLocaleString('fr-FR');
+  $('c-nr').textContent = baseC.filter(a=>a.statut==='nr').length.toLocaleString('fr-FR');
+  $('c-abs').textContent = baseC.filter(a=>a.statut==='abs').length.toLocaleString('fr-FR');
+  document.querySelector('.chiffre[data-statut=""] .l').textContent = f.stock==='oui' ? 'Articles en stock' : f.stock==='non' ? 'Articles hors stock' : 'Articles';
+  document.querySelectorAll('.chiffre').forEach(c => c.classList.toggle('actif', c.dataset.statut === f.statut));
+
+  // Rubriques : compte selon tous les filtres sauf la rubrique
+  const baseR = articles.filter(a => passe(a, f, 'code') && a.code);
+  const cpt = {};
+  baseR.forEach(a => cpt[a.code] = (cpt[a.code]||0)+1);
+  const liste = Object.keys(cpt).sort((a,b)=>cpt[b]-cpt[a]);
+  $('rubriques').innerHTML = liste.length ? liste.map(c => `
+    <div class="rub ${f.code===c?'actif':''}" data-code="${c}" title="${echap(intitule(c))}">
+      <span class="rub-code">${c}</span><span class="rub-lib">${echap(intitule(c))}</span><span class="rub-n">${cpt[c]}</span>
+    </div>`).join('') : '<span style="color:var(--gris)">Aucune rubrique pour ces filtres</span>';
+  $('rub-info').textContent = liste.length + ' code' + (liste.length>1?'s':'') + ' · cliquer pour filtrer';
+  document.querySelectorAll('.rub').forEach(r => r.onclick = () => { $('f-code').value = (f.code===r.dataset.code ? '' : r.dataset.code); limite=500; afficher(); });
+
+  // Tableau
+  if (an){
+    courant = anomalies.filter(x => passe(x, Object.assign({}, f, {stock:''})));
+  } else if (hs){
+    const src = f.occup === 'occ' ? emplacements : f.occup === 'vide' ? vides : emplacements.concat(vides);
+    const fe = Object.assign({}, f, {stock:''});
+    courant = src.filter(x => passe(x, fe));
+  } else courant = articles.filter(x => passe(x, f));
+  if (tri.col){
+    const c = tri.col, s = tri.sens;
+    courant.sort((a,b) => (typeof a[c]==='number' ? (a[c]-b[c]) : triAlpha(Array.isArray(a[c])?a[c].join():a[c], Array.isArray(b[c])?b[c].join():b[c])) * s);
+  } else if (an){
+    courant.sort((a,b)=> triAlpha(a.prio,b.prio) || b.qte - a.qte);
+  } else if (hs){
+    courant.sort((a,b)=>triAlpha(a.emplacement,b.emplacement));
+  } else {
+    const ordre = {connu:0,nr:1,abs:2};
+    courant.sort((a,b)=> ordre[a.statut]-ordre[b.statut] || triAlpha(a.code,b.code) || triAlpha(a.lib,b.lib));
+  }
+  $('compte').textContent = courant.length.toLocaleString('fr-FR') + (an ? ' anomalie' : hs ? ' emplacement' : ' article') + (courant.length>1?'s':'');
+  dessinerTableau(hs);
+}
+
+const CACHEES = ['intitule','typeWms','format','bloque','regle','groupe'];   // affichées au survol, présentes dans les exports
+const SITU = {'Place de bac libre':'p-oui','Place de bac bloquée':'p-non','Conforme':'p-connu','À mettre sur bac':'p-abs','Partiellement sur bac':'p-nr','Occupe un bac sans besoin':'p-bac-verif','À vérifier':'p-nr','Sur bac (à vérifier)':'p-nr','Sur bac, code ICPE à renseigner':'p-nr'};
+const STATUT = {connu:['ICPE connu','p-connu'], nr:['Non renseigné','p-nr'], abs:['Absent du référentiel','p-abs']};
+const COLS_ANO = [['prio','Priorité'],['anomalie','Anomalie'],['emplacement','Départ'],['arr','→ Arrivée'],['cible','Meuble cible'],['secteurs','Secteur'],['typeEmpl','Type empl.'],['famille','Famille emplacement'],['mgb','MGB'],['lib','Produit'],['code','Code ICPE'],['intitule','Intitulé'],['qte','Quantité'],['bac','Rétention'],['regle','Règle de rétention'],['groupe','Famille produit']];
+const COLS_ART = [['mgb','MGB'],['lib','Libellé'],['code','Code ICPE'],['type','Type'],['intitule','Intitulé'],['bac','Rétention'],['regle','Règle de rétention'],['surbac','Sur bac'],['situ','Situation bac'],['statut','Statut ICPE'],['stock','En stock'],['qte','Quantité'],['npos','Pos.'],['secteurs','Secteur'],['emplacement','Emplacements']];
+const COLS_EMP = [['emplacement','Emplacement'],['secteurs','Secteur'],['typeEmpl','Type empl.'],['typeWms','Type WMS'],['format','Format'],['famille','Famille stockage'],['bloque','Bloqué entrée'],['mgb','MGB'],['lib','Libellé'],['qte','Quantité'],['code','Code ICPE'],['type','Type'],['intitule','Intitulé'],['bac','Rétention'],['regle','Règle de rétention'],['surbac','Sur bac'],['situ','Situation bac'],['statut','Statut ICPE']];
+
+function cellule(x, c){
+  switch(c){
+    case 'mgb': return `<td class="mono">${echap(x.mgb)}</td>`;
+    case 'lib': return `<td class="lib">${echap(x.lib)}</td>`;
+    case 'code': if (x.vide) return '<td></td>';
+      return `<td class="code edit" data-art="${echap(x.art)}" data-mgb="${echap(x.mgb)}" title="${x.intitule ? echap(x.intitule) + ' — ' : ''}${x.modif ? 'Modifié le ' + echap(modifs[x.art].date) + ' · avant : ' + echap(modifs[x.art].avant || 'aucun code') + ' — cliquer pour modifier' : 'Cliquer pour modifier'}">${x.code || '<span style="color:#b5bcc8">—</span>'}${x.modif ? '<span class="point-modif"></span>' : ''}<svg class="crayon" width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 20h4L19 9l-4-4L4 16v4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></td>`;
+    case 'type': return `<td>${x.type ? `<span class="pastille ${x.type==='Dangereux'?'p-dang':'p-comb'}">${x.type}</span>` : ''}</td>`;
+    case 'bac': return `<td title="${echap(x.regle || '')}">${x.bac ? `<span class="pastille ${{'Obligatoire':'p-bac-oui','À vérifier':'p-bac-verif','Non':'p-bac-non','Rétention bâtiment':'p-bac-bat'}[x.bac]}">${x.bac}</span>` : ''}</td>`;
+    case 'surbac': return `<td style="white-space:nowrap">${x.surbac && x.surbac !== 'Non' ? `<b style="color:var(--navy)">${echap(x.surbac)}</b>` : `<span style="color:var(--gris)">${echap(x.surbac||'')}</span>`}</td>`;
+    case 'situ': return `<td>${x.situ ? `<span class="pastille ${SITU[x.situ]}">${x.situ}</span>` : ''}</td>`;
+    case 'prio': return `<td><span class="pastille ${{'P1':'p-p1','P2':'p-p2','P3':'p-p3','P4':'p-p4'}[x.prio]||''}">${x.prio||''}</span></td>`;
+    case 'anomalie': return `<td style="font-size:12.5px">${echap(x.anomalie||'')}</td>`;
+    case 'arr': return `<td class="mono" style="white-space:nowrap"><b style="color:${x.arr==='RELOC'?'#a85510':'#1a2e55'}">${echap(x.arr||'')}</b></td>`;
+    case 'cible': return `<td style="font-size:12.5px">${echap(x.cible||'')}</td>`;
+    case 'groupe': return `<td style="font-size:12px">${echap(x.groupe||'')}</td>`;
+    case 'intitule': return `<td class="intitule">${echap(x.intitule)}</td>`;
+    case 'statut': if (!x.statut) return `<td>${x.vide ? '<span class="pastille p-non">Vide</span>' : ''}</td>`;
+      return `<td><span class="pastille ${STATUT[x.statut][1]}">${STATUT[x.statut][0]}</span>${x.modif ? ' <span class="pastille p-modif">Modifié</span>' : ''}</td>`;
+    case 'stock': return `<td><span class="pastille ${x.stock==='oui'?'p-oui':'p-non'}">${x.stock==='oui'?'Oui':'Non'}</span></td>`;
+    case 'qte': return `<td class="num">${x.stock==='oui'?fmtQ(x.qte):''}</td>`;
+    case 'npos': return `<td class="num">${x.npos||''}</td>`;
+    case 'secteurs': return `<td>${x.secteurs.map(s=>`<span class="secteur ${classeSecteur(s)}">${echap(s)}</span>`).join('')}</td>`;
+    case 'emplacement': return `<td class="empl">${echap(x.emplacement)}</td>`;
+    case 'typeEmpl': return `<td style="white-space:nowrap" title="${echap([x.typeWms, x.format].filter(Boolean).join(' · '))}">${x.typeEmpl ? `<span class="pastille p-templ">${echap(x.typeEmpl)}</span>` : ''}${x.bloque ? ' <span class="pastille p-abs" title="Bloqué en entrée dans le WMS">Bloqué</span>' : ''}</td>`;
+    case 'famille': return `<td style="font-size:12.5px">${echap(x.famille || '')}</td>`;
+  }
+}
+
+function dessinerTableau(hs){
+  // L'intitulé est affiché au survol du code (il reste dans les exports)
+  const cols = (vue === 'anomalie' ? COLS_ANO : hs ? COLS_EMP : COLS_ART).filter(c => !CACHEES.includes(c[0]));
+  $('thead').innerHTML = '<tr>' + cols.map(([k,l]) => `<th data-col="${k}">${l} <span class="tri">${tri.col===k?(tri.sens>0?'▲':'▼'):'↕'}</span></th>`).join('') + '</tr>';
+  document.querySelectorAll('th').forEach(th => th.onclick = () => {
+    const c = th.dataset.col; tri = {col:c, sens: tri.col===c ? -tri.sens : 1}; afficher();
+  });
+  if (!courant.length){ $('tbody').innerHTML = `<tr><td colspan="${cols.length}" class="vide">Aucun résultat pour ces filtres</td></tr>`; $('plus').classList.add('cache'); return; }
+  $('tbody').innerHTML = courant.slice(0, limite).map(x => '<tr>' + cols.map(([k]) => cellule(x,k)).join('') + '</tr>').join('');
+  $('plus').classList.toggle('cache', courant.length <= limite);
+  document.querySelectorAll('td.edit').forEach(td => td.onclick = () => editer(td));
+}
+
+/* ---------- Modification d'un code ICPE ---------- */
+function editer(td){
+  if (td.querySelector('select')) return;
+  const art = td.dataset.art;
+  const ligne = courant.find(x => x.art === art && x.mgb === td.dataset.mgb) || courant.find(x => x.art === art);
+  const actuel = ligne ? ligne.code : '';
+  const connus = [...new Set([...Object.keys(RUBRIQUES), ...articles.map(a=>a.code).filter(Boolean)])].sort();
+  const sel = document.createElement('select');
+  sel.innerHTML = `<option value="">— Aucun code —</option>` +
+    connus.map(c => `<option value="${c}" ${c===actuel?'selected':''}>${c} — ${echap(intitule(c))}</option>`).join('') +
+    `<option value="__autre">Autre code…</option>`;
+  if (!actuel) sel.value = '';
+  td.innerHTML = ''; td.appendChild(sel); sel.focus();
+  let fini = false;
+  const fermer = () => { if (!fini){ fini = true; dessinerTableau(vue==='emplacement'); } };
+  sel.onclick = e => e.stopPropagation();
+  sel.onkeydown = e => { if (e.key === 'Escape') fermer(); };
+  sel.onblur = fermer;
+  sel.onchange = () => {
+    let code = sel.value;
+    if (code === '__autre'){
+      code = (prompt('Code ICPE (4 chiffres) :', actuel) || '').trim();
+      if (!/^\d{4}$/.test(code)){ if (code) toast('Code invalide : 4 chiffres attendus'); fini = true; dessinerTableau(vue==='emplacement'); return; }
+    }
+    fini = true;
+    enregistrer(art, code, ligne);
+  };
+}
+
+function enregistrer(art, code, ligne){
+  const origine = codeOrigine.has(art) ? codeOrigine.get(art) : null;
+  const d = new Date(), p = n => String(n).padStart(2,'0');
+  if (origine !== null && code === origine){
+    delete modifs[art];
+    toast('Article ' + art + ' : code du référentiel rétabli');
+  } else {
+    modifs[art] = {code, avant: origine || '', mgb: ligne ? ligne.mgb : '', lib: ligne ? ligne.lib : '',
+      date: `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()}`, par: utilisateur()};
+    toast('Article ' + art + ' : ' + (code ? 'code ' + code : 'code retiré'));
+  }
+  ecrireModifs();
+  const zone = $('zone'), y = zone.scrollTop, lim = limite;
+  calculer();
+  limite = lim; dessinerTableau(vue==='emplacement'); zone.scrollTop = y;
+}
+
+function majCompteModifs(){
+  const n = Object.keys(modifs).length;
+  $('n-modif').textContent = n.toLocaleString('fr-FR');
+  $('s-modif').textContent = n>1 ? 's' : ''; $('s-modif2').textContent = n>1 ? 's' : '';
+  $('b-annuler-modif').disabled = !n;
+}
+
+/* ---------- Bilan du placement ---------- */
+const LIB_PRIO = {P1:'incompatibilité, à traiter en urgence',P2:'rétention obligatoire, hors bac',P3:'place de bac à libérer',P4:'code ICPE à renseigner'};
+function dessinerPlacement(){
+  const n = pr => anomalies.filter(a => a.prio === pr).length;
+  $('pl-bilan').innerHTML = ['P1','P2','P3','P4'].map(pr =>
+    `<div class="${pr==='P1'?'alerte':''}" data-prio="${pr}"><b>${n(pr)}</b><span>${pr} — ${LIB_PRIO[pr]}</span></div>`).join('') +
+    `<div data-prio=""><b>${anomalies.length}</b><span>emplacements à traiter au total</span></div>`;
+  const occSet = new Set(emplacements.map(e=>e.emplacement));
+  $('pl-meubles').innerHTML = MEUBLES.map(m => {
+    const tous = structure ? [...structure.keys()].filter(p => m.alv.includes(alvDe(p))) : [];
+    const sol = tous.filter(p => p.split('-')[2]==='A1'), res = tous.filter(p => p.split('-')[2]!=='A1');
+    const libre = tous.filter(p => !occSet.has(p) && !(structure.get(p)||{}).bloque).length;
+    const rentrer = anomalies.filter(a => a.cible === m.nom).length;
+    return `<tr><td><b>${m.nom}</b></td><td class="mono">${m.alv.join(', ')}</td><td style="font-size:12px">${m.groupes.map(g=>GROUPES[g]).join(' · ')}</td><td class="num">${sol.length}</td><td class="num">${res.length}</td><td class="num">${libre}</td><td class="num">${rentrer}</td></tr>`;
+  }).join('');
+  $('pl-info').textContent = MEUBLES.length + ' meubles · ' + anomalies.length + ' emplacements à traiter · cliquer un chiffre pour filtrer';
+  document.querySelectorAll('#pl-bilan div').forEach(d => d.onclick = () => {
+    document.querySelector('#vue button[data-v=anomalie]').click();
+    $('f-prio').value = d.dataset.prio; limite = 500; afficher(); $('zone').scrollIntoView({behavior:'smooth'});
+  });
+}
+
+/* ---------- Bilan des bacs ---------- */
+function dessinerBacs(){
+  // Toutes les places liées aux bacs : sol (le bac) + réserve au-dessus (structure si chargée, sinon stock)
+  const parPos = new Map();
+  emplacements.forEach(e => { if (bacPos(e.emplacement)){ if (!parPos.has(e.emplacement)) parPos.set(e.emplacement, []); parPos.get(e.emplacement).push(e); } });
+  const placesDe = b => {
+    const sol = b.positions.slice();
+    const alvs = new Set(sol.map(p => p.split('-').slice(0,2).join('-')));
+    const src = structure ? [...structure.keys()] : [...parPos.keys()];
+    const res = src.filter(p => { const bp = bacPos(p); return bp && bp.place === 'réserve' && alvs.has(p.split('-').slice(0,2).join('-')); });
+    return {sol, res};
+  };
+  let T = {sol:0, res:0, libres:0, bloq:0, o:0, r:0, n:0};
+  $('bac-zones').innerHTML = BACS.map(b => {
+    const {sol, res} = placesDe(b);
+    let libres = 0, bloq = 0, o = 0, r = 0, n = 0;
+    sol.concat(res).forEach(p => {
+      const l = parPos.get(p) || [];
+      const st = structure && structure.get(p);
+      if (!l.length){ if (st && st.bloque) bloq++; else libres++; }
+      else if (l.some(e => e.bac === 'Obligatoire' || e.bac === 'À vérifier')) o++;
+      else if (l.some(e => !e.bac)) r++;
+      else n++;
+    });
+    T.sol += sol.length; T.res += res.length; T.libres += libres; T.bloq += bloq; T.o += o; T.r += r; T.n += n;
+    return `<tr><td class="mono">${b.zone}</td><td>${b.type}</td><td class="num">${sol.length}</td><td class="num">${structure ? res.length : '—'}</td><td class="num">${libres}</td><td class="num">${bloq}</td><td class="num">${o}</td><td class="num">${r}</td><td class="num">${n}</td></tr>`;
+  }).join('');
+  const nbPos = situ => new Set(emplacements.filter(e => e.situ === situ).map(e => e.emplacement)).size;
+  const aMettre = nbPos('À mettre sur bac'), conformes = nbPos('Conforme');
+  $('bac-bilan').innerHTML = `
+    <div class="alerte" data-situ="À mettre sur bac"><b>${aMettre}</b><span>emplacements à rétention obligatoire hors bac</span></div>
+    <div data-situ="Conforme"><b>${conformes}</b><span>emplacements conformes (sur ou au-dessus d'un bac)</span></div>
+    <div data-situ="Place de bac libre"><b>${T.libres}</b><span>places libres (bac + réserve au-dessus)</span></div>
+    <div data-situ="Sur bac, code ICPE à renseigner"><b>${T.r}</b><span>places occupées par un produit sans code ICPE</span></div>
+    <div data-situ="Occupe un bac sans besoin"><b>${T.n}</b><span>places prises sans besoin</span></div>`;
+  $('bac-info').textContent = BACS.length + ' zones · ' + T.sol + ' places sur bac' + (structure ? ' + ' + T.res + ' en réserve au-dessus' : ' (charger la structure pour la réserve au-dessus)') + ' · cliquer un chiffre pour filtrer';
+  document.querySelectorAll('.bac-bilan div').forEach(d => d.onclick = () => {
+    document.querySelector('#vue button[data-v=emplacement]').click();
+    $('f-situ').value = d.dataset.situ;
+    $('f-occup').value = d.dataset.situ === 'Place de bac libre' ? 'vide' : 'occ';
+    limite = 500; afficher();
+    $('zone').scrollIntoView({behavior:'smooth'});
+  });
+}
+
+/* ---------- Événements ---------- */
+['f-stock','f-statut','f-type','f-bac','f-situ','f-occup','f-templ','f-fam','f-prio','f-code','f-secteur'].forEach(id => $(id).addEventListener('change', () => { limite=500; afficher(); }));
+let minuteur; $('f-texte').addEventListener('input', () => { clearTimeout(minuteur); minuteur = setTimeout(()=>{limite=500; afficher();}, 200); });
+document.querySelectorAll('#vue button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#vue button').forEach(x=>x.classList.toggle('actif', x===b));
+  vue = b.dataset.v; tri = {col:null, sens:1}; limite=500; afficher();
+});
+document.querySelectorAll('.chiffre').forEach(c => c.onclick = () => { $('f-statut').value = c.dataset.statut; limite=500; afficher(); });
+$('b-recharger').onclick = () => chargerDepuisServeur();
+document.addEventListener('DOMContentLoaded', demarrer);
+$('b-plus').onclick = () => { limite += 500; dessinerTableau(vue==='emplacement'); };
+$('b-raz').onclick = () => { $('f-stock').value='oui'; $('f-statut').value=''; $('f-code').value=''; $('f-type').value=''; $('f-bac').value=''; $('f-situ').value=''; $('f-prio').value=''; $('f-occup').value='occ'; $('f-templ').value=''; $('f-fam').value=''; $('f-secteur').value=''; $('f-texte').value=''; tri={col:null,sens:1}; limite=500; afficher(); };
+
+$('b-voir-modif').onclick = () => { $('f-stock').value=''; $('f-statut').value='modif'; $('f-code').value=''; $('f-type').value=''; $('f-bac').value=''; $('f-situ').value=''; $('f-prio').value=''; $('f-occup').value='occ'; $('f-templ').value=''; $('f-fam').value=''; $('f-secteur').value=''; $('f-texte').value=''; if (vue==='emplacement') document.querySelector('#vue button[data-v=article]').click(); limite=500; afficher(); };
+$('b-annuler-modif').onclick = () => {
+  const n = Object.keys(modifs).length;
+  if (!n || !confirm('Annuler les ' + n + ' modification(s) et revenir aux codes du référentiel ?')) return;
+  modifs = {}; ecrireModifs(); calculer(); toast('Modifications annulées');
+};
+$('b-export-ref').onclick = () => {
+  if (!refBrut) return toast('Charger d’abord le référentiel');
+  const trace = m => 'Modifié GDS le ' + m.date + (m.par ? ' par ' + m.par : '') + (m.avant ? ' (avant : ' + m.avant + ')' : ' (avant : aucun code)');
+  const aoa = [['MGB 6','MGB 9','MGB 12','Libelle Art','Code ICPE','Origine du code']];
+  let nModif = 0, nComplete = 0;
+  for (const r of refBrut){
+    const m12 = normMgb(r.m12);
+    const art = m12 ? artDe(m12) : normMgb(r.m6);   // l'article = MGB 12 sans ses 6 derniers chiffres
+    const m = modifs[art];
+    const artCode = codeOrigine.get(art) || '';
+    let code, origine;
+    if (m){ code = m.code; origine = trace(m); nModif++; }
+    else if (r.code){ code = r.code; origine = 'Référentiel'; }
+    else if (artCode){ code = artCode; origine = 'Complété depuis une autre variante'; nComplete++; }
+    else { code = ''; origine = ''; }
+    aoa.push([r.m6, r.m9, r.m12, r.lib, code, origine]);
+  }
+  let nAjout = 0;
+  for (const [art, m] of Object.entries(modifs)){
+    if (refArts.has(art) || !m.code) continue;
+    aoa.push([art, m.mgb ? m.mgb.slice(0,-3) : '', m.mgb, m.lib, m.code, trace(m).replace('Modifié','Ajouté')]);
+    nAjout++;
+  }
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{wch:10},{wch:12},{wch:15},{wch:50},{wch:10},{wch:55}];
+  ws['!autofilter'] = {ref: 'A1:F' + aoa.length};
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'ICPE');
+  const d = new Date(), p = n => String(n).padStart(2,'0');
+  const nomFic = `icpe_REFS_${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}.xlsx`;
+  XLSX.writeFile(wb, nomFic);
+  if (API && confirm('Enregistrer aussi ce référentiel sur le serveur, pour tout le monde ?')){
+    const bin = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+    fetch(API + '/fichier/' + encodeURIComponent(nomFic), {method:'POST', headers: entetes({'Content-Type':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), body: new Blob([bin])})
+      .then(r => toast(r.ok ? 'Référentiel enregistré sur le serveur' : 'Enregistrement serveur impossible'))
+      .catch(() => toast('Enregistrement serveur impossible'));
+  }
+  toast(`Référentiel exporté · ${nModif} ligne(s) modifiée(s), ${nComplete} complétée(s), ${nAjout} ajoutée(s)`);
+};
+
+/* ---------- Exports ---------- */
+function lignesExport(){
+  const hs = vue === 'emplacement';
+  const cols = hs ? COLS_EMP : COLS_ART;
+  const val = (x,k) => k==='statut' ? (x.statut ? STATUT[x.statut][0] + (x.modif?' (modifié)':'') : (x.vide ? 'Vide' : '')) : k==='stock' ? (x.stock==='oui'?'Oui':'Non') : k==='secteurs' ? x.secteurs.join(' / ') : k==='qte' ? (x.stock==='oui'?fmtQ(x.qte):'') : k==='npos' ? (x.npos||'') : (x[k] ?? '');
+  return {entetes: cols.map(c=>c[1]), lignes: courant.map(x => cols.map(([k]) => String(val(x,k))))};
+}
+function nomFichier(ext){
+  const f = filtres(), d = new Date();
+  const p = n => String(n).padStart(2,'0');
+  const parts = ['ICPE_171', vue==='anomalie'?'MAL-PLACES':vue==='emplacement'?'EMPL':'ART'];
+  if (vue==='anomalie' && f.prio) parts.push(f.prio);
+  if (vue==='article' && f.stock==='oui') parts.push('EN-STOCK'); if (vue==='article' && f.stock==='non') parts.push('HORS-STOCK');
+  if (f.type) parts.push(f.type.toUpperCase());
+  if (vue==='emplacement' && f.occup==='vide') parts.push('VIDES');
+  if (vue==='emplacement' && f.templ) parts.push(f.templ.normalize('NFD').replace(/[^\w]+/g,'-').toUpperCase());
+  if (vue==='emplacement' && f.fam) parts.push(f.fam.normalize('NFD').replace(/[^\w]+/g,'-').toUpperCase());
+  if (f.situ) parts.push(f.situ.normalize('NFD').replace(/[^\w]+/g,'-').toUpperCase());
+  if (f.bac) parts.push('RET-' + f.bac.normalize('NFD').replace(/[^\w]+/g,'-').toUpperCase());
+  if (f.code) parts.push(f.code);
+  if (f.statut) parts.push({connu:'CONNU',nr:'NON-RENSEIGNE',abs:'ABSENT',modif:'MODIFIES'}[f.statut]);
+  if (f.secteur) parts.push(f.secteur.normalize('NFD').replace(/[^\w]+/g,'-').replace(/-+$/,''));
+  parts.push(`${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`);
+  return parts.join('_') + '.' + ext;
+}
+$('b-csv').onclick = () => {
+  if (!courant.length) return toast('Rien à exporter');
+  const {entetes, lignes} = lignesExport();
+  const q = v => /[;"\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v;
+  const txt = '﻿' + [entetes, ...lignes].map(l => l.map(q).join(';')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([txt], {type:'text/csv;charset=utf-8'}));
+  a.download = nomFichier('csv'); a.click(); URL.revokeObjectURL(a.href);
+  toast(lignes.length.toLocaleString('fr-FR') + ' lignes exportées');
+};
+$('b-pdf').onclick = () => {
+  if (!courant.length) return toast('Rien à exporter');
+  if (!window.jspdf) return toast('Module PDF indisponible sur ce réseau');
+  const {entetes, lignes} = lignesExport();
+  const doc = new jspdf.jsPDF({orientation:'landscape', unit:'mm', format:'a4'});
+  const f = filtres();
+  const sous = [vue==='anomalie'?'Produits mal placés':vue==='emplacement'?'Par emplacement':'Par article', vue==='emplacement'?'':(f.stock==='oui'?'En stock':f.stock==='non'?'Hors stock':'Tous'), f.statut?(f.statut==='modif'?'Modifiés':STATUT[f.statut][0]):'', f.type||'', f.bac?('Rétention : '+f.bac):'', f.situ||'', vue==='emplacement'?({occ:'Occupés',vide:'Vides','':'Occupés et vides'}[f.occup]):'', vue==='emplacement'?f.templ:'', vue==='emplacement'?f.fam:'', f.code?('Code ICPE '+f.code):'', f.secteur||'', f.texte?('« '+f.texte+' »'):''].filter(Boolean).join(' · ');
+  doc.setFillColor(26,46,85); doc.rect(0,0,297,18,'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(13); doc.text('Placement ICPE — dépôt 171 La Brède', 10, 11.5);
+  doc.setFontSize(8.5); doc.text($('t-stock').textContent, 287, 11.5, {align:'right'});
+  doc.setTextColor(60,70,90); doc.setFontSize(9); doc.text(sous + ' · ' + lignes.length + ' lignes', 10, 24);
+  doc.autoTable({
+    head:[entetes], body:lignes, startY:28, margin:{left:8,right:8},
+    styles:{fontSize:7, cellPadding:1.4, overflow:'linebreak'},
+    headStyles:{fillColor:[26,46,85], textColor:255, fontStyle:'bold'},
+    alternateRowStyles:{fillColor:[246,248,251]},
+    didDrawPage: d => { doc.setFontSize(7.5); doc.setTextColor(140); doc.text('Page ' + doc.internal.getNumberOfPages(), 289, 205, {align:'right'}); }
+  });
+  doc.save(nomFichier('pdf'));
+};
+</script>
+</body>
+</html>
