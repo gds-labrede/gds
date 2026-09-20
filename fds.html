@@ -278,8 +278,13 @@ function dire(texte, type){
   setTimeout(function(){ d.remove(); }, 3600);
 }
 
-function expire(r){
-  if(r.status === 401){ sessionStorage.clear(); location.replace('index.html'); return true; }
+/* Un refus du serveur ne doit jamais effacer la session :
+   on le signale, l'utilisateur reste connecté. */
+function refus(r){
+  if(r.status === 401 || r.status === 403){
+    dire('Accès refusé par le serveur (' + r.status + ')', 'err');
+    return true;
+  }
   return false;
 }
 
@@ -312,7 +317,7 @@ async function chargerFiches(){
     method:'POST', headers: auth({ 'Content-Type':'application/json' }),
     body: JSON.stringify({ prefix: DOSSIER })
   });
-  if(expire(r)) return;
+  if(refus(r)) return;
   if(!r.ok) throw new Error('archive');
   var d = await r.json();
 
@@ -399,7 +404,7 @@ async function ouvrir(f){
 
   try {
     var r = await fetch(API + '/archive/' + encodeURIComponent(f.nomFichier), { headers: auth() });
-    if(expire(r)) return;
+    if(refus(r)) return;
     if(!r.ok) throw new Error();
     var b = new Blob([await r.blob()], { type:'application/pdf' });
     if(urlCourante) URL.revokeObjectURL(urlCourante);
@@ -434,7 +439,7 @@ async function supprimer(f, bouton){
   try {
     var r = await fetch(API + '/archive/' + encodeURIComponent(f.nomFichier),
                         { method:'DELETE', headers: auth() });
-    if(expire(r)) return;
+    if(refus(r)) return;
     if(!r.ok) throw new Error();
     dire('Fiche supprimée', 'ok');
     await chargerFiches(); accroche(); afficher();
@@ -549,7 +554,7 @@ async function envoyerUne(x, i){
   var r = await fetch(API + '/archive/' + encodeURIComponent(cible), {
     method:'POST', headers: auth({ 'Content-Type':'application/pdf' }), body: x.fichier
   });
-  if(r.status === 401){ expire(r); throw new Error('session'); }
+  if(refus(r)) throw new Error('refus');
   if(!r.ok) throw new Error('envoi');
 }
 
@@ -610,7 +615,8 @@ async function envoyerLot(){
     await chargerFiches();
     accroche(); afficher();
   } catch(e){
-    document.getElementById('accroche').textContent = 'Archive injoignable.';
+    document.getElementById('accroche').textContent =
+      'Archive injoignable — ' + (e && e.message ? e.message : 'erreur inconnue') + '.';
     document.getElementById('liste').innerHTML = '<div class="info">Chargement impossible.</div>';
     dire('Erreur de chargement', 'err');
   }
