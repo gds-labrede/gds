@@ -462,7 +462,7 @@ var FAMILLES = [
     { nom:'Opti',                    f:'opti.html',                    ico:'eclair' },
     { nom:'Analyseur MGB Dispersés', f:'analyseur_mgb_disperses.html', ico:'loupe' }
   ]},
-  { id:'danger', nom:'Produits Dangereux', ico:'alerte', c:'#b8342f', desc:'Suivi et conformité réglementaire', admin:false, outils:[
+  { id:'danger', nom:'Produits Dangereux', ico:'alerte', c:'#b8342f', desc:'Suivi et conformité réglementaire', admin:false, roles:['admin','admin_restreint'], outils:[
     { nom:'Contrôle ICPE', f:'icpe.html', ico:'alerte' },
     { nom:'Fiches FDS',    f:'fds.html',  ico:'feuille' }
   ]},
@@ -577,7 +577,12 @@ function onglet(v){
 
 /* ══════════ TUILES ══════════ */
 var grille = document.getElementById('grille');
-FAMILLES.filter(function(f){ return !f.admin || role === 'admin'; }).forEach(function(f){
+/* roles : liste explicite des profils admis. À défaut, la règle
+   historique — tout le monde, sauf les familles marquées admin. */
+FAMILLES.filter(function(f){
+  if(f.roles) return f.roles.indexOf(role) !== -1;
+  return !f.admin || role === 'admin';
+}).forEach(function(f){
   var b = document.createElement('button');
   b.className = 'tuile' + (f.outils.length ? '' : ' vide');
   b.style.setProperty('--c', f.c);

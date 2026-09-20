@@ -251,6 +251,15 @@ var jeton = lire('gds_jeton'), role = lire('gds_role'), nom = lire('gds_nom');
 if(!jeton){
   alert('Session absente.\n\nOuvrez cet outil depuis le sommaire.');
 }
+
+/* Les produits dangereux ne concernent pas les inventoristes */
+if(jeton && role !== 'admin' && role !== 'admin_restreint'){
+  document.body.innerHTML =
+    '<p style="font-family:system-ui,sans-serif;padding:48px;text-align:center;color:#5c6883">' +
+    'Cet outil est réservé à l\'encadrement.<br><br>' +
+    '<a href="sommaire.html" style="color:#1a2e55">Retour au tableau de bord</a></p>';
+  throw new Error('accès refusé');
+}
 /* Seule l'administration modifie le référentiel */
 var peutEditer = (role === 'admin');
 if(peutEditer){
