@@ -45,6 +45,7 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
 .bil-l{font-size:12px;color:var(--text-mid);margin-top:2px}
 .bil.risque .bil-v{color:var(--rouge)}
 .bil.sansfds .bil-v{color:var(--orange)}
+.bil.alcool .bil-v{color:#7a5cb0}
 .bil.neuf .bil-v{color:var(--navy)}
 .bil.ok .bil-v{color:var(--vert)}
 
@@ -82,6 +83,8 @@ select:focus{border-color:var(--navy)}
 .code.sensible{background:#fdeaea;color:var(--rouge);border-color:#f2c2c2}
 .code.aucun{background:var(--bg);color:var(--text-low);border-color:var(--border)}
 .code.neuf{background:#fdf3e7;color:var(--orange);border-color:#f0d5b0}
+.code.modifiable{cursor:pointer;transition:box-shadow .15s,transform .15s}
+.code.modifiable:hover{box-shadow:0 0 0 2px rgba(26,46,85,.18);transform:translateY(-1px)}
 
 .fds{display:inline-flex;align-items:center;gap:6px;border:none;cursor:pointer;
   padding:6px 11px;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:11.5px;font-weight:700;
@@ -146,7 +149,9 @@ select:focus{border-color:var(--navy)}
     <div class="bil risque"  onclick="vue('sensible')" id="v-sensible">
       <div class="bil-v" id="n-sensible">—</div><div class="bil-l">Articles sensibles en stock</div></div>
     <div class="bil sansfds" onclick="vue('sansfds')" id="v-sansfds">
-      <div class="bil-v" id="n-sansfds">—</div><div class="bil-l">Sensibles sans FDS</div></div>
+      <div class="bil-v" id="n-sansfds">—</div><div class="bil-l">FDS manquantes</div></div>
+    <div class="bil alcool"  onclick="vue('alcool')" id="v-alcool">
+      <div class="bil-v" id="n-alcool">—</div><div class="bil-l">Alcools 4755 — sans FDS requise</div></div>
     <div class="bil neuf"    onclick="vue('neuf')" id="v-neuf">
       <div class="bil-v" id="n-neuf">—</div><div class="bil-l">Réfs hors référentiel</div></div>
     <div class="bil ok"      onclick="vue('tous')" id="v-tous">
@@ -205,6 +210,11 @@ var FICHIER_REFS = 'systeme/icpe_refs.csv';
    désignent les produits réellement sensibles. */
 var CODE_GENERIQUE = '1510';
 
+/* Rubriques qui n'appellent pas de FDS : les alcools de bouche sont
+   des denrées alimentaires, exemptées de fiche de données de sécurité.
+   Pour elles, c'est le volume stocké qui compte, pas la fiche. */
+var SANS_FDS = ['4755'];
+
 /* Secteur déduit du numéro d'allée (premier nombre de la position) */
 var SECTEURS = [
   { nom:'Ambiant',            de:1,  a:18 },
@@ -225,7 +235,9 @@ var jeton = lire('gds_jeton'), role = lire('gds_role'), nom = lire('gds_nom');
 if(!jeton){
   alert('Session absente.\n\nOuvrez cet outil depuis le sommaire.');
 }
-if(role === 'admin') document.getElementById('b-ref').style.display = 'inline-flex';
+/* Seule l'administration modifie le référentiel */
+var peutEditer = (role === 'admin');
+if(peutEditer) document.getElementById('b-ref').style.display = 'inline-flex';
 document.getElementById('pastille').textContent =
   (nom || '?').split(' ').map(function(m){ return m[0]; }).join('').slice(0,2).toUpperCase();
 
@@ -293,6 +305,8 @@ function secteur(a){
 /* ══════════ CHARGEMENT ══════════ */
 var articles = [];   /* un par MGB */
 var fiches = {};     /* MGB → nom du fichier FDS */
+var refs = {};       /* référentiel complet : MGB → code */
+var ordreRefs = [];  /* ordre d'origine du fichier */
 var mode = 'sensible';
 
 async function listerCourant(){
@@ -369,11 +383,16 @@ async function charger(){
   var res = await Promise.all([ texteDe(ss[0].name), lireRef(), chargerFDS() ]);
 
   /* ── Référentiel ── */
-  var refs = {};
+  /* Gardé en entier : les modifications sont réécrites dans ce même
+     fichier, il ne doit perdre aucune ligne au passage. */
+  refs = {};
+  ordreRefs = [];
   var lr = lireCSV(res[1]);
   for(var i = 1; i < lr.length; i++){
     var m = netMGB(lr[i][0]);
-    if(m) refs[m] = (lr[i][1] || '').trim();
+    if(!m || refs.hasOwnProperty(m)) continue;
+    refs[m] = (lr[i][1] || '').trim();
+    ordreRefs.push(m);
   }
 
   /* ── Stock : regroupé par MGB ── */
@@ -413,23 +432,20 @@ async function charger(){
       allees: al, secteurs: Object.keys(secteurs),
       nbPos: x.positions.length, position: x.positions[0] || '',
       qte: x.qte,
-      sensible: !!codes && codes !== CODE_GENERIQUE,
       fds: !!fiches[m]
     };
   });
+  articles.forEach(qualifier);
 
   articles.sort(function(a, b){ return a.desc.localeCompare(b.desc, 'fr'); });
 
   /* ── Listes déroulantes ── */
-  var codes = {}, secs = {}, alls = {};
+  var secs = {}, alls = {};
   articles.forEach(function(a){
-    if(a.code) codes[a.code] = (codes[a.code] || 0) + 1;
     a.secteurs.forEach(function(s){ secs[s] = true; });
     a.allees.forEach(function(x){ alls[x] = true; });
   });
-  remplir('f-code', Object.keys(codes).sort(), function(c){
-    return c + (c === CODE_GENERIQUE ? ' (générique)' : '') + ' — ' + codes[c] + ' réfs';
-  });
+  listeCodes();
   remplir('f-sect', Object.keys(secs).sort(), null);
   remplir('f-allee', Object.keys(alls).map(Number).sort(function(a,b){ return a-b; }), function(a){
     return 'Allée ' + a;
@@ -442,8 +458,26 @@ async function charger(){
     Object.keys(fiches).length + ' fiches FDS en archive.';
 }
 
+/* Un article sensible relève d'une rubrique autre que la rubrique
+   générique entrepôt. Toutes n'exigent pas une FDS. */
+function qualifier(a){
+  a.sensible = !!a.code && a.code !== CODE_GENERIQUE;
+  a.fdsRequise = a.sensible && SANS_FDS.indexOf(a.code) === -1;
+}
+
+function listeCodes(){
+  var codes = {};
+  articles.forEach(function(a){ if(a.code) codes[a.code] = (codes[a.code] || 0) + 1; });
+  var garde = document.getElementById('f-code').value;
+  remplir('f-code', Object.keys(codes).sort(), function(c){
+    return c + (c === CODE_GENERIQUE ? ' (générique)' : '') + ' — ' + codes[c] + ' réfs';
+  });
+  if(garde && codes[garde]) document.getElementById('f-code').value = garde;
+}
+
 function remplir(id, valeurs, libelle){
   var s = document.getElementById(id);
+  while(s.options.length > 1) s.remove(1);
   valeurs.forEach(function(v){
     var o = document.createElement('option');
     o.value = v; o.textContent = libelle ? libelle(v) : v;
@@ -455,18 +489,17 @@ function remplir(id, valeurs, libelle){
 var ICO = '<svg viewBox="0 0 24 24"><path d="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm7 1.5V9h5.5zM11 11v5h2v-5zm0 6.5v2h2v-2z"/></svg>';
 
 function compteurs(){
-  var sensibles = articles.filter(function(a){ return a.sensible; });
-  document.getElementById('n-sensible').textContent = sensibles.length.toLocaleString('fr-FR');
-  document.getElementById('n-sansfds').textContent =
-    sensibles.filter(function(a){ return !a.fds; }).length.toLocaleString('fr-FR');
-  document.getElementById('n-neuf').textContent =
-    articles.filter(function(a){ return a.code === null; }).length.toLocaleString('fr-FR');
-  document.getElementById('n-tous').textContent = articles.length.toLocaleString('fr-FR');
+  var n = function(id, v){ document.getElementById(id).textContent = v.toLocaleString('fr-FR'); };
+  n('n-sensible', articles.filter(function(a){ return a.sensible; }).length);
+  n('n-sansfds',  articles.filter(function(a){ return a.fdsRequise && !a.fds; }).length);
+  n('n-alcool',   articles.filter(function(a){ return a.sensible && !a.fdsRequise; }).length);
+  n('n-neuf',     articles.filter(function(a){ return a.code === null; }).length);
+  n('n-tous',     articles.length);
 }
 
 function vue(v){
   mode = v;
-  ['sensible','sansfds','neuf','tous'].forEach(function(x){
+  ['sensible','sansfds','alcool','neuf','tous'].forEach(function(x){
     document.getElementById('v-' + x).classList.toggle('on', x === v);
   });
   afficher();
@@ -480,7 +513,8 @@ function filtrees(){
 
   return articles.filter(function(a){
     if(mode === 'sensible' && !a.sensible) return false;
-    if(mode === 'sansfds' && !(a.sensible && !a.fds)) return false;
+    if(mode === 'sansfds' && !(a.fdsRequise && !a.fds)) return false;
+    if(mode === 'alcool'  && !(a.sensible && !a.fdsRequise)) return false;
     if(mode === 'neuf' && a.code !== null) return false;
     if(fc && a.code !== fc) return false;
     if(fs && a.secteurs.indexOf(fs) === -1) return false;
@@ -514,10 +548,15 @@ function afficher(){
     d.querySelector('.lib').textContent = a.desc || '—';
     d.querySelector('.lib').title = a.desc;
 
-    var c = document.createElement('span');
+    var c = document.createElement(peutEditer ? 'button' : 'span');
     if(a.code === null){ c.className = 'code neuf'; c.textContent = 'inconnu'; }
     else if(!a.code){ c.className = 'code aucun'; c.textContent = 'aucun'; }
     else { c.className = 'code' + (a.sensible ? ' sensible' : ''); c.textContent = a.code; }
+    if(peutEditer){
+      c.className += ' modifiable';
+      c.title = 'Modifier le code ICPE';
+      c.onclick = function(){ editer(a, c); };
+    }
     d.querySelector('.c').appendChild(c);
 
     d.querySelector('.s').textContent = a.secteurs.join(', ') || '—';
@@ -529,10 +568,15 @@ function afficher(){
       b.className = 'fds'; b.innerHTML = ICO + 'FDS';
       b.onclick = function(){ ouvrir(a); };
       f.appendChild(b);
-    } else if(a.sensible){
+    } else if(a.fdsRequise){
       var m = document.createElement('span');
       m.className = 'manque'; m.textContent = 'MANQUANTE';
       f.appendChild(m);
+    } else if(a.sensible){
+      var nr = document.createElement('span');
+      nr.className = 'rien'; nr.textContent = 'non requise';
+      nr.title = 'Denrée alimentaire : pas de fiche de données de sécurité';
+      f.appendChild(nr);
     } else {
       var r = document.createElement('span');
       r.className = 'rien'; r.textContent = '—';
@@ -552,6 +596,65 @@ function afficher(){
 
 ['rech','f-code','f-sect','f-allee'].forEach(function(id){
   document.getElementById(id).addEventListener(id === 'rech' ? 'input' : 'change', afficher);
+});
+
+/* ══════════ MODIFICATION DU RÉFÉRENTIEL ══════════ */
+/* Le code se change d'un clic dans la liste. Le fichier est réécrit
+   tout seul une seconde après la dernière retouche. */
+var minuteur = null, enAttente = 0;
+
+function editer(a, chip){
+  var actuel = a.code === null ? '' : a.code;
+  var saisi = prompt(
+    a.desc + '\nMGB ' + a.mgb +
+    '\n\nCode ICPE — vide pour « aucun », « x » pour retirer du référentiel :',
+    actuel);
+  if(saisi === null) return;
+
+  saisi = saisi.trim().toUpperCase();
+  var nouveau = (saisi === 'X') ? null : saisi;
+  if(nouveau === a.code) return;
+
+  a.code = nouveau;
+  if(nouveau === null) delete refs[a.mgb];
+  else {
+    if(!refs.hasOwnProperty(a.mgb)) ordreRefs.push(a.mgb);
+    refs[a.mgb] = nouveau;
+  }
+  qualifier(a);
+
+  enAttente++;
+  compteurs();
+  listeCodes();
+  afficher();
+  if(minuteur) clearTimeout(minuteur);
+  minuteur = setTimeout(enregistrerRef, 1000);
+}
+
+async function enregistrerRef(){
+  var nb = enAttente;
+  var lignes = ['MGB;CODE'];
+  ordreRefs.forEach(function(m){
+    if(refs.hasOwnProperty(m)) lignes.push(m + ';' + refs[m]);
+  });
+  var csv = lignes.join('\r\n') + '\r\n';
+
+  try {
+    var r = await fetch(API + '/fichier/' + encodeURIComponent(FICHIER_REFS), {
+      method:'POST', headers: auth({ 'Content-Type':'text/csv' }),
+      body: new Blob([csv], { type:'text/csv' })
+    });
+    if(refus(r)) return;
+    if(!r.ok) throw new Error();
+    enAttente -= nb;
+    dire(nb + (nb > 1 ? ' codes enregistrés' : ' code enregistré'), 'ok');
+  } catch(e){
+    dire('Enregistrement impossible — vos modifications ne sont pas sauvegardées', 'err');
+  }
+}
+
+window.addEventListener('beforeunload', function(e){
+  if(enAttente){ e.preventDefault(); e.returnValue = ''; }
 });
 
 /* ══════════ EXPORT ══════════ */
