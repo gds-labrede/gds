@@ -10,7 +10,7 @@
   --bg:#eef1f6; --white:#fff;
   --border:#e2e7ef; --border-hi:#c9d2e0;
   --text:#16203a; --text-mid:#5c6883; --text-low:#98a1b5;
-  --navy:#1a2e55; --orange:#d46c1a; --rouge:#b8342f;
+  --navy:#1a2e55; --orange:#c2701c; --rouge:#b8342f; --vert:#1d7a5f;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
@@ -23,75 +23,112 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .logo b{font-size:18px;font-weight:700;letter-spacing:-.4px}
 .logo span{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--text-low)}
 .sp{flex:1}
-.retour{display:inline-flex;align-items:center;gap:7px;background:var(--white);
+.lien{display:inline-flex;align-items:center;gap:7px;background:var(--white);
   border:1px solid var(--border);border-radius:8px;padding:8px 13px;color:var(--text-mid);
-  font-family:'DM Sans',sans-serif;font-size:12.5px;text-decoration:none;
+  font-family:'DM Sans',sans-serif;font-size:12.5px;text-decoration:none;cursor:pointer;
   transition:border-color .18s,color .18s}
-.retour:hover{border-color:var(--border-hi);color:var(--text)}
+.lien:hover{border-color:var(--border-hi);color:var(--text)}
 .pastille{width:33px;height:33px;border-radius:9px;display:flex;align-items:center;justify-content:center;
   background:linear-gradient(180deg,#2a4576,var(--navy));color:#fff;font-size:12px;font-weight:700;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.25)}
 
 /* ══ PAGE ══ */
-.page{max-width:1320px;margin:0 auto;padding:32px 32px 60px}
+.page{max-width:1320px;margin:0 auto;padding:30px 32px 60px}
 h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
-.accroche{font-size:13.5px;color:var(--text-mid);margin-top:5px;margin-bottom:22px}
+.accroche{font-size:13.5px;color:var(--text-mid);margin-top:5px;margin-bottom:20px}
+.vue{display:none}
+.vue.on{display:block}
 
-/* ══ COMPTEURS ══ */
-.compteurs{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:20px}
-.cpt{background:linear-gradient(180deg,#fff,#fbfcfe);border:1px solid var(--border);border-radius:12px;
-  padding:14px 18px;box-shadow:0 1px 2px rgba(20,32,60,.05),inset 0 1px 0 #fff}
-.cpt-v{font-size:24px;font-weight:700;letter-spacing:-.6px}
-.cpt-l{font-size:12px;color:var(--text-mid);margin-top:2px}
-.cpt-p{height:6px;background:var(--bg);border-radius:3px;overflow:hidden;margin-top:10px}
-.cpt-b{height:100%;width:0;border-radius:3px;transition:width .6s ease;
-  background:linear-gradient(90deg,#1d7a5f,#37a37f)}
-
-/* ══ OUTILS DE RECHERCHE ══ */
-.outils{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
-.recherche{flex:1;min-width:240px;padding:11px 14px;border:1px solid var(--border);border-radius:10px;
-  font-family:'DM Sans',sans-serif;font-size:13.5px;color:var(--text);background:var(--white);
-  outline:none;transition:border-color .18s}
-.recherche:focus{border-color:var(--navy)}
+/* ══ SEGMENTS ══ */
 .segments{display:inline-flex;gap:3px;padding:3px;background:var(--white);
-  border:1px solid var(--border);border-radius:10px;box-shadow:0 1px 2px rgba(20,32,60,.05)}
-.seg{border:none;background:transparent;padding:8px 14px;border-radius:8px;cursor:pointer;
+  border:1px solid var(--border);border-radius:10px;margin-bottom:18px;
+  box-shadow:0 1px 2px rgba(20,32,60,.05)}
+.seg{border:none;background:transparent;padding:9px 16px;border-radius:8px;cursor:pointer;
   font-family:'DM Sans',sans-serif;font-size:12.5px;font-weight:600;color:var(--text-low);
   transition:background .18s,color .18s}
 .seg:hover{color:var(--text-mid)}
 .seg.on{background:var(--navy);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.2)}
 
+/* ══ RECHERCHE ══ */
+.recherche{width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:10px;
+  font-family:'DM Sans',sans-serif;font-size:13.5px;color:var(--text);background:var(--white);
+  outline:none;margin-bottom:14px;transition:border-color .18s}
+.recherche:focus{border-color:var(--navy)}
+
 /* ══ LISTE ══ */
 .liste{background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;
   box-shadow:0 1px 2px rgba(20,32,60,.05)}
-.ligne{display:grid;grid-template-columns:150px 1fr 150px 170px;gap:14px;align-items:center;
+.ligne{display:grid;grid-template-columns:130px 1fr 190px 160px;gap:14px;align-items:center;
   padding:11px 16px;border-top:1px solid var(--border);font-size:13px}
 .ligne:first-child{border-top:none}
 .ligne.tete{background:#f7f9fc;font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:1.4px;
   color:var(--text-low);text-transform:uppercase;padding:10px 16px}
 .ligne:not(.tete):hover{background:#fafbfd}
 .mgb{font-family:'DM Mono',monospace;font-size:12px;color:var(--text-mid)}
-.desc{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.zone{font-size:12px;color:var(--text-mid);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lib{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meta{font-family:'DM Mono',monospace;font-size:10.5px;color:var(--text-low)}
 .act{display:flex;gap:6px;justify-content:flex-end}
 
-.fds{display:inline-flex;align-items:center;gap:7px;border:none;cursor:pointer;
-  padding:7px 12px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;
+.ouvrir{display:inline-flex;align-items:center;gap:7px;border:none;cursor:pointer;
+  padding:7px 13px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;
   color:#fff;background:linear-gradient(180deg,#d45c55,var(--rouge));
   box-shadow:0 6px 14px -8px rgba(184,52,47,.9),inset 0 1px 0 rgba(255,255,255,.3);
   transition:filter .18s,transform .1s}
-.fds:hover{filter:brightness(1.08)}
-.fds:active{transform:translateY(1px)}
-.fds svg{width:14px;height:14px;fill:#fff}
-.sans{font-size:11.5px;color:var(--text-low)}
+.ouvrir:hover{filter:brightness(1.08)}
+.ouvrir:active{transform:translateY(1px)}
+.ouvrir svg{width:14px;height:14px;fill:#fff}
 .mini{background:var(--white);border:1px solid var(--border);border-radius:7px;padding:6px 10px;
   font-family:'DM Sans',sans-serif;font-size:11.5px;color:var(--text-mid);cursor:pointer;
-  transition:border-color .16s,color .16s}
+  transition:border-color .16s,color .16s,background .16s}
 .mini:hover{border-color:var(--navy);color:var(--navy)}
+.mini.sup:hover{border-color:var(--rouge);color:var(--rouge);background:#fdf4f4}
 .mini:disabled{opacity:.5;cursor:default}
-
 .info{padding:34px;text-align:center;color:var(--text-low);font-size:13px}
 .plus{padding:12px;text-align:center;color:var(--text-low);font-size:12px;border-top:1px solid var(--border)}
+
+/* ══ DÉPÔT EN LOT ══ */
+.zone{background:linear-gradient(180deg,#fff,#fbfcfe);border:2px dashed var(--border-hi);
+  border-radius:14px;padding:30px 22px;text-align:center;cursor:pointer;margin-bottom:18px;
+  transition:border-color .2s,background .2s}
+.zone:hover{border-color:var(--navy);background:#f7f9fd}
+.zone svg{width:44px;height:44px;margin-bottom:10px}
+.zone .a{fill:#cbd8ea}.zone .b{fill:var(--navy)}
+.zone-t{font-size:14.5px;font-weight:600}
+.zone-s{font-size:12px;color:var(--text-mid);margin-top:4px}
+
+.bilan{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.bil{background:linear-gradient(180deg,#fff,#fbfcfe);border:1px solid var(--border);
+  border-radius:12px;padding:14px 16px;box-shadow:0 1px 2px rgba(20,32,60,.05),inset 0 1px 0 #fff}
+.bil-v{font-size:23px;font-weight:700;letter-spacing:-.6px}
+.bil-l{font-size:12px;color:var(--text-mid);margin-top:2px}
+.bil.envoi .bil-v{color:var(--navy)}
+.bil.ajour .bil-v{color:var(--vert)}
+.bil.hors  .bil-v{color:var(--text-low)}
+
+.go{padding:12px 22px;border:1px solid rgba(255,255,255,.16);border-radius:10px;cursor:pointer;
+  background:linear-gradient(180deg,#f0913f,#d46c1a);color:#fff;
+  font-family:'DM Sans',sans-serif;font-size:13.5px;font-weight:700;
+  box-shadow:0 8px 20px -10px rgba(212,108,26,.9),inset 0 1px 0 rgba(255,255,255,.35);
+  transition:filter .18s,transform .1s}
+.go:hover:not(:disabled){filter:brightness(1.07)}
+.go:active:not(:disabled){transform:translateY(1px)}
+.go:disabled{opacity:.5;cursor:default}
+.barre-h{margin:16px 0;display:none}
+.barre-h.on{display:block}
+.barre-t{font-size:12.5px;color:var(--text-mid);margin-bottom:8px}
+.barre-p{height:8px;background:var(--bg);border-radius:4px;overflow:hidden;
+  box-shadow:inset 0 1px 2px rgba(20,32,60,.08)}
+.barre-b{height:100%;width:0;border-radius:4px;transition:width .25s;
+  background:linear-gradient(90deg,#2d5a9e,#3f7fd4)}
+
+.etat{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:1.1px;font-weight:600;
+  padding:4px 8px;border-radius:5px;white-space:nowrap}
+.etat.envoi{background:#eaf1fb;color:#2d5a9e;border:1px solid #cfe0f5}
+.etat.ajour{background:#e9f7f1;color:var(--vert);border:1px solid #bde5d5}
+.etat.hors {background:var(--bg);color:var(--text-low);border:1px solid var(--border)}
+.etat.ok   {background:#e9f7f1;color:var(--vert);border:1px solid #bde5d5}
+.etat.ko   {background:#fdeaea;color:var(--rouge);border:1px solid #f2c2c2}
+.l2{grid-template-columns:130px 1fr 150px 120px}
 
 /* ══ LECTEUR ══ */
 .voile{position:fixed;inset:0;z-index:50;background:rgba(14,22,42,.55);backdrop-filter:blur(3px);
@@ -117,11 +154,11 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
 
 *:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
-@media(max-width:760px){
+@media(max-width:820px){
   .bar{padding:0 16px}
   .page{padding:22px 16px 44px}
-  .ligne{grid-template-columns:1fr auto}
-  .ligne .mgb,.ligne .zone{display:none}
+  .ligne,.l2{grid-template-columns:1fr auto}
+  .ligne .mgb,.ligne .meta{display:none}
   .ligne.tete{display:none}
 }
 </style>
@@ -131,31 +168,54 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
 <header class="bar">
   <div class="logo"><b>GDS</b><span>LA BRÈDE</span></div>
   <div class="sp"></div>
-  <a class="retour" href="sommaire.html#danger">← Tableau de bord</a>
+  <a class="lien" href="sommaire.html#danger">← Tableau de bord</a>
   <div class="pastille" id="pastille">–</div>
 </header>
 
 <main class="page">
   <h1>Fiches de données de sécurité</h1>
-  <p class="accroche" id="accroche">Chargement du stock…</p>
+  <p class="accroche" id="accroche">Chargement…</p>
 
-  <div class="compteurs">
-    <div class="cpt"><div class="cpt-v" id="n-art">—</div><div class="cpt-l">Articles en stock</div></div>
-    <div class="cpt"><div class="cpt-v" id="n-fds">—</div><div class="cpt-l">Articles avec FDS</div>
-      <div class="cpt-p"><div class="cpt-b" id="b-fds"></div></div></div>
-    <div class="cpt"><div class="cpt-v" id="n-tot">—</div><div class="cpt-l">Fiches dans l'archive</div></div>
+  <div class="segments">
+    <button class="seg on" data-v="biblio" onclick="vue('biblio')">Fiches</button>
+    <button class="seg" data-v="depot" onclick="vue('depot')" id="seg-depot" style="display:none">Dépôt en lot</button>
   </div>
 
-  <div class="outils">
+  <!-- ══ BIBLIOTHÈQUE ══ -->
+  <div class="vue on" id="v-biblio">
     <input type="text" class="recherche" id="rech" placeholder="Rechercher un MGB ou une désignation…">
-    <div class="segments">
-      <button class="seg"    data-f="tous" onclick="filtre('tous')">Tous</button>
-      <button class="seg on" data-f="avec" onclick="filtre('avec')">Avec FDS</button>
-      <button class="seg"    data-f="sans" onclick="filtre('sans')">Sans FDS</button>
+    <div class="liste" id="liste"><div class="info">Chargement…</div></div>
+  </div>
+
+  <!-- ══ DÉPÔT EN LOT ══ -->
+  <div class="vue" id="v-depot">
+    <div class="zone" onclick="document.getElementById('dossier').click()">
+      <svg viewBox="0 0 48 48">
+        <path class="a" d="M4 12a3 3 0 0 1 3-3h11l4 5h19a3 3 0 0 1 3 3v19a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3z"/>
+        <path class="b" d="M24 17l-8 8h5v10h6V25h5z"/>
+      </svg>
+      <div class="zone-t">Choisir le dossier des FDS</div>
+      <div class="zone-s">Tous les PDF du dossier sont comparés à l'archive. Rien n'est envoyé avant votre validation.</div>
+      <input type="file" id="dossier" webkitdirectory directory multiple style="display:none">
+    </div>
+
+    <div id="apres" style="display:none">
+      <div class="bilan">
+        <div class="bil envoi"><div class="bil-v" id="n-envoi">0</div><div class="bil-l">À envoyer</div></div>
+        <div class="bil ajour"><div class="bil-v" id="n-ajour">0</div><div class="bil-l">Déjà à jour</div></div>
+        <div class="bil hors"><div class="bil-v" id="n-hors">0</div><div class="bil-l">Ignorés</div></div>
+      </div>
+
+      <button class="go" id="b-envoi" onclick="envoyerLot()">Envoyer les fiches</button>
+
+      <div class="barre-h" id="barre-h">
+        <div class="barre-t" id="barre-t">—</div>
+        <div class="barre-p"><div class="barre-b" id="barre-b"></div></div>
+      </div>
+
+      <div class="liste" id="liste-lot" style="margin-top:16px"></div>
     </div>
   </div>
-
-  <div class="liste" id="liste"><div class="info">Chargement…</div></div>
 </main>
 
 <div class="voile" id="voile" onclick="if(event.target===this) fermerLecteur()">
@@ -173,7 +233,6 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
   </div>
 </div>
 
-<input type="file" id="choix" accept="application/pdf,.pdf" style="display:none">
 <div class="toasts" id="toasts"></div>
 
 <script src="config.js"></script>
@@ -186,9 +245,12 @@ if (typeof GDS === 'undefined') {
 var API          = GDS.API;
 var CLE_PUBLIQUE = GDS.CLE_PUBLIQUE;
 
-/* Convention : une FDS = FDS/{MGB}.pdf dans l'archive */
+/* Les fiches vivent dans le dossier FDS/ de l'archive.
+   Le nom du fichier est conservé tel quel : le MGB est en tête,
+   la désignation suit — rien à renommer, rien à saisir. */
 var DOSSIER = 'FDS/';
-var MAX_LIGNES = 300;
+var MAX_LIGNES = 400;
+var EN_PARALLELE = 3;
 
 /* ══════════ SESSION ══════════ */
 var jeton = sessionStorage.getItem('gds_jeton');
@@ -197,6 +259,7 @@ var nom   = sessionStorage.getItem('gds_nom');
 if(!jeton){ location.replace('index.html'); }
 
 var peutDeposer = role === 'admin' || role === 'admin_restreint';
+if(peutDeposer) document.getElementById('seg-depot').style.display = 'block';
 
 document.getElementById('pastille').textContent =
   (nom || '?').split(' ').map(function(m){ return m[0]; }).join('').slice(0,2).toUpperCase();
@@ -220,102 +283,29 @@ function expire(r){
   return false;
 }
 
-/* ══════════ LECTURE DU CSV ══════════ */
-/* Tout est lu en texte : un MGB comme 0819517001002 garde ses zéros. */
-function lireCSV(texte){
-  var premiere = texte.slice(0, texte.indexOf('\n'));
-  var sep = (premiere.split(';').length > premiere.split(',').length) ? ';' : ',';
-  var lignes = [], champ = '', ligne = [], guill = false;
-
-  for(var i = 0; i < texte.length; i++){
-    var c = texte[i];
-    if(guill){
-      if(c === '"'){
-        if(texte[i+1] === '"'){ champ += '"'; i++; }
-        else guill = false;
-      } else champ += c;
-    } else if(c === '"') guill = true;
-    else if(c === sep){ ligne.push(champ); champ = ''; }
-    else if(c === '\n' || c === '\r'){
-      if(c === '\r' && texte[i+1] === '\n') i++;
-      ligne.push(champ); champ = '';
-      if(ligne.length > 1 || ligne[0] !== '') lignes.push(ligne);
-      ligne = [];
-    } else champ += c;
-  }
-  if(champ !== '' || ligne.length){ ligne.push(champ); lignes.push(ligne); }
-  return lignes;
+function poids(o){
+  if(o < 1024) return o + ' o';
+  if(o < 1048576) return (o / 1024).toFixed(0) + ' Ko';
+  return (o / 1048576).toFixed(1) + ' Mo';
 }
 
-function decoder(buf){
-  var t = new TextDecoder('utf-8').decode(buf);
-  if(t.indexOf('�') !== -1) t = new TextDecoder('windows-1252').decode(buf);
-  return t.replace(/^﻿/, '');
+/* Un nom de fichier → son MGB et son libellé.
+   387544001001_METRO_PROFESSIONAL_Nettoyant_sol.pdf
+   → mgb 387544001001, libellé « METRO PROFESSIONAL Nettoyant sol » */
+function decouper(nomFichier){
+  var base = nomFichier.replace(/\.pdf$/i, '');
+  var m = base.match(/^(\d{8,14})[_\-\s](.*)$/);
+  if(!m) return null;
+  return { mgb: m[1], libelle: m[2].replace(/[_]+/g, ' ').trim() };
 }
 
-function nettoyerMGB(v){
-  return String(v || '').trim().replace(/^'/, '').replace(/\s+/g, '');
+function vue(v){
+  document.querySelectorAll('.seg').forEach(function(b){ b.classList.toggle('on', b.dataset.v === v); });
+  document.querySelectorAll('.vue').forEach(function(d){ d.classList.toggle('on', d.id === 'v-' + v); });
 }
 
-/* ══════════ CHARGEMENT ══════════ */
-var articles = [];              /* un par MGB */
-var fiches   = {};              /* MGB → nom du fichier */
-var mode     = 'avec';
-
-async function dernierStockStatus(){
-  var r = await fetch(API + '/fichiers', {
-    method:'POST', headers: auth({ 'Content-Type':'application/json' }),
-    body: JSON.stringify({ prefix: '' })
-  });
-  if(expire(r)) return null;
-  if(!r.ok) throw new Error('liste');
-  var l = await r.json();
-  var ss = (Array.isArray(l) ? l : []).filter(function(f){
-    return f.name && f.name.indexOf('StockStatus_') === 0;
-  });
-  ss.sort(function(a, b){
-    return new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at);
-  });
-  return ss[0] || null;
-}
-
-async function chargerStock(){
-  var f = await dernierStockStatus();
-  if(!f){
-    document.getElementById('accroche').textContent =
-      'Aucun StockStatus dans l\'espace courant. Déposez-le depuis l\'onglet Fichiers.';
-    return;
-  }
-
-  var d = f.name.match(/(\d{2})-(\d{2})-(\d{4})/);
-  document.getElementById('accroche').textContent =
-    'Articles du StockStatus' + (d ? ' du ' + d[1] + '/' + d[2] + '/' + d[3] : '') +
-    '. Cliquez sur « FDS » pour ouvrir la fiche.';
-
-  var r = await fetch(API + '/fichier/' + encodeURIComponent(f.name), { headers: auth() });
-  if(expire(r)) return;
-  if(!r.ok) throw new Error('stock');
-  var lignes = lireCSV(decoder(await r.arrayBuffer()));
-
-  var tete = lignes[0].map(function(h){ return h.trim().toLowerCase(); });
-  var iM = tete.indexOf('mgb');
-  var iD = tete.indexOf('description');
-  var iZ = tete.indexOf('picking area');
-  if(iM === -1) throw new Error('colonne MGB introuvable');
-
-  var vus = {};
-  for(var i = 1; i < lignes.length; i++){
-    var m = nettoyerMGB(lignes[i][iM]);
-    if(!m || vus[m]) continue;
-    vus[m] = true;
-    articles.push({
-      mgb: m,
-      desc: iD !== -1 ? (lignes[i][iD] || '').trim() : '',
-      zone: iZ !== -1 ? (lignes[i][iZ] || '').trim() : ''
-    });
-  }
-  articles.sort(function(a, b){ return a.desc.localeCompare(b.desc, 'fr'); });
-}
+/* ══════════ BIBLIOTHÈQUE ══════════ */
+var fiches = [];   /* { nomFichier, mgb, libelle, taille, date } */
 
 async function chargerFiches(){
   var r = await fetch(API + '/archive', {
@@ -325,76 +315,63 @@ async function chargerFiches(){
   if(expire(r)) return;
   if(!r.ok) throw new Error('archive');
   var d = await r.json();
-  fiches = {};
-  (d.files || []).forEach(function(f){
-    var n = f.fileName.slice(DOSSIER.length);
-    if(/\.pdf$/i.test(n)) fiches[n.replace(/\.pdf$/i, '')] = f.fileName;
-  });
+
+  fiches = (d.files || []).filter(function(f){ return /\.pdf$/i.test(f.fileName); })
+    .map(function(f){
+      var court = f.fileName.slice(DOSSIER.length);
+      var c = decouper(court) || { mgb:'—', libelle: court.replace(/\.pdf$/i,'') };
+      return { nomFichier: f.fileName, mgb: c.mgb, libelle: c.libelle,
+               taille: f.contentLength || 0, date: f.uploadTimestamp || null };
+    });
+  fiches.sort(function(a, b){ return a.libelle.localeCompare(b.libelle, 'fr'); });
 }
 
-/* ══════════ AFFICHAGE ══════════ */
-var ICO_FDS = '<svg viewBox="0 0 24 24"><path d="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm7 1.5V9h5.5zM11 11v5h2v-5zm0 6.5v2h2v-2z"/></svg>';
+var ICO = '<svg viewBox="0 0 24 24"><path d="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm7 1.5V9h5.5zM11 11v5h2v-5zm0 6.5v2h2v-2z"/></svg>';
 
-function compteurs(){
-  var avec = articles.filter(function(a){ return fiches[a.mgb]; }).length;
-  document.getElementById('n-art').textContent = articles.length.toLocaleString('fr-FR');
-  document.getElementById('n-fds').textContent = avec.toLocaleString('fr-FR');
-  document.getElementById('n-tot').textContent = Object.keys(fiches).length.toLocaleString('fr-FR');
-  document.getElementById('b-fds').style.width =
-    (articles.length ? Math.max(2, avec / articles.length * 100) : 0) + '%';
-}
-
-function filtre(f){
-  mode = f;
-  document.querySelectorAll('.seg').forEach(function(b){ b.classList.toggle('on', b.dataset.f === f); });
-  afficher();
+function accroche(){
+  var total = fiches.reduce(function(s, f){ return s + f.taille; }, 0);
+  document.getElementById('accroche').textContent =
+    fiches.length + ' fiche' + (fiches.length > 1 ? 's' : '') + ' dans l\'archive · ' + poids(total) +
+    (peutDeposer ? ' · déposez un dossier complet depuis l\'onglet Dépôt en lot.' : '');
 }
 
 function afficher(){
   var q = document.getElementById('rech').value.trim().toLowerCase();
-  var l = articles.filter(function(a){
-    if(mode === 'avec' && !fiches[a.mgb]) return false;
-    if(mode === 'sans' &&  fiches[a.mgb]) return false;
-    return !q || a.mgb.toLowerCase().indexOf(q) !== -1 || a.desc.toLowerCase().indexOf(q) !== -1;
+  var l = fiches.filter(function(f){
+    return !q || f.mgb.indexOf(q) !== -1 || f.libelle.toLowerCase().indexOf(q) !== -1;
   });
 
   var zone = document.getElementById('liste');
   if(!l.length){
     zone.innerHTML = '<div class="info">' +
-      (mode === 'avec' && !q ? 'Aucune fiche FDS pour les articles en stock.' : 'Aucun article.') + '</div>';
+      (fiches.length ? 'Aucune fiche pour cette recherche.' : 'Archive vide — déposez vos FDS.') + '</div>';
     return;
   }
 
-  zone.innerHTML =
-    '<div class="ligne tete"><span>MGB</span><span>Désignation</span><span>Zone</span><span style="text-align:right">Fiche</span></div>';
+  zone.innerHTML = '<div class="ligne tete"><span>MGB</span><span>Désignation</span>' +
+                   '<span>Déposée le</span><span style="text-align:right">Fiche</span></div>';
 
-  l.slice(0, MAX_LIGNES).forEach(function(a){
+  l.slice(0, MAX_LIGNES).forEach(function(f){
     var d = document.createElement('div');
     d.className = 'ligne';
-    d.innerHTML = '<span class="mgb"></span><span class="desc"></span><span class="zone"></span><span class="act"></span>';
-    d.querySelector('.mgb').textContent  = a.mgb;
-    d.querySelector('.desc').textContent = a.desc || '—';
-    d.querySelector('.desc').title       = a.desc;
-    d.querySelector('.zone').textContent = a.zone || '—';
+    d.innerHTML = '<span class="mgb"></span><span class="lib"></span><span class="meta"></span><span class="act"></span>';
+    d.querySelector('.mgb').textContent = f.mgb;
+    d.querySelector('.lib').textContent = f.libelle;
+    d.querySelector('.lib').title       = f.libelle;
+    d.querySelector('.meta').textContent =
+      (f.date ? new Date(f.date).toLocaleDateString('fr-FR') : '—') + ' · ' + poids(f.taille);
 
     var act = d.querySelector('.act');
-    if(fiches[a.mgb]){
-      var b = document.createElement('button');
-      b.className = 'fds';
-      b.innerHTML = ICO_FDS + 'FDS';
-      b.onclick = function(){ ouvrir(a); };
-      act.appendChild(b);
-    } else {
-      var s = document.createElement('span');
-      s.className = 'sans'; s.textContent = 'Aucune fiche';
+    var b = document.createElement('button');
+    b.className = 'ouvrir'; b.innerHTML = ICO + 'Ouvrir';
+    b.onclick = function(){ ouvrir(f); };
+    act.appendChild(b);
+
+    if(role === 'admin'){
+      var s = document.createElement('button');
+      s.className = 'mini sup'; s.textContent = 'Supprimer';
+      s.onclick = function(){ supprimer(f, s); };
       act.appendChild(s);
-    }
-    if(peutDeposer){
-      var m = document.createElement('button');
-      m.className = 'mini';
-      m.textContent = fiches[a.mgb] ? 'Remplacer' : 'Ajouter';
-      m.onclick = function(){ deposer(a, m); };
-      act.appendChild(m);
     }
     zone.appendChild(d);
   });
@@ -402,8 +379,7 @@ function afficher(){
   if(l.length > MAX_LIGNES){
     var p = document.createElement('div');
     p.className = 'plus';
-    p.textContent = (l.length - MAX_LIGNES).toLocaleString('fr-FR') +
-      ' articles de plus — affinez la recherche.';
+    p.textContent = (l.length - MAX_LIGNES) + ' fiches de plus — affinez la recherche.';
     zone.appendChild(p);
   }
 }
@@ -413,20 +389,19 @@ document.getElementById('rech').addEventListener('input', afficher);
 /* ══════════ LECTEUR ══════════ */
 var urlCourante = null;
 
-async function ouvrir(a){
-  document.getElementById('l-nom').textContent = a.desc || a.mgb;
-  document.getElementById('l-mgb').textContent = 'MGB ' + a.mgb;
+async function ouvrir(f){
+  document.getElementById('l-nom').textContent = f.libelle;
+  document.getElementById('l-mgb').textContent = 'MGB ' + f.mgb;
   document.getElementById('l-attente').style.display = 'flex';
   document.getElementById('l-attente').textContent = 'Ouverture de la fiche…';
   document.getElementById('l-cadre').style.display = 'none';
   document.getElementById('voile').classList.add('on');
 
   try {
-    var r = await fetch(API + '/archive/' + encodeURIComponent(fiches[a.mgb]), { headers: auth() });
+    var r = await fetch(API + '/archive/' + encodeURIComponent(f.nomFichier), { headers: auth() });
     if(expire(r)) return;
     if(!r.ok) throw new Error();
-    var b = await r.blob();
-    b = new Blob([b], { type:'application/pdf' });
+    var b = new Blob([await r.blob()], { type:'application/pdf' });
     if(urlCourante) URL.revokeObjectURL(urlCourante);
     urlCourante = URL.createObjectURL(b);
 
@@ -437,7 +412,9 @@ async function ouvrir(a){
 
     document.getElementById('l-tel').onclick = function(){
       var x = document.createElement('a');
-      x.href = urlCourante; x.download = 'FDS_' + a.mgb + '.pdf'; x.click();
+      x.href = urlCourante;
+      x.download = f.nomFichier.slice(DOSSIER.length);
+      x.click();
     };
   } catch(e){
     document.getElementById('l-attente').textContent = 'Impossible d\'ouvrir la fiche.';
@@ -449,55 +426,191 @@ function fermerLecteur(){
   document.getElementById('l-cadre').src = 'about:blank';
 }
 
-document.addEventListener('keydown', function(e){
-  if(e.key === 'Escape') fermerLecteur();
-});
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape') fermerLecteur(); });
 
-/* ══════════ DÉPÔT ══════════ */
-/* Le fichier est renommé d'office en FDS/{MGB}.pdf : aucune
-   erreur de nommage possible, et rien d'autre n'entre dans le dossier. */
-var cible = null, boutonCible = null;
-var choix = document.getElementById('choix');
-
-function deposer(a, bouton){
-  cible = a; boutonCible = bouton;
-  choix.value = '';
-  choix.click();
-}
-
-choix.addEventListener('change', async function(){
-  var f = choix.files[0];
-  if(!f || !cible) return;
-  if(!/\.pdf$/i.test(f.name) && f.type !== 'application/pdf'){
-    dire('Seuls les fichiers PDF sont acceptés', 'err'); return;
-  }
-
-  var a = cible, b = boutonCible;
-  b.disabled = true; b.textContent = 'Envoi…';
+async function supprimer(f, bouton){
+  if(!confirm('Supprimer définitivement la fiche « ' + f.libelle + ' » ?')) return;
+  bouton.disabled = true; bouton.textContent = '…';
   try {
-    var nomFichier = DOSSIER + a.mgb + '.pdf';
-    var r = await fetch(API + '/archive/' + encodeURIComponent(nomFichier), {
-      method:'POST', headers: auth({ 'Content-Type':'application/pdf' }), body: f
-    });
+    var r = await fetch(API + '/archive/' + encodeURIComponent(f.nomFichier),
+                        { method:'DELETE', headers: auth() });
     if(expire(r)) return;
     if(!r.ok) throw new Error();
-    fiches[a.mgb] = nomFichier;
-    dire('Fiche FDS enregistrée pour ' + a.mgb, 'ok');
-    compteurs(); afficher();
+    dire('Fiche supprimée', 'ok');
+    await chargerFiches(); accroche(); afficher();
   } catch(e){
-    b.disabled = false; b.textContent = fiches[a.mgb] ? 'Remplacer' : 'Ajouter';
-    dire('Envoi impossible', 'err');
+    bouton.disabled = false; bouton.textContent = 'Supprimer';
+    dire('Suppression impossible', 'err');
   }
+}
+
+/* ══════════ DÉPÔT EN LOT ══════════ */
+var lot = [];   /* { fichier, mgb, libelle, etat, existant } */
+
+document.getElementById('dossier').addEventListener('change', function(e){
+  analyser(Array.prototype.slice.call(e.target.files));
+  e.target.value = '';
 });
+
+function analyser(fichiers){
+  var pdf = fichiers.filter(function(f){
+    return /\.pdf$/i.test(f.name) && f.name.indexOf('.') !== 0;
+  });
+
+  /* Pour chaque MGB, la fiche déjà en ligne (s'il y en a une) */
+  var parMGB = {};
+  fiches.forEach(function(f){ parMGB[f.mgb] = f; });
+
+  lot = pdf.map(function(f){
+    var c = decouper(f.name);
+    if(!c) return { fichier:f, mgb:'—', libelle:f.name, etat:'hors',
+                    raison:'MGB absent du nom' };
+
+    var e = parMGB[c.mgb];
+    if(!e) return { fichier:f, mgb:c.mgb, libelle:c.libelle, etat:'envoi', raison:'Nouvelle' };
+
+    /* Marge d'une minute : les copies de fichiers décalent l'horodatage */
+    if(f.lastModified > (e.date || 0) + 60000)
+      return { fichier:f, mgb:c.mgb, libelle:c.libelle, etat:'envoi',
+               raison:'Plus récente', existant:e };
+
+    return { fichier:f, mgb:c.mgb, libelle:c.libelle, etat:'ajour', raison:'Déjà à jour', existant:e };
+  });
+
+  lot.sort(function(a, b){
+    var o = { envoi:0, ajour:1, hors:2 };
+    return (o[a.etat] - o[b.etat]) || a.libelle.localeCompare(b.libelle, 'fr');
+  });
+
+  document.getElementById('apres').style.display = 'block';
+  document.getElementById('barre-h').classList.remove('on');
+  majBilan();
+  afficherLot();
+
+  if(!pdf.length) dire('Aucun PDF trouvé dans ce dossier', 'err');
+}
+
+function majBilan(){
+  var c = { envoi:0, ajour:0, hors:0 };
+  lot.forEach(function(x){ if(c[x.etat] !== undefined) c[x.etat]++; });
+  document.getElementById('n-envoi').textContent = c.envoi;
+  document.getElementById('n-ajour').textContent = c.ajour;
+  document.getElementById('n-hors').textContent  = c.hors;
+
+  var b = document.getElementById('b-envoi');
+  b.disabled = c.envoi === 0;
+  b.textContent = c.envoi ? 'Envoyer ' + c.envoi + ' fiche' + (c.envoi > 1 ? 's' : '') : 'Rien à envoyer';
+}
+
+function afficherLot(){
+  var zone = document.getElementById('liste-lot');
+  zone.innerHTML = '<div class="ligne l2 tete"><span>MGB</span><span>Fichier</span>' +
+                   '<span>Taille</span><span style="text-align:right">État</span></div>';
+
+  lot.slice(0, MAX_LIGNES).forEach(function(x, i){
+    var d = document.createElement('div');
+    d.className = 'ligne l2';
+    d.innerHTML = '<span class="mgb"></span><span class="lib"></span><span class="meta"></span>' +
+                  '<span class="act"><span class="etat" id="e' + i + '"></span></span>';
+    d.querySelector('.mgb').textContent  = x.mgb;
+    d.querySelector('.lib').textContent  = x.libelle;
+    d.querySelector('.lib').title        = x.fichier.name;
+    d.querySelector('.meta').textContent = poids(x.fichier.size);
+    zone.appendChild(d);
+    etat(i, x.etat, x.raison);
+  });
+
+  if(lot.length > MAX_LIGNES){
+    var p = document.createElement('div');
+    p.className = 'plus';
+    p.textContent = (lot.length - MAX_LIGNES) + ' fichiers de plus (tous seront traités).';
+    zone.appendChild(p);
+  }
+}
+
+function etat(i, classe, texte){
+  var el = document.getElementById('e' + i);
+  if(!el) return;
+  el.className = 'etat ' + classe;
+  el.textContent = texte;
+}
+
+async function envoyerUne(x, i){
+  /* Remplacement : on efface l'ancienne version, sinon les deux
+     cohabitent et occupent le quota. */
+  if(x.existant && x.existant.nomFichier){
+    try {
+      await fetch(API + '/archive/' + encodeURIComponent(x.existant.nomFichier),
+                  { method:'DELETE', headers: auth() });
+    } catch(e){}
+  }
+
+  var cible = DOSSIER + x.fichier.name;
+  var r = await fetch(API + '/archive/' + encodeURIComponent(cible), {
+    method:'POST', headers: auth({ 'Content-Type':'application/pdf' }), body: x.fichier
+  });
+  if(r.status === 401){ expire(r); throw new Error('session'); }
+  if(!r.ok) throw new Error('envoi');
+}
+
+async function envoyerLot(){
+  var aFaire = [];
+  lot.forEach(function(x, i){ if(x.etat === 'envoi') aFaire.push({ x:x, i:i }); });
+  if(!aFaire.length) return;
+
+  document.getElementById('b-envoi').disabled = true;
+  document.getElementById('dossier').disabled = true;
+  document.getElementById('barre-h').classList.add('on');
+
+  var faits = 0, echecs = 0;
+
+  function avance(){
+    var pct = Math.round(faits / aFaire.length * 100);
+    document.getElementById('barre-b').style.width = pct + '%';
+    document.getElementById('barre-t').textContent =
+      faits + ' / ' + aFaire.length + ' fiche' + (aFaire.length > 1 ? 's' : '') + ' envoyée' +
+      (faits > 1 ? 's' : '') + (echecs ? ' — ' + echecs + ' en échec' : '');
+  }
+  avance();
+
+  var suivant = 0;
+  async function fil(){
+    while(suivant < aFaire.length){
+      var t = aFaire[suivant++];
+      etat(t.i, 'envoi', 'Envoi…');
+      try {
+        await envoyerUne(t.x, t.i);
+        etat(t.i, 'ok', 'Envoyée');
+      } catch(e){
+        echecs++;
+        etat(t.i, 'ko', 'Échec');
+      }
+      faits++;
+      avance();
+    }
+  }
+
+  var fils = [];
+  for(var k = 0; k < Math.min(EN_PARALLELE, aFaire.length); k++) fils.push(fil());
+  await Promise.all(fils);
+
+  document.getElementById('dossier').disabled = false;
+  dire(echecs ? (faits - echecs) + ' fiches envoyées, ' + echecs + ' en échec'
+              : faits + ' fiches envoyées', echecs ? 'err' : 'ok');
+
+  await chargerFiches();
+  accroche(); afficher();
+  lot.forEach(function(x){ if(x.etat === 'envoi') x.etat = 'ajour'; });
+  majBilan();
+}
 
 /* ══════════ DÉMARRAGE ══════════ */
 (async function(){
   try {
-    await Promise.all([chargerStock(), chargerFiches()]);
-    /* Rien en stock n'a de fiche : on montre tout plutôt qu'une liste vide */
-    if(!articles.some(function(a){ return fiches[a.mgb]; })) filtre('tous');
-    compteurs(); afficher();
+    await chargerFiches();
+    accroche(); afficher();
   } catch(e){
+    document.getElementById('accroche').textContent = 'Archive injoignable.';
     document.getElementById('liste').innerHTML = '<div class="info">Chargement impossible.</div>';
     dire('Erreur de chargement', 'err');
   }
