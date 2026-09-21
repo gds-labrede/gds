@@ -776,8 +776,10 @@ function calculer(){
   articles.forEach(x => {
     [x.bac, x.regle] = retentionDe(x.code, x.lib);
     if (x.stock !== 'oui'){ x.surbac = ''; x.situ = ''; return; }
-    const n = (x.emplacementsL || []).filter(p => bacPos(p)).length;
-    x.surbac = !n ? 'Non' : n === x.npos ? 'Oui' : `Partiel ${n}/${x.npos}`;
+    const bp = (x.emplacementsL || []).map(p => bacPos(p)).filter(Boolean);
+    const n = bp.length, nSol = bp.filter(b => b.place === 'sol').length;
+    const ou = !n ? '' : nSol === n ? 'sur le bac' : nSol ? 'sur et au-dessus du bac' : 'au-dessus du bac';
+    x.surbac = !n ? 'Non' : n === x.npos ? 'Oui — ' + ou : `Partiel ${n}/${x.npos} — ` + ou;
     x.situ = situationBac(x.bac, n, x.npos);
   });
   // ---------- Contrôle du placement ----------
