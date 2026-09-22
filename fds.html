@@ -83,6 +83,15 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
 .mini:hover{border-color:var(--navy);color:var(--navy)}
 .mini.sup:hover{border-color:var(--rouge);color:var(--rouge);background:#fdf4f4}
 .mini:disabled{opacity:.5;cursor:default}
+.outils{display:flex;gap:10px;align-items:flex-start}
+.outils .recherche{flex:1}
+.tout{white-space:nowrap;padding:11px 16px;border:1px solid rgba(255,255,255,.16);border-radius:10px;cursor:pointer;
+  background:linear-gradient(180deg,#2a4576,var(--navy));color:#fff;
+  font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;
+  box-shadow:0 8px 20px -12px rgba(26,46,85,.9),inset 0 1px 0 rgba(255,255,255,.25);
+  transition:filter .18s,transform .1s}
+.tout:hover:not(:disabled){filter:brightness(1.12)}
+.tout:disabled{opacity:.55;cursor:default}
 .info{padding:34px;text-align:center;color:var(--text-low);font-size:13px}
 .plus{padding:12px;text-align:center;color:var(--text-low);font-size:12px;border-top:1px solid var(--border)}
 
@@ -183,7 +192,10 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
 
   <!-- ══ BIBLIOTHÈQUE ══ -->
   <div class="vue on" id="v-biblio">
-    <input type="text" class="recherche" id="rech" placeholder="Rechercher un MGB ou une désignation…">
+    <div class="outils">
+      <input type="text" class="recherche" id="rech" placeholder="Rechercher un MGB ou une désignation…">
+      <button class="tout" id="b-tout" onclick="toutTelecharger()">Tout télécharger</button>
+    </div>
     <div class="liste" id="liste"><div class="info">Chargement…</div></div>
   </div>
 
@@ -235,6 +247,8 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
 
 <div class="toasts" id="toasts"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>window.JSZip || document.write('<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"><\/script>');</script>
 <script src="config.js"></script>
 <script>
 if (typeof GDS === 'undefined') {
@@ -345,11 +359,25 @@ function accroche(){
     (peutDeposer ? ' · déposez un dossier complet depuis l\'onglet Dépôt en lot.' : '');
 }
 
-function afficher(){
+function filtrees(){
   var q = document.getElementById('rech').value.trim().toLowerCase();
-  var l = fiches.filter(function(f){
+  return fiches.filter(function(f){
     return !q || f.mgb.indexOf(q) !== -1 || f.libelle.toLowerCase().indexOf(q) !== -1;
   });
+}
+
+var zipEnCours = false;
+function majBoutonTout(n){
+  if(zipEnCours) return;
+  var b = document.getElementById('b-tout');
+  b.disabled = n === 0;
+  b.textContent = document.getElementById('rech').value.trim()
+    ? 'Télécharger (' + n + ')' : 'Tout télécharger (' + n + ')';
+}
+
+function afficher(){
+  var l = filtrees();
+  majBoutonTout(l.length);
 
   var zone = document.getElementById('liste');
   if(!l.length){
@@ -395,6 +423,64 @@ function afficher(){
 }
 
 document.getElementById('rech').addEventListener('input', afficher);
+
+/* ══════════ TOUT TÉLÉCHARGER ══════════
+   Récupère toutes les fiches affichées (recherche comprise)
+   et les livre dans un seul fichier ZIP. */
+async function toutTelecharger(){
+  var l = filtrees();
+  if(!l.length || zipEnCours) return;
+  if(!window.JSZip){ dire('Module ZIP indisponible', 'err'); return; }
+  if(!confirm('Télécharger ' + l.length + ' fiche' + (l.length > 1 ? 's' : '') +
+              ' dans un fichier ZIP ?')) return;
+
+  zipEnCours = true;
+  var b = document.getElementById('b-tout');
+  b.disabled = true;
+  var zip = new JSZip(), faits = 0, echecs = [], suivant = 0;
+
+  function avance(){ b.textContent = 'Téléchargement… ' + faits + ' / ' + l.length; }
+  avance();
+
+  async function fil(){
+    while(suivant < l.length){
+      var f = l[suivant++];
+      try {
+        var r = await fetch(API + '/archive/' + encodeURIComponent(f.nomFichier), { headers: auth() });
+        if(r.status === 401 || r.status === 403) throw new Error('refus');
+        if(!r.ok) throw new Error();
+        zip.file(f.nomFichier.slice(DOSSIER.length), await r.blob());
+      } catch(e){ echecs.push(f.nomFichier.slice(DOSSIER.length)); }
+      faits++; avance();
+    }
+  }
+
+  try {
+    var fils = [];
+    for(var k = 0; k < Math.min(EN_PARALLELE, l.length); k++) fils.push(fil());
+    await Promise.all(fils);
+
+    if(echecs.length === l.length) throw new Error();
+    if(echecs.length) zip.file('_FICHES_NON_RECUPEREES.txt', echecs.join('\r\n'));
+
+    b.textContent = 'Préparation du ZIP…';
+    var z = await zip.generateAsync({ type:'blob' });
+    var d = new Date();
+    var x = document.createElement('a');
+    x.href = URL.createObjectURL(z);
+    x.download = 'FDS_' + d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') +
+                 String(d.getDate()).padStart(2,'0') + '.zip';
+    x.click();
+    setTimeout(function(){ URL.revokeObjectURL(x.href); }, 10000);
+
+    dire(echecs.length ? (l.length - echecs.length) + ' fiches téléchargées, ' + echecs.length + ' en échec'
+                       : l.length + ' fiches téléchargées', echecs.length ? 'err' : 'ok');
+  } catch(e){
+    dire('Téléchargement impossible', 'err');
+  }
+  zipEnCours = false;
+  majBoutonTout(filtrees().length);
+}
 
 /* ══════════ LECTEUR ══════════ */
 var urlCourante = null;
