@@ -85,13 +85,23 @@ header .sub{font-size:12px;opacity:.7}
 .kbd{font-size:11.5px;color:var(--mut)} .kbd b{font-family:'DM Mono';border:1px solid #cfd6e4;border-bottom-width:2px;border-radius:5px;padding:1px 6px;background:#fff;color:var(--navy)}
 
 /* contenu : tailles relatives à la page, pour s'adapter aux grands écrans */
-.in{font-size:clamp(13px,.52vw + .55vh,21px);color:var(--txt)}
+.in{font-size:clamp(12px,.42vw + .55vh,20px);color:var(--txt)}
 .pb{min-height:100%;display:flex;flex-direction:column;gap:1.25em}
 .pb > .bas{margin-top:auto}
 .lb{font-size:.68em;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);font-weight:500}
 .eyebrow{font-size:.74em;letter-spacing:.18em;text-transform:uppercase;color:var(--or);font-weight:700}
 h2.titre{font-size:2.5em;line-height:1.08;margin:.15em 0 0;color:var(--navy);font-weight:700;letter-spacing:-.015em}
-.tete{display:flex;flex-direction:column;gap:.55em}
+.tete{display:flex;flex-direction:column;gap:.55em;min-width:0}
+.entete{display:grid;grid-template-columns:1fr auto;gap:1.2em;align-items:start}
+.photo{width:9.5em;height:9.5em;border-radius:1em;background:#fff;border:1px solid var(--bd);box-shadow:0 10px 24px -14px rgba(60,45,20,.45);display:grid;place-items:center;overflow:hidden;cursor:zoom-in;position:relative}
+.photo img{max-width:92%;max-height:92%;object-fit:contain}
+.photo .sans{color:#c9bfae;font-size:.7em;text-align:center;padding:.5em}
+.zoom{position:fixed;inset:0;background:rgba(10,21,48,.75);backdrop-filter:blur(4px);z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;cursor:zoom-out}
+.zoom .grand{background:#fff;border-radius:18px;padding:20px;max-width:min(80vw,760px);max-height:70vh;display:grid;place-items:center}
+.zoom .grand img{max-width:100%;max-height:calc(70vh - 40px);object-fit:contain}
+.zoom .vignettes{display:flex;gap:10px}
+.zoom .vignettes img{width:74px;height:74px;object-fit:contain;background:#fff;border-radius:10px;padding:6px;cursor:pointer;border:2px solid transparent}
+.zoom .vignettes img.on{border-color:var(--or)}
 .ids{display:flex;gap:1.8em;flex-wrap:wrap}
 .id .v{font-family:'DM Mono';font-size:1.15em;color:var(--navy)}
 .badges{display:flex;gap:.4em;flex-wrap:wrap}
@@ -215,6 +225,7 @@ td.n{text-align:right;font-family:'DM Mono'} td.m{font-family:'DM Mono'}
 .toast button{background:none;border:0;color:var(--or2);font:700 13px 'DM Sans';cursor:pointer}
 
 @media (max-width:960px){
+  .photo{width:6.5em;height:6.5em}
   header .sub,.ver{display:none}
   header{padding:10px 12px;gap:10px}
   .hb{padding:6px 8px;font-size:11px}
@@ -243,7 +254,7 @@ td.n{text-align:right;font-family:'DM Mono'} td.m{font-family:'DM Mono'}
   <div class="hr">
     <span class="etat" id="etat"></span>
     <button class="hb" id="hRel" title="Relire la base, le stock et les FDS dans GDS">Actualiser</button>
-    <span class="ver">v10</span>
+    <span class="ver">v12</span>
   </div>
 </header>
 <div id="accueil" class="cover">
@@ -344,7 +355,7 @@ async function lire(k){ var d = await idb(); if(!d) return null; return new Prom
 async function ecrire(k, v){ var d = await idb(); if(!d) return false; return new Promise(function(ok){ var t = d.transaction('k','readwrite'); t.objectStore('k').put(v, k); t.oncomplete = function(){ ok(true); }; t.onerror = function(){ ok(false); }; }); }
 
 /* ----- chargement base + saisies + ICPE ----- */
-var BASE = null, SAISIES = {version:1, champs:{}, historique:[]}, ICPE = {}, ICPE6 = {}, REFS = {}, REFS6 = {}, ICPE_INFO = {}, FDSL = {}, ATTENTE = [], PILE = [];
+var BASE = null, SAISIES = {version:1, champs:{}, historique:[]}, ICPE = {}, ICPE6 = {}, REFS = {}, REFS6 = {}, ICPE_INFO = {}, FDSL = {}, PHOTOSL = {}, ATTENTE = [], PILE = [];
 async function chargerBase(){
   var L = await listeArchive(DOSSIER);
   var fb = L.filter(function(f){ return f.nom === F_BASE; })[0];
@@ -410,6 +421,7 @@ async function chargerSecurite(){
   try {
     var L2 = await listeArchive('FDS/'); FDSL = {};
     L2.forEach(function(f){ var m = f.nom.slice(4).match(/^(\d{8,14})[_\-\s]/); if(m && /\.pdf$/i.test(f.nom)) FDSL[mgb12(m[1])] = f.nom; });
+    PHOTOSL = {}; L2.forEach(function(f){ var m = f.nom.match(/^FDS\/photos\/(\d{12})\.(jpe?g|png|webp)$/i); if(m) PHOTOSL[m[1]] = {nom:f.nom, date:f.date}; });
     var fi = L2.filter(function(f){ return f.nom === 'FDS/fds_icpe.json'; })[0], j = null, c = await lire('icpe');
     if(fi && c && c.date === fi.date) j = c.json;
     else if(fi){ var b = await lireArchive('FDS/fds_icpe.json'); j = JSON.parse(new TextDecoder().decode(b)); await ecrire('icpe', {date:fi.date, json:j}); }
@@ -815,6 +827,43 @@ function dateCourte(d, j){
 function libDate(a){ return a.typeDate || 'DLC / DDM'; }
 function stockArt(){ return STOCK ? (STOCK[ART.mgb] || []) : null; }
 
+/* ================= photo produit : archive GDS, dossier FDS/photos/ ================= */
+var PHOTO_URL = {};                                  // chemin -> adresse locale de l'image
+function cheminPhoto(m){ return PHOTOSL[m] || PHOTOSL[String(m).slice(0,6) + '001001'] || null; }
+function photo(a){
+  var ph = cheminPhoto(a.mgb);
+  if(!ph) return '<div class="photo"><div class="sans">Pas de photo<br>dans GDS</div></div>';
+  var u = PHOTO_URL[ph.nom];
+  return '<div class="photo" data-photo="' + esc(ph.nom) + '">' + (u ? '<img src="' + u + '" alt="">' : '<div class="sans">…</div>') + '</div>';
+}
+async function chargerPhotos(){
+  var els = document.querySelectorAll('[data-photo]');
+  for(var k = 0; k < els.length; k++){
+    var el = els[k], nom = el.dataset.photo;
+    if(PHOTO_URL[nom]){ if(!el.querySelector('img')) el.innerHTML = '<img src="' + PHOTO_URL[nom] + '" alt="">'; continue; }
+    try {
+      var info = Object.values(PHOTOSL).find(function(x){ return x.nom === nom; }) || {}, cle = 'ph:' + nom, c = await lire(cle), blob;
+      if(c && c.date === info.date && c.blob) blob = c.blob;
+      else {
+        var r = await gds('/archive/' + encodeURIComponent(nom));
+        if(!r.ok) throw 0;
+        blob = await r.blob();
+        ecrire(cle, {date:info.date, blob:blob});
+      }
+      PHOTO_URL[nom] = URL.createObjectURL(blob);
+      document.querySelectorAll('[data-photo="' + nom + '"]').forEach(function(e){ e.innerHTML = '<img src="' + PHOTO_URL[nom] + '" alt="">'; });
+    } catch(e){ el.innerHTML = '<div class="sans">Photo<br>illisible</div>'; }
+  }
+}
+function zoomPhoto(nom){
+  var u = PHOTO_URL[nom]; if(!u) return;
+  var z = document.createElement('div'); z.className = 'zoom';
+  z.innerHTML = '<div class="grand"><img src="' + u + '"></div><div style="color:#fff;font-size:12px;opacity:.8">Clic ou Échap pour fermer</div>';
+  document.body.appendChild(z);
+  var fermer = function(){ z.remove(); document.removeEventListener('keydown', f); };
+  var f = function(e){ if(e.key === 'Escape') fermer(); };
+  z.onclick = fermer; document.addEventListener('keydown', f);
+}
 function page1(){
   var a = ART, st = {actif:['Actif','g'], nouveau:['Nouveau','b'], completer:['À compléter','o'], inactif:['Inactif','gr']}[a.statut] || ['—','gr'];
   var s = stockArt(), sh = s ? s.filter(function(x){ return !/INSPECTION/i.test(x.loc); }) : null, q = sh ? sh.reduce(function(t, x){ return t + x.q; }, 0) : null;
@@ -829,7 +878,7 @@ function page1(){
     [['SA', [a.saNum, a.secteur].filter(Boolean).join(' - ')], ['SV', [a.svNum, a.rayon].filter(Boolean).join(' - ')], ['GA', a.ga], ['SGA', a.sga], ['SSGA', a.ssga]]
       .map(function(x){ return '<div><div class="lb">' + x[0] + '</div><div class="v" title="' + esc(x[1] || '') + '">' + esc(x[1] || '—') + '</div></div>'; }).join('') + '</div></div>';
   return '<div class="run">Fiche article</div>' +
-    '<div class="tete"><div class="eyebrow">' + esc([a.secteur, a.rayon].filter(Boolean).join(' · ') || 'Article') + '</div>' +
+    '<div class="entete"><div class="tete"><div class="eyebrow">' + esc([a.secteur, a.rayon].filter(Boolean).join(' · ') || 'Article') + '</div>' +
     '<h2 class="titre">' + champ('libelle') + '</h2>' +
     '<div class="ids">' +
       '<div class="id"><div class="lb">MGB 12</div><div class="v">' + a.mgb + '</div></div>' +
@@ -840,7 +889,7 @@ function page1(){
       (a.abc ? '<span class="bd">Classe ' + esc(a.abc) + '</span>' : '') +
       (a.icpe ? '<span class="bd r">ICPE ' + esc(a.icpe) + '</span>' : '') +
       (a.codeBlocage && a.codeBlocage !== '0' ? '<span class="bd o">Blocage ' + esc(a.codeBlocage) + '</span>' : '') +
-    '</div></div>' +
+    '</div></div>' + photo(a) + '</div>' +
     '<div class="hero"><div><div class="lb">Prix unitaire</div><div class="p">' + champ('prix') + '<small>/ ' + esc(a.unite || 'unité') + '</small></div></div>' +
       '<div class="dt">' + (a.prixDate ? 'au ' + fr(a.prixDate) + '<br>' : '') + esc(a.prixSource || '') + '</div>' +
       '<div class="sub"><span>Prix à la pièce <b>' + (a.prixPiece != null ? px(a.prixPiece) + ' €' : '—') + '</b></span>' +
@@ -848,7 +897,7 @@ function page1(){
         (q != null && a.prix != null ? '<span>Valeur du stock <b>' + eur(q * a.prix) + '</b></span>' : '') + '</div></div>' +
     '<div class="tiles">' +
       '<div class="tile"><div class="lb">Unité</div><div class="v">' + champ('unite') + '</div><div class="v2">' + (a.ccvm ? a.ccvm + ' pièce(s) / colis' : '') + '</div></div>' +
-      '<div class="tile"><div class="lb">' + champ('typeDate') + ' · durée de vie</div><div class="v">' + champ('dlv') + (vide(a.dlv) ? '' : '<small>jours</small>') + '</div>' +
+      '<div class="tile"><div class="lb">Durée de vie · ' + (EDIT || !vide(a.typeDate) ? champ('typeDate') : 'DLC / DDM') + '</div><div class="v">' + champ('dlv') + (vide(a.dlv) ? '' : '<small>jours</small>') + '</div>' +
         '<div class="v2">' + (proche ? 'Plus proche en stock : ' + dateCourte(proche.dlc, proche.j) : 'Aucune date en stock') + '</div></div>' +
       '<div class="tile"><div class="lb">En stock</div><div class="v">' + (q == null ? '<span class="vide">—</span>' : nb(q) + '<small>' + sh.length + ' pos.</small>') + '</div></div>' +
     '</div>' +
@@ -971,6 +1020,8 @@ function peindre(){
   document.querySelectorAll('#tabs span').forEach(function(t){ t.onclick = function(){ allerPage(+t.dataset.p); }; });
   document.querySelectorAll('[data-rt]').forEach(function(bt){ bt.onclick = function(){ retablirH(+bt.dataset.rt); }; });
   document.querySelectorAll('[data-fds]').forEach(function(bt){ bt.onclick = function(){ ouvrirFds(bt.dataset.fds); }; });
+  document.querySelectorAll('#pg [data-photo],#pd [data-photo]').forEach(function(ph){ ph.onclick = function(){ zoomPhoto(ph.dataset.photo); }; });
+  chargerPhotos();
   lierChamps();
 }
 function rendre(){ if(!ANIM) peindre(); }
@@ -1012,6 +1063,7 @@ document.getElementById('bEdit').onclick = function(){
   this.classList.toggle('on', EDIT);
   this.querySelector('span').textContent = EDIT ? 'Terminer' : 'Modifier';
   if(EDIT) toast('Clique sur une valeur pour la modifier · enregistrement automatique');
+  rendre();
 };
 function lierChamps(){
   document.querySelectorAll('[data-k]').forEach(function(el){
