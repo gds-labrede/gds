@@ -39,12 +39,12 @@ header .sub{font-size:12px;opacity:.7}
 /* livre */
 .stage{margin:18px auto 30px;padding:0 12px}
 .scene{display:flex;align-items:center;justify-content:center;gap:22px}
-.book{position:relative;width:min(1560px,calc(100vw - 190px));height:max(720px,calc(100vh - 250px));display:grid;grid-template-columns:1fr 1fr;
+.book{position:relative;width:min(2600px,calc(100vw - 190px));height:max(720px,calc(100vh - 250px));display:grid;grid-template-columns:1fr 1fr;
   perspective:4200px;padding:16px;border-radius:22px;
   background:radial-gradient(ellipse at 30% 20%,#2a4a86,transparent 60%),linear-gradient(135deg,#132447,#0c1a36);
   box-shadow:0 2px 0 #0a1530,0 40px 70px -20px rgba(10,21,48,.55),0 18px 30px rgba(10,21,48,.25),inset 0 1px 0 rgba(255,255,255,.12)}
 .book::before{content:'';position:absolute;inset:6px;border-radius:17px;border:1px solid rgba(242,140,40,.35);pointer-events:none}
-.ruban{position:absolute;top:-6px;right:33%;width:26px;height:92px;z-index:6;background:linear-gradient(90deg,#d8741a,#f59a3c 50%,#d8741a);
+.ruban{position:absolute;top:-6px;right:5%;width:26px;height:92px;z-index:6;background:linear-gradient(90deg,#d8741a,#f59a3c 50%,#d8741a);
   clip-path:polygon(0 0,100% 0,100% 100%,50% 82%,0 100%);box-shadow:0 4px 8px rgba(0,0,0,.25);filter:drop-shadow(0 3px 3px rgba(0,0,0,.25))}
 .page{position:relative;overflow:hidden;background:#fffdf8;
   background-image:radial-gradient(ellipse at 50% 0%,rgba(255,255,255,.9),transparent 70%),linear-gradient(0deg,rgba(214,200,172,.08),rgba(214,200,172,0));}
@@ -54,7 +54,7 @@ header .sub{font-size:12px;opacity:.7}
 .num{position:absolute;bottom:20px;left:0;right:0;text-align:center;font:500 12px 'DM Mono';color:#a99c82;letter-spacing:.2em}
 .num::before,.num::after{content:'';display:inline-block;width:40px;height:1px;background:#d9cfbd;vertical-align:middle;margin:0 12px}
 .run{position:absolute;top:22px;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#b3a78e}
-.g .run{left:58px} .d .run{right:58px}
+.g .run{left:58px} .d .run{left:58px}
 /* feuille qui tourne */
 .feuille{position:absolute;top:16px;bottom:16px;width:calc(50% - 16px);z-index:5;transform-style:preserve-3d;
   transition:transform .95s cubic-bezier(.645,.045,.355,1);will-change:transform}
@@ -84,58 +84,89 @@ header .sub{font-size:12px;opacity:.7}
 .tabs span.on{background:var(--navy);color:#fff}
 .kbd{font-size:11.5px;color:var(--mut)} .kbd b{font-family:'DM Mono';border:1px solid #cfd6e4;border-bottom-width:2px;border-radius:5px;padding:1px 6px;background:#fff;color:var(--navy)}
 
-/* contenu */
-.eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--or);font-weight:700}
-h2.titre{font-size:clamp(28px,2.6vw,42px);letter-spacing:-.01em;line-height:1.15;margin:8px 0 6px;color:var(--navy);font-weight:700}
-.ids{display:flex;gap:18px;flex-wrap:wrap;margin:14px 0 22px}
-.id .lb{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
-.id .v{font-family:'DM Mono';font-size:19px;color:var(--navy)}
-.badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px}
-.bd{font-size:11.5px;padding:4px 10px;border-radius:20px;background:#eef1f7;color:var(--navy);font-weight:500}
+/* contenu : tailles relatives à la page, pour s'adapter aux grands écrans */
+.in{font-size:clamp(13px,.52vw + .55vh,21px);color:var(--txt)}
+.pb{min-height:100%;display:flex;flex-direction:column;gap:1.25em}
+.pb > .bas{margin-top:auto}
+.lb{font-size:.68em;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);font-weight:500}
+.eyebrow{font-size:.74em;letter-spacing:.18em;text-transform:uppercase;color:var(--or);font-weight:700}
+h2.titre{font-size:2.5em;line-height:1.08;margin:.15em 0 0;color:var(--navy);font-weight:700;letter-spacing:-.015em}
+.tete{display:flex;flex-direction:column;gap:.55em}
+.ids{display:flex;gap:1.8em;flex-wrap:wrap}
+.id .v{font-family:'DM Mono';font-size:1.15em;color:var(--navy)}
+.badges{display:flex;gap:.4em;flex-wrap:wrap}
+.bd{font-size:.75em;padding:.35em .8em;border-radius:20px;background:#eef1f7;color:var(--navy);font-weight:500}
 .bd.o{background:#fff1e3;color:#b35c06}.bd.g{background:#e6f6ee;color:var(--ok)}.bd.r{background:#fdeeed;color:var(--err)}.bd.b{background:#e8efff;color:#2a56c6}.bd.gr{background:#eceff4;color:var(--mut)}
-.hero{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;border-radius:18px;padding:26px 28px;box-shadow:0 14px 30px -12px rgba(20,37,74,.5);display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:22px;position:relative;overflow:hidden}
+.hero{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;border-radius:1.1em;padding:1.3em 1.5em;display:grid;grid-template-columns:1fr auto;gap:.4em 1.2em;align-items:end;position:relative;overflow:hidden;box-shadow:0 14px 30px -12px rgba(20,37,74,.5)}
 .hero::after{content:'';position:absolute;top:-40%;right:-10%;width:60%;height:120%;background:radial-gradient(circle,rgba(255,255,255,.12),transparent 60%)}
-.hero .lb{font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.7}
-.hero .p{font:700 clamp(40px,3.6vw,58px) 'DM Mono';color:var(--or2);line-height:1.1}
-.hero .p small{font-size:15px;color:#fff;opacity:.8;margin-left:6px}
-.hero .dt{font-size:12px;opacity:.75;text-align:right}
-.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.tile{border:1px solid var(--bd);border-radius:16px;padding:18px 20px;background:#fff;box-shadow:0 6px 16px -10px rgba(60,45,20,.25)}
-.tile .lb{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
-.tile .v{font-size:clamp(22px,2vw,30px);font-weight:700;color:var(--navy);margin-top:4px}
-.sec{margin-bottom:22px}
-.sec h3{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--navy);margin:0 0 10px;padding-bottom:6px;border-bottom:2px solid var(--or);display:inline-block}
-.rows{display:grid;grid-template-columns:1fr 1fr;gap:4px 22px}
-.row{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px dotted #e3ddd1;font-size:15px}
+.hero .lb{color:rgba(255,255,255,.65)}
+.hero .p{font:700 3.2em 'DM Mono';color:var(--or2);line-height:1}
+.hero .p small{font:500 .3em 'DM Sans';color:#fff;opacity:.8;margin-left:.4em}
+.hero .dt{font-size:.8em;opacity:.8;text-align:right;line-height:1.5}
+.hero .sub{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:.4em 1.6em;font-size:.8em;opacity:.85;border-top:1px solid rgba(255,255,255,.15);padding-top:.7em;margin-top:.3em}
+.hero .sub b{font-family:'DM Mono';color:#fff}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:.75em}
+.tile{border:1px solid var(--bd);border-radius:1em;padding:.9em 1em;background:#fff;box-shadow:0 6px 16px -10px rgba(60,45,20,.25);min-width:0}
+.tile .v{font-size:1.75em;font-weight:700;color:var(--navy);margin-top:.15em;line-height:1.15;overflow:hidden;text-overflow:ellipsis}
+.tile .v small{font-size:.45em;color:var(--mut);font-weight:500;margin-left:.3em}
+.tile .v2{font-size:.8em;color:var(--mut);font-weight:500;margin-top:.1em}
+.bloc{border:1px solid var(--bd);border-radius:1em;background:#fff;padding:1em 1.1em}
+.bloc h4{margin:0 0 .6em;font-size:.72em;letter-spacing:.14em;text-transform:uppercase;color:var(--navy);display:flex;justify-content:space-between;align-items:center}
+.bloc h4 span{color:var(--mut);letter-spacing:.04em;text-transform:none;font-weight:500}
+.mini{width:100%;border-collapse:collapse;font-size:.88em}
+.mini td{padding:.4em .2em;border-bottom:1px dotted #e3ddd1}
+.mini td.n{text-align:right;font-family:'DM Mono'} .mini td.m{font-family:'DM Mono'}
+.mini tr:last-child td{border-bottom:0}
+.classe{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.3em 1.2em;font-size:.85em}
+.classe .lb{font-size:.72em}
+.classe .v{font-weight:500;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sec{margin-bottom:1.4em}
+.sec h3{font-size:.78em;letter-spacing:.14em;text-transform:uppercase;color:var(--navy);margin:0 0 .6em;padding-bottom:.35em;border-bottom:2px solid var(--or);display:inline-block}
+.rows{display:grid;grid-template-columns:1fr 1fr;gap:.2em 1.4em}
+.row{display:flex;justify-content:space-between;gap:.6em;padding:.55em 0;border-bottom:1px dotted #e3ddd1;font-size:.95em}
 .row.full{grid-column:1/-1}
-.row .lb{color:var(--mut)}
-.row .v{font-weight:500;text-align:right}
-.vide{color:var(--warn);font-style:italic;font-weight:400}
+.row .lb{font-size:.72em;align-self:center}
+.row .v{font-weight:500;text-align:right;word-break:break-word}
+.vide{color:#c98a3a;font:italic 400 .8rem 'DM Sans'}
+.tile .vide,.spec .vide{font-size:.9rem}
 .corr{position:relative}
-.corr::after{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--or);margin-left:6px;vertical-align:middle}
-.remarque{background:#fff8ee;border-left:3px solid var(--or);padding:12px 14px;border-radius:8px;font-size:14px;line-height:1.5;white-space:pre-wrap;min-height:44px}
-
-/* page logistique */
-.four{border-bottom:1px solid var(--bd);padding:10px 0 16px;margin-bottom:18px}
-.four .nom{font-size:clamp(22px,2vw,30px);font-weight:700;color:var(--navy);margin:2px 0}
-.four .n{font-family:'DM Mono';font-size:12px;color:var(--mut)}
-.lb{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
-.logi{display:grid;grid-template-columns:170px 1fr;gap:18px;align-items:start;margin-bottom:20px}
-.pal{background:#fff;border:1px solid var(--bd);border-radius:14px;padding:10px;text-align:center}
-.pal .emb{font-weight:700;color:var(--navy);font-size:14px}
-.pal .embt{font-size:12px;color:var(--mut)}
-.specs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.spec{border:1px solid var(--bd);border-radius:12px;padding:10px 12px;background:#fff}
-.spec .v{font:700 clamp(19px,1.7vw,26px) 'DM Mono';color:var(--navy);margin-top:3px}
-.spec .v small{font:500 11px 'DM Sans';color:var(--mut)}
-.secu{background:linear-gradient(180deg,#fff,#fff8f6);border:1px solid #f3d3cf;border-radius:16px;padding:16px 18px}
-.sh{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
-.icpe{font:700 22px 'DM Mono';color:var(--err);margin-top:2px}
-.fdsb{display:inline-flex;gap:7px;align-items:center;background:var(--navy);color:#fff;text-decoration:none;font-size:13px;font-weight:500;padding:9px 13px;border-radius:10px}
-.pictos{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;min-height:40px;padding:4px}
-.pc{display:flex;flex-direction:column;align-items:center;width:78px;text-align:center;font-size:10.5px;color:var(--txt);gap:2px}
-.fdsn{font-family:'DM Mono';font-size:12px;word-break:break-all;margin-top:2px}
-.pk{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;background:#fff;border:1px solid var(--or);border-radius:12px;padding:10px;width:100%}
+.corr::after{content:'';display:inline-block;width:.45em;height:.45em;border-radius:50%;background:var(--or);margin-left:.35em;vertical-align:middle}
+.remarque{background:#fff8ee;border-left:3px solid var(--or);padding:.8em 1em;border-radius:8px;line-height:1.5;white-space:pre-wrap;min-height:3em}
+.src-i{font:400 .6em 'DM Sans';color:var(--mut);vertical-align:middle}
+.four{display:flex;justify-content:space-between;align-items:flex-end;gap:1em;border-bottom:1px solid var(--bd);padding-bottom:.9em}
+.four .nom{font-size:1.7em;font-weight:700;color:var(--navy);line-height:1.1}
+.four .n{font-family:'DM Mono';font-size:.8em;color:var(--mut);white-space:nowrap}
+.logi{display:grid;grid-template-columns:minmax(8em,.9fr) 2.2fr;gap:.9em;align-items:stretch}
+.pal{background:#fff;border:1px solid var(--bd);border-radius:1em;padding:.8em;text-align:center;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:.3em}
+.pal svg{width:100%;max-width:8.5em;height:auto}
+.pal .emb{font-weight:700;color:var(--navy);font-size:.95em}
+.pal .embt{font-size:.8em;color:var(--mut)}
+.specs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.6em}
+.spec{border:1px solid var(--bd);border-radius:.9em;padding:.7em .8em;background:#fff;min-width:0}
+.spec .v{font:700 1.45em 'DM Mono';color:var(--navy);margin-top:.15em}
+.spec .v small{font:500 .5em 'DM Sans';color:var(--mut)}
+.secu{border-radius:1.1em;overflow:hidden;border:1px solid #f0c9c4;background:#fff}
+.secu.ok{border-color:#cfe9da}
+.secu .bandeau{display:flex;justify-content:space-between;align-items:center;gap:1em;padding:.9em 1.1em;background:linear-gradient(135deg,#b8342f,#d9534b);color:#fff}
+.secu.ok .bandeau{background:linear-gradient(135deg,#1f8a57,#2fb170)}
+.secu .bandeau .lb{color:rgba(255,255,255,.75)}
+.secu .rub{font:700 2em 'DM Mono';line-height:1}
+.secu .rubl{font-size:.82em;opacity:.95;margin-top:.25em;max-width:30em}
+.secu .corps{padding:1em 1.1em;display:flex;flex-direction:column;gap:1em}
+.fdsb{display:inline-flex;gap:.5em;align-items:center;background:#fff;color:var(--navy);text-decoration:none;font-size:.85em;font-weight:700;padding:.6em .9em;border-radius:.7em;border:0;cursor:pointer;font-family:inherit;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.18)}
+.danger{display:grid;grid-template-columns:auto 1fr;gap:1.2em;align-items:start}
+.pictos{display:flex;gap:.5em;flex-wrap:wrap;max-width:11em}
+.pc{display:flex;flex-direction:column;align-items:center;width:5.2em;text-align:center;font-size:.66em;color:var(--txt);gap:.1em;line-height:1.2}
+.pc svg{width:4.4em;height:4.4em}
+.hphr{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.4em;font-size:.86em}
+.hphr li{display:grid;grid-template-columns:4.3em 1fr;gap:.5em}
+.hphr b{font-family:'DM Mono';color:var(--err);font-weight:500}
+.conseils{display:grid;grid-template-columns:1fr 1fr;gap:.6em}
+.cs{border-radius:.8em;padding:.7em .9em;background:#f7f8fb;border:1px solid var(--bd)}
+.cs .v{font-weight:700;color:var(--navy);margin-top:.2em;font-size:.95em}
+.cs .d{font-size:.78em;color:var(--mut);margin-top:.2em;line-height:1.35}
+.cs.or{background:#fff6ec;border-color:#f6d3ad}
+.pk{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;background:#fff;border:1px solid var(--or);border-radius:12px;padding:10px;width:100%;font-size:13px}
 .pk label{display:flex;flex-direction:column;align-items:center;font-size:10.5px;cursor:pointer;border-radius:8px;padding:4px;border:2px solid transparent}
 .pk label.on{border-color:var(--or);background:#fff4e8}
 .pk input{display:none}
@@ -155,7 +186,7 @@ textarea.ed{min-height:90px;text-align:left}
 .btn:disabled{opacity:.4;cursor:default}
 
 /* tableaux pages 3-4 */
-table{width:100%;border-collapse:collapse;font-size:14.5px}
+table{width:100%;border-collapse:collapse;font-size:.92em}
 th{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);text-align:left;padding:8px 6px;border-bottom:2px solid var(--navy);font-weight:500}
 td{padding:8px 6px;border-bottom:1px dotted #e3ddd1}
 td.n{text-align:right;font-family:'DM Mono'} td.m{font-family:'DM Mono'}
@@ -212,7 +243,7 @@ td.n{text-align:right;font-family:'DM Mono'} td.m{font-family:'DM Mono'}
   <div class="hr">
     <span class="etat" id="etat"></span>
     <button class="hb" id="hRel" title="Relire la base, le stock et les FDS dans GDS">Actualiser</button>
-    <span class="ver">v6</span>
+    <span class="ver">v8</span>
   </div>
 </header>
 <div id="accueil" class="cover">
@@ -520,6 +551,52 @@ function picto(code, taille){
   return '<svg width="' + taille + '" height="' + taille + '" viewBox="0 0 64 64" title="' + p[0] + '"><rect x="12" y="12" width="40" height="40" transform="rotate(45 32 32)" fill="#fff" stroke="#d0342c" stroke-width="4.5" rx="2"/><g transform="translate(6.4 6.4) scale(.8)">' + p[1] + '</g></svg>';
 }
 
+/* ================= sécurité : textes de référence ================= */
+var RUBRIQUES = {
+  '1436':'Liquides combustibles (point éclair 60–93 °C)', '1450':'Solides inflammables', '1510':'Entrepôt couvert (stockage de matières combustibles)',
+  '1630':'Soude ou potasse caustique', '4320':'Aérosols extrêmement inflammables', '4321':'Aérosols inflammables',
+  '4330':'Liquides inflammables de catégorie 1', '4331':'Liquides inflammables de catégorie 2 ou 3', '4441':'Liquides comburants',
+  '4510':'Dangereux pour l\'environnement aquatique (aigu 1 / chronique 1)', '4511':'Dangereux pour l\'environnement aquatique (chronique 2)',
+  '4718':'Gaz inflammables liquéfiés (GPL)', '4734':'Produits pétroliers', '4741':'Mélanges à base d\'hypochlorite de sodium (Javel)',
+  '4755':'Alcools de bouche (plus de 40 % vol.)', '4801':'Houille, coke, charbon de bois'
+};
+var HPHR = {
+  H220:'Gaz extrêmement inflammable', H222:'Aérosol extrêmement inflammable', H223:'Aérosol inflammable', H224:'Liquide et vapeurs extrêmement inflammables',
+  H225:'Liquide et vapeurs très inflammables', H226:'Liquide et vapeurs inflammables', H228:'Matière solide inflammable',
+  H229:'Récipient sous pression : peut éclater sous l\'effet de la chaleur', H270:'Peut provoquer ou aggraver un incendie ; comburant',
+  H272:'Peut aggraver un incendie ; comburant', H280:'Contient un gaz sous pression ; peut exploser sous l\'effet de la chaleur',
+  H290:'Peut être corrosif pour les métaux', H300:'Mortel en cas d\'ingestion', H301:'Toxique en cas d\'ingestion', H302:'Nocif en cas d\'ingestion',
+  H304:'Peut être mortel en cas d\'ingestion et de pénétration dans les voies respiratoires', H311:'Toxique par contact cutané', H312:'Nocif par contact cutané',
+  H314:'Provoque de graves brûlures de la peau et de graves lésions des yeux', H315:'Provoque une irritation cutanée', H317:'Peut provoquer une allergie cutanée',
+  H318:'Provoque de graves lésions des yeux', H319:'Provoque une sévère irritation des yeux', H330:'Mortel par inhalation', H331:'Toxique par inhalation',
+  H332:'Nocif par inhalation', H334:'Peut provoquer des symptômes allergiques ou d\'asthme par inhalation', H335:'Peut irriter les voies respiratoires',
+  H336:'Peut provoquer somnolence ou vertiges', H340:'Peut induire des anomalies génétiques', H341:'Susceptible d\'induire des anomalies génétiques',
+  H350:'Peut provoquer le cancer', H351:'Susceptible de provoquer le cancer', H360:'Peut nuire à la fertilité ou au fœtus',
+  H361:'Susceptible de nuire à la fertilité ou au fœtus', H370:'Risque avéré d\'effets graves pour les organes', H371:'Risque présumé d\'effets graves pour les organes',
+  H372:'Risque avéré d\'effets graves pour les organes (expositions répétées)', H373:'Risque présumé d\'effets graves pour les organes (expositions répétées)',
+  H400:'Très toxique pour les organismes aquatiques', H410:'Très toxique pour les organismes aquatiques, effets à long terme',
+  H411:'Toxique pour les organismes aquatiques, effets à long terme', H412:'Nocif pour les organismes aquatiques, effets à long terme',
+  H413:'Peut être nocif à long terme pour les organismes aquatiques', EUH014:'Réagit violemment au contact de l\'eau',
+  EUH018:'Formation possible de mélange vapeur-air inflammable ou explosif', EUH019:'Peut former des peroxydes explosifs',
+  EUH031:'Au contact d\'un acide, dégage un gaz toxique', EUH032:'Au contact d\'un acide, dégage un gaz très toxique',
+  EUH044:'Risque d\'explosion si chauffé en ambiance confinée', EUH066:'L\'exposition répétée peut dessécher ou gercer la peau',
+  EUH071:'Corrosif pour les voies respiratoires', EUH206:'Ne pas mélanger avec d\'autres produits : peut libérer des gaz dangereux (chlore)',
+  EUH208:'Contient une substance sensibilisante : peut produire une réaction allergique', EUH210:'Fiche de données de sécurité disponible sur demande'
+};
+/* rétention et zone : règles de l'arrêté du 11/04/2017 et bacs du dépôt, repris du placement ICPE */
+function conseilStockage(a){
+  var r = String(a.icpe || ''), p = a.pictos || [];
+  var has = function(){ for(var i = 0; i < arguments.length; i++) if(r.indexOf(arguments[i]) >= 0) return true; return false; };
+  if(has('4741')) return {ret:'Bac de rétention obligatoire', retd:'Javel : règle 20 % / 800 L', zone:'Bacs métalliques JAVEL', zoned:'Allée 5 · 5-23 à 5-25'};
+  if(has('4441')) return {ret:'Bac de rétention obligatoire', retd:'Comburant liquide : règle 20 % / 800 L', zone:'À isoler des inflammables', zoned:'Voir bacs JAVEL 5-23 à 5-25'};
+  if(has('1436','4330','4331','4734')) return {ret:'Bac de rétention obligatoire', retd:'100 % du plus gros contenant ou 50 % du total', zone:'Bacs PD INFLAMMABLE', zoned:'Allée 5 · 5-16, 5-18, 5-20'};
+  if(has('4320','4321')) return {ret:'Pas de bac', retd:'Aérosols : armoire dédiée', zone:'Armoire aérosols', zoned:'Loin de toute source de chaleur'};
+  if(has('4755')) return {ret:'Confinement de la cellule', retd:'Pas de bac individuel pour les alcools de bouche', zone:'Zone spiritueux', zoned:''};
+  if(has('1630','4510','4511') || p.indexOf('SGH05') >= 0) return {ret:'Bac de rétention si liquide', retd:'Corrosif / dangereux pour l\'environnement', zone:'Bacs PD CORROSIF ENV', zoned:'Allée 5 · 5-15, 5-17'};
+  if(p.length) return {ret:'Selon la FDS', retd:'Section 7 : manipulation et stockage', zone:'Bacs PD NETTOYANTS', zoned:'Allée 2 · 2-8 à 2-14'};
+  return null;
+}
+
 /* ================= utilitaires ================= */
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 function norm(s){ return String(s == null ? '' : s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim(); }
@@ -690,9 +767,17 @@ function stockArt(){ return STOCK ? (STOCK[ART.mgb] || []) : null; }
 
 function page1(){
   var a = ART, st = {actif:['Actif','g'], nouveau:['Nouveau','b'], completer:['À compléter','o'], inactif:['Inactif','gr']}[a.statut] || ['—','gr'];
-  var s = stockArt(), q = s ? s.reduce(function(t, x){ return t + x.q; }, 0) : null;
+  var s = stockArt(), sh = s ? s.filter(function(x){ return !/INSPECTION/i.test(x.loc); }) : null, q = sh ? sh.reduce(function(t, x){ return t + x.q; }, 0) : null;
+  var stock = '<div class="bloc"><h4>Stock du jour <span>' + (STOCK ? 'StockStatus du ' + fr(STOCK_DATE) : 'non disponible') + '</span></h4>' +
+    (!sh ? '<span class="vide">StockStatus absent de GDS</span>' : !sh.length ? '<span style="color:var(--mut);font-size:.9em">Aucun stock</span>' :
+      '<table class="mini">' + sh.slice().sort(function(x, y){ return String(x.pos) < String(y.pos) ? -1 : 1; }).slice(0, 4).map(function(x){
+        return '<tr><td class="m">' + esc(x.pos) + '</td><td>' + esc(secteurAllee(x.pos, x.zone)) + '</td><td>' + esc(x.dlc) + '</td><td class="n">' + nb(x.q) + '</td></tr>'; }).join('') +
+      (sh.length > 4 ? '<tr><td colspan="4" style="color:var(--mut)">+ ' + (sh.length - 4) + ' autre(s) emplacement(s) · page 4</td></tr>' : '') + '</table>') + '</div>';
+  var classe = '<div class="bloc bas"><h4>Classement Metro</h4><div class="classe">' +
+    [['SA', [a.saNum, a.secteur].filter(Boolean).join(' - ')], ['SV', [a.svNum, a.rayon].filter(Boolean).join(' - ')], ['GA', a.ga], ['SGA', a.sga], ['SSGA', a.ssga]]
+      .map(function(x){ return '<div><div class="lb">' + x[0] + '</div><div class="v" title="' + esc(x[1] || '') + '">' + esc(x[1] || '—') + '</div></div>'; }).join('') + '</div></div>';
   return '<div class="run">Fiche article</div>' +
-    '<div class="eyebrow">' + esc([a.secteur, a.rayon].filter(Boolean).join(' · ') || 'Article') + '</div>' +
+    '<div class="tete"><div class="eyebrow">' + esc([a.secteur, a.rayon].filter(Boolean).join(' · ') || 'Article') + '</div>' +
     '<h2 class="titre">' + champ('libelle') + '</h2>' +
     '<div class="ids">' +
       '<div class="id"><div class="lb">MGB 12</div><div class="v">' + a.mgb + '</div></div>' +
@@ -700,22 +785,21 @@ function page1(){
       '<div class="id"><div class="lb">EAN</div><div class="v">' + champ('ean') + '</div></div>' +
     '</div>' +
     '<div class="badges"><span class="bd ' + st[1] + '">' + st[0] + '</span>' +
-      (a.saNum ? '<span class="bd">SA ' + esc(a.saNum) + '</span>' : '') +
-      (a.ga ? '<span class="bd">GA ' + esc(a.ga) + '</span>' : '') +
       (a.abc ? '<span class="bd">Classe ' + esc(a.abc) + '</span>' : '') +
       (a.icpe ? '<span class="bd r">ICPE ' + esc(a.icpe) + '</span>' : '') +
       (a.codeBlocage && a.codeBlocage !== '0' ? '<span class="bd o">Blocage ' + esc(a.codeBlocage) + '</span>' : '') +
-    '</div>' +
+    '</div></div>' +
     '<div class="hero"><div><div class="lb">Prix unitaire</div><div class="p">' + champ('prix') + '<small>/ ' + esc(a.unite || 'unité') + '</small></div></div>' +
-      '<div class="dt">' + (a.prixDate ? 'au ' + fr(a.prixDate) + '<br>' : '') + esc(a.prixSource || '') + '</div></div>' +
+      '<div class="dt">' + (a.prixDate ? 'au ' + fr(a.prixDate) + '<br>' : '') + esc(a.prixSource || '') + '</div>' +
+      '<div class="sub"><span>Prix à la pièce <b>' + (a.prixPiece != null ? px(a.prixPiece) + ' €' : '—') + '</b></span>' +
+        '<span>Précédent <b>' + (a.prixPrec != null ? px(a.prixPrec) + ' €' : '—') + '</b>' + (a.prixPrecDate ? ' (' + fr(a.prixPrecDate) + ')' : '') + '</span>' +
+        (q != null && a.prix != null ? '<span>Valeur du stock <b>' + eur(q * a.prix) + '</b></span>' : '') + '</div></div>' +
     '<div class="tiles">' +
-      '<div class="tile"><div class="lb">Unité</div><div class="v">' + champ('unite') + '</div></div>' +
-      '<div class="tile"><div class="lb">Colis / couche</div><div class="v">' + champ('colisCouche') + '</div></div>' +
-      '<div class="tile"><div class="lb">Colis / palette</div><div class="v">' + champ('colisPalette') + '</div></div>' +
-      '<div class="tile"><div class="lb">DLV</div><div class="v">' + champ('dlv') + (vide(a.dlv) ? '' : ' <small style="font-size:12px;color:var(--mut)">j</small>') + '</div></div>' +
-      '<div class="tile"><div class="lb">Emballage</div><div class="v" style="font-size:15px">' + champ('emballage') + '<br><span style="font-size:13px;color:var(--mut);font-weight:500">' + champ('tailleEmballage') + '</span></div></div>' +
-      '<div class="tile"><div class="lb">En stock</div><div class="v">' + (q == null ? '<span style="font-size:13px;color:var(--mut)">stock non disponible</span>' : nb(q) + ' <small style="font-size:12px;color:var(--mut)">' + s.length + ' pos.</small>') + '</div></div>' +
+      '<div class="tile"><div class="lb">Unité</div><div class="v">' + champ('unite') + '</div><div class="v2">' + (a.ccvm ? a.ccvm + ' pièce(s) / colis' : '') + '</div></div>' +
+      '<div class="tile"><div class="lb">DLV</div><div class="v">' + champ('dlv') + (vide(a.dlv) ? '' : '<small>jours</small>') + '</div></div>' +
+      '<div class="tile"><div class="lb">En stock</div><div class="v">' + (q == null ? '<span class="vide">—</span>' : nb(q) + '<small>' + sh.length + ' pos.</small>') + '</div></div>' +
     '</div>' +
+    stock + classe +
     '<div class="num">1</div>';
 }
 
@@ -734,30 +818,41 @@ function spec(lb, k, suffixe, calc){
 function page2(){
   var a = ART, couches = a.colisPalette && a.colisCouche ? Math.round(a.colisPalette / a.colisCouche * 10) / 10 : null;
   var poidsPal = a.poidsColis && a.colisPalette ? Math.round(a.poidsColis * a.colisPalette) : null;
-  var P = a.pictos || [];
+  var P = a.pictos || [], H = String(a.mentions || '').toUpperCase().match(/EUH\d{3}|H\d{3}/g) || [];
   var ico = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M9 14h6M9 17h4"/></svg>';
   var fic = FDSL[a.mgb] || FDSL[mgb12(String(a.mgb).slice(0,6) + '001001')] || '';
   var fds = /^https?:/i.test(a.fds || '') ? '<a class="fdsb" href="' + esc(a.fds) + '" target="_blank" rel="noopener">' + ico + 'Ouvrir la FDS</a>'
-          : fic ? '<button class="fdsb" data-fds="' + esc(fic) + '" style="border:0;cursor:pointer;font-family:inherit">' + ico + 'Ouvrir la FDS</button>' : '';
-  if(fic && vide(a.fds)) a.fds = fic.slice(4);
+          : fic ? '<button class="fdsb" data-fds="' + esc(fic) + '">' + ico + 'Ouvrir la FDS</button>' : '';
+  var dangereux = !vide(a.icpe) || P.length || H.length, cs = conseilStockage(a);
+  var codes = String(a.icpe || '').match(/\d{4}/g) || [];
+  var secu;
+  if(dangereux){
+    secu = '<div class="secu">' +
+      '<div class="bandeau"><div><div class="lb">Rubrique ICPE</div><div class="rub">' + champ('icpe') + '</div>' +
+        '<div class="rubl">' + esc(codes.map(function(c){ return RUBRIQUES[c] || ''; }).filter(Boolean).join(' · ')) + '</div></div>' + fds + '</div>' +
+      '<div class="corps">' +
+        '<div class="danger"><div class="pictos" data-k="pictos">' + (P.length ? P.map(function(c){ return '<div class="pc">' + picto(c, 64) + '<span>' + esc(SGH[c] ? SGH[c][0] : c) + '</span></div>'; }).join('') : '<span class="vide">pictogrammes à renseigner</span>') + '</div>' +
+          (H.length ? '<ul class="hphr">' + H.map(function(h){ return '<li><b>' + esc(h) + '</b><span>' + esc(HPHR[h] || '') + '</span></li>'; }).join('') + '</ul>'
+                    : '<span style="color:var(--mut);font-size:.85em">Mentions de danger : voir la FDS.</span>') + '</div>' +
+        (cs ? '<div class="conseils"><div class="cs or"><div class="lb">Rétention</div><div class="v">' + esc(cs.ret) + '</div><div class="d">' + esc(cs.retd) + '</div></div>' +
+                                     '<div class="cs"><div class="lb">Zone conseillée</div><div class="v">' + esc(cs.zone) + '</div><div class="d">' + esc(cs.zoned) + '</div></div></div>' : '') +
+      '</div></div>';
+  } else {
+    secu = '<div class="secu ok"><div class="bandeau"><div><div class="lb">Sécurité</div><div class="rub" style="font-size:1.3em;font-family:\'DM Sans\'">Aucune rubrique ICPE connue</div>' +
+      '<div class="rubl">Produit non classé dans le référentiel ICPE' + (fic ? '' : ' · aucune FDS dans GDS') + '</div></div>' + fds + '</div>' +
+      '<div class="corps"><div class="pictos" data-k="pictos"><span style="color:var(--mut);font-size:.85em">Aucun pictogramme</span></div></div></div>';
+  }
   return '<div class="run">Fiche logistique</div>' +
     '<div class="eyebrow">Logistique & sécurité</div>' +
-    '<div class="four"><div class="lb">Fournisseur</div><div class="nom">' + champ('fournisseur') + '</div><div class="n">N° ' + champ('fournisseurNum') + '</div></div>' +
+    '<div class="four"><div><div class="lb">Fournisseur</div><div class="nom">' + champ('fournisseur') + '</div></div><div class="n">N° ' + champ('fournisseurNum') + '</div></div>' +
     '<div class="logi">' +
       '<div class="pal">' + palette() + '<div class="emb">' + champ('emballage') + '</div><div class="embt">' + champ('tailleEmballage') + '</div></div>' +
       '<div class="specs">' +
-        spec('Poids colis', 'poidsColis', 'kg') + spec('Poids palette', null, 'kg', poidsPal == null ? null : nb(poidsPal)) +
-        spec('Colis / couche', 'colisCouche') + spec('Couches / palette', null, '', couches == null ? null : nb(couches)) +
-        spec('Colis / palette', 'colisPalette') + spec('Pièces / colis', 'ccvm') +
+        spec('Poids colis', 'poidsColis', 'kg') + spec('Poids palette', null, 'kg', poidsPal == null ? null : nb(poidsPal)) + spec('Pièces / colis', 'ccvm') +
+        spec('Colis / couche', 'colisCouche') + spec('Couches / pal.', null, '', couches == null ? null : nb(couches)) + spec('Colis / palette', 'colisPalette') +
       '</div>' +
     '</div>' +
-    '<div class="secu">' +
-      '<div class="sh"><div><div class="lb">Rubrique ICPE</div><div class="icpe">' + champ('icpe') + '</div></div>' + fds + '</div>' +
-      (a.mentions ? '<div class="mentions">' + esc(a.mentions) + '</div>' : '') +
-      '<div class="lb" style="margin-top:14px">Pictogrammes de danger</div>' +
-      '<div class="pictos" data-k="pictos">' + (P.length ? P.map(function(c){ return '<div class="pc">' + picto(c, 58) + '<span>' + esc(SGH[c] ? SGH[c][0] : c) + '</span></div>'; }).join('') : '<span class="vide">aucun pictogramme renseigné</span>') + '</div>' +
-      '<div class="lb" style="margin-top:12px">Fichier FDS</div><div class="fdsn">' + champ('fds') + '</div>' +
-    '</div>' +
+    secu +
     '<div class="num">2</div>';
 }
 function page3c(){
@@ -765,7 +860,7 @@ function page3c(){
     '<div class="sec"><h3>Classification</h3><div class="rows">' + ['saNum','secteur','svNum','rayon'].map(function(k){ return ligne(k); }).join('') + ligne('ga', 1) + ligne('sga', 1) + ligne('ssga', 1) + '</div></div>' +
     '<div class="sec"><h3>Conditionnement</h3><div class="rows">' + ['unite','ccaf','ccvm','umc','abc','mgb6'].map(function(k){ return ligne(k); }).join('') + '</div></div>' +
     '<div class="sec"><h3>Prix</h3><div class="rows">' + ['prix','prixDate','prixPiece','prixSource','prixPrec','prixPrecDate'].map(function(k){ return ligne(k); }).join('') + '</div></div>' +
-    '<div class="sec"><h3>Suivi</h3><div class="rows">' + ['codeBlocage','activation','creeLe','ajouteLe','majLe'].map(function(k){ return ligne(k); }).join('') + '</div></div>' +
+    '<div class="sec"><h3>Suivi</h3><div class="rows">' + ['codeBlocage','activation','creeLe','ajouteLe','majLe'].map(function(k){ return ligne(k); }).join('') + ligne('fds', 1) + '</div></div>' +
     '<div class="num">3</div>';
 }
 function page6(){
@@ -807,7 +902,7 @@ function htmlPage(i){
   var h = RENDUS[i](), num = '', run = '';
   h = h.replace(/<div class="num">(\d+)<\/div>/, function(_, n){ num = n; return ''; })
        .replace(/<div class="run">([\s\S]*?)<\/div>/, function(_, r){ run = r; return ''; });
-  return '<div class="run">' + run + '</div><div class="in">' + h + '</div><div class="num">' + num + '</div>';
+  return '<div class="run">' + run + '</div><div class="in"><div class="pb">' + h + '</div></div><div class="num">' + num + '</div>';
 }
 function double(){ return window.matchMedia('(min-width:961px)').matches; }
 var NB = RENDUS.length, POS = 0, ANIM = false;           // POS = page de gauche affichée (paire en double page)
