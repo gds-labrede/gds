@@ -58,7 +58,7 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
 /* ══ LISTE ══ */
 .liste{background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;
   box-shadow:0 1px 2px rgba(20,32,60,.05)}
-.ligne{display:grid;grid-template-columns:130px 1fr 190px 160px;gap:14px;align-items:center;
+.ligne{display:grid;grid-template-columns:130px 1fr 104px 150px 160px;gap:14px;align-items:center;
   padding:11px 16px;border-top:1px solid var(--border);font-size:13px}
 .ligne:first-child{border-top:none}
 .ligne.tete{background:#f7f9fc;font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:1.4px;
@@ -68,6 +68,18 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
 .lib{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .meta{font-family:'DM Mono',monospace;font-size:10.5px;color:var(--text-low)}
 .act{display:flex;gap:6px;justify-content:flex-end}
+
+/* ══ RUBRIQUE ICPE ══ */
+.icpe{display:inline-flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:11px;
+  font-weight:500;padding:4px 8px;border-radius:6px;background:#f2f5fa;color:var(--text-mid);
+  border:1px solid var(--border);cursor:help;white-space:nowrap}
+.icpe.dur{background:#fdf1ea;color:#a9530f;border-color:#f3d7c3}
+.icpe.ecart{background:#fdeaea;color:var(--rouge);border-color:#f2c2c2}
+.icpe.rien{background:transparent;border-color:transparent;color:var(--text-low);font-size:10.5px}
+.lect-icpe{display:flex;gap:7px;flex-wrap:wrap;margin-top:6px}
+.lect-icpe .puce{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.6px;padding:3px 7px;
+  border-radius:5px;background:#f2f5fa;border:1px solid var(--border);color:var(--text-mid)}
+.lect-icpe .puce.fort{background:#fdf1ea;border-color:#f3d7c3;color:#a9530f}
 
 .ouvrir{display:inline-flex;align-items:center;gap:7px;border:none;cursor:pointer;
   padding:7px 13px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;
@@ -167,7 +179,7 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
   .bar{padding:0 16px}
   .page{padding:22px 16px 44px}
   .ligne,.l2{grid-template-columns:1fr auto}
-  .ligne .mgb,.ligne .meta{display:none}
+  .ligne .mgb,.ligne .meta,.ligne .icpe{display:none}
   .ligne.tete{display:none}
 }
 </style>
@@ -211,6 +223,12 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
       <input type="file" id="dossier" webkitdirectory directory multiple style="display:none">
     </div>
 
+    <div class="zone" style="padding:18px" onclick="document.getElementById('f-icpe').click()">
+      <div class="zone-t">Mettre à jour les rubriques ICPE</div>
+      <div class="zone-s" id="etat-icpe">Dépose <b>fds_icpe.json</b>, produit par le téléchargeur de FDS.</div>
+      <input type="file" id="f-icpe" accept=".json,application/json" style="display:none">
+    </div>
+
     <div id="apres" style="display:none">
       <div class="bilan">
         <div class="bil envoi"><div class="bil-v" id="n-envoi">0</div><div class="bil-l">À envoyer</div></div>
@@ -236,6 +254,7 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
       <div class="lect-t">
         <div class="lect-nom" id="l-nom">—</div>
         <div class="lect-mgb" id="l-mgb">—</div>
+        <div class="lect-icpe" id="l-icpe"></div>
       </div>
       <button class="mini" id="l-tel">Télécharger</button>
       <button class="mini" onclick="fermerLecteur()">Fermer</button>
@@ -350,19 +369,74 @@ async function chargerFiches(){
   fiches.sort(function(a, b){ return a.libelle.localeCompare(b.libelle, 'fr'); });
 }
 
+/* ══════════ RUBRIQUES ICPE ══════════
+   Le téléchargeur de FDS produit fds_icpe.json : la rubrique déduite de
+   chaque fiche. On le lit une fois, on l'indexe par MGB. Son absence
+   n'empêche rien : la bibliothèque fonctionne sans. */
+var ICPE = {}, icpeDate = '';
+
+function clefsMGB(m){
+  var c = String(m || '').replace(/\D/g, '');
+  if(!c) return [];
+  return [c, c.padStart(12, '0'), c.replace(/^0+/, '')];
+}
+
+async function chargerIcpe(){
+  try {
+    var r = await fetch(API + '/archive/' + encodeURIComponent(DOSSIER + 'fds_icpe.json'), { headers: auth() });
+    if(!r.ok) return;
+    var d = await r.json();
+    icpeDate = d.genere || '';
+    ICPE = {};
+    Object.keys(d.fiches || {}).forEach(function(m){
+      clefsMGB(m).forEach(function(c){ ICPE[c] = d.fiches[m]; });
+    });
+  } catch(e){ /* pas de fichier : la bibliothèque s'affiche sans les rubriques */ }
+}
+
+function icpeDe(mgb){
+  var c = clefsMGB(mgb);
+  for(var i = 0; i < c.length; i++) if(ICPE[c[i]]) return ICPE[c[i]];
+  return null;
+}
+
+/* Une pastille par fiche : la rubrique, ou un tiret si elle n'a pas été analysée. */
+function pastilleIcpe(f){
+  var i = icpeDe(f.mgb);
+  var s = document.createElement('span');
+  if(!i || !i.rubrique || i.rubrique === '?'){
+    s.className = 'icpe rien';
+    s.textContent = i ? '?' : '—';
+    s.title = i ? (i.justification || 'Aucune rubrique déduite : ouvrir la fiche')
+                : 'Fiche pas encore analysée';
+    return s;
+  }
+  var ecart = (i.controle || '').indexOf('Écart') === 0;
+  s.className = 'icpe' + (ecart ? ' ecart' : ' dur');
+  s.textContent = i.rubrique;
+  s.title = [i.justification, i.mentions ? 'Mentions : ' + i.mentions : '',
+             i.controle ? 'Contrôle : ' + i.controle : ''].filter(Boolean).join('\n');
+  return s;
+}
+
 var ICO = '<svg viewBox="0 0 24 24"><path d="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm7 1.5V9h5.5zM11 11v5h2v-5zm0 6.5v2h2v-2z"/></svg>';
 
 function accroche(){
   var total = fiches.reduce(function(s, f){ return s + f.taille; }, 0);
   document.getElementById('accroche').textContent =
     fiches.length + ' fiche' + (fiches.length > 1 ? 's' : '') + ' dans l\'archive · ' + poids(total) +
+    (icpeDate ? ' · rubriques ICPE du ' + icpeDate : '') +
     (peutDeposer ? ' · déposez un dossier complet depuis l\'onglet Dépôt en lot.' : '');
 }
 
 function filtrees(){
   var q = document.getElementById('rech').value.trim().toLowerCase();
   return fiches.filter(function(f){
-    return !q || f.mgb.indexOf(q) !== -1 || f.libelle.toLowerCase().indexOf(q) !== -1;
+    if(!q) return true;
+    var i = icpeDe(f.mgb);
+    return f.mgb.indexOf(q) !== -1 || f.libelle.toLowerCase().indexOf(q) !== -1 ||
+           (i && ((i.rubrique || '').indexOf(q) !== -1 ||
+                  (i.mentions || '').toLowerCase().indexOf(q) !== -1));
   });
 }
 
@@ -387,12 +461,15 @@ function afficher(){
   }
 
   zone.innerHTML = '<div class="ligne tete"><span>MGB</span><span>Désignation</span>' +
-                   '<span>Déposée le</span><span style="text-align:right">Fiche</span></div>';
+                   '<span>ICPE</span><span>Déposée le</span>' +
+                   '<span style="text-align:right">Fiche</span></div>';
 
   l.slice(0, MAX_LIGNES).forEach(function(f){
     var d = document.createElement('div');
     d.className = 'ligne';
-    d.innerHTML = '<span class="mgb"></span><span class="lib"></span><span class="meta"></span><span class="act"></span>';
+    d.innerHTML = '<span class="mgb"></span><span class="lib"></span><span class="cl-icpe"></span>' +
+                  '<span class="meta"></span><span class="act"></span>';
+    d.querySelector('.cl-icpe').appendChild(pastilleIcpe(f));
     d.querySelector('.mgb').textContent = f.mgb;
     d.querySelector('.lib').textContent = f.libelle;
     d.querySelector('.lib').title       = f.libelle;
@@ -485,9 +562,31 @@ async function toutTelecharger(){
 /* ══════════ LECTEUR ══════════ */
 var urlCourante = null;
 
+function bandeauIcpe(mgb){
+  var z = document.getElementById('l-icpe');
+  z.innerHTML = '';
+  var i = icpeDe(mgb);
+  if(!i) return;
+  [['Rubrique ICPE ' + (i.rubrique || '?'), true],
+   [i.mentions, false], [i.pictos, false],
+   [i.eclair ? 'Point d\'éclair ' + i.eclair : '', false],
+   [i.onu ? 'ONU ' + i.onu : '', false],
+   [i.revision ? 'Révision ' + i.revision : '', false],
+   [i.controle, (i.controle || '').indexOf('Écart') === 0]
+  ].forEach(function(p){
+    if(!p[0]) return;
+    var e = document.createElement('span');
+    e.className = 'puce' + (p[1] ? ' fort' : '');
+    e.textContent = p[0];
+    z.appendChild(e);
+  });
+  if(i.justification) z.title = i.justification;
+}
+
 async function ouvrir(f){
   document.getElementById('l-nom').textContent = f.libelle;
   document.getElementById('l-mgb').textContent = 'MGB ' + f.mgb;
+  bandeauIcpe(f.mgb);
   document.getElementById('l-attente').style.display = 'flex';
   document.getElementById('l-attente').textContent = 'Ouverture de la fiche…';
   document.getElementById('l-cadre').style.display = 'none';
@@ -539,6 +638,34 @@ async function supprimer(f, bouton){
     dire('Suppression impossible', 'err');
   }
 }
+
+/* ══════════ DÉPÔT DU FICHIER ICPE ══════════ */
+document.getElementById('f-icpe').addEventListener('change', async function(e){
+  var f = e.target.files[0];
+  e.target.value = '';
+  if(!f) return;
+  var etat = document.getElementById('etat-icpe');
+  etat.textContent = 'Envoi…';
+  try {
+    var texte = await f.text();
+    var d = JSON.parse(texte);                       /* refuse un fichier qui n'est pas le bon */
+    if(!d.fiches) throw new Error('fichier inattendu');
+    var r = await fetch(API + '/archive/' + encodeURIComponent(DOSSIER + 'fds_icpe.json'), {
+      method:'POST', headers: auth({ 'Content-Type':'application/json' }), body: texte
+    });
+    if(refus(r)) throw new Error('refus');
+    if(!r.ok) throw new Error('envoi');
+    await chargerIcpe();
+    accroche(); afficher();
+    var n = Object.keys(d.fiches).length;
+    etat.textContent = n + ' rubrique(s) chargée(s) · ' + (d.genere || '');
+    dire('Rubriques ICPE mises à jour', 'ok');
+  } catch(err){
+    etat.textContent = 'Échec : ' + (err.message === 'fichier inattendu'
+      ? 'ce n\'est pas fds_icpe.json' : 'envoi impossible');
+    dire('Mise à jour impossible', 'err');
+  }
+});
 
 /* ══════════ DÉPÔT EN LOT ══════════ */
 var lot = [];   /* { fichier, mgb, libelle, etat, existant } */
@@ -695,6 +822,7 @@ async function envoyerLot(){
               : faits + ' fiches envoyées', echecs ? 'err' : 'ok');
 
   await chargerFiches();
+  await chargerIcpe();
   accroche(); afficher();
   lot.forEach(function(x){ if(x.etat === 'envoi') x.etat = 'ajour'; });
   majBilan();
@@ -704,6 +832,7 @@ async function envoyerLot(){
 (async function(){
   try {
     await chargerFiches();
+    await chargerIcpe();
     accroche(); afficher();
   } catch(e){
     document.getElementById('accroche').textContent =
