@@ -243,7 +243,7 @@ td.n{text-align:right;font-family:'DM Mono'} td.m{font-family:'DM Mono'}
   <div class="hr">
     <span class="etat" id="etat"></span>
     <button class="hb" id="hRel" title="Relire la base, le stock et les FDS dans GDS">Actualiser</button>
-    <span class="ver">v8</span>
+    <span class="ver">v10</span>
   </div>
 </header>
 <div id="accueil" class="cover">
@@ -344,7 +344,7 @@ async function lire(k){ var d = await idb(); if(!d) return null; return new Prom
 async function ecrire(k, v){ var d = await idb(); if(!d) return false; return new Promise(function(ok){ var t = d.transaction('k','readwrite'); t.objectStore('k').put(v, k); t.oncomplete = function(){ ok(true); }; t.onerror = function(){ ok(false); }; }); }
 
 /* ----- chargement base + saisies + ICPE ----- */
-var BASE = null, SAISIES = {version:1, champs:{}, historique:[]}, ICPE = {}, REFS = {}, REFS6 = {}, ICPE_INFO = {}, FDSL = {}, ATTENTE = [], PILE = [];
+var BASE = null, SAISIES = {version:1, champs:{}, historique:[]}, ICPE = {}, ICPE6 = {}, REFS = {}, REFS6 = {}, ICPE_INFO = {}, FDSL = {}, ATTENTE = [], PILE = [];
 async function chargerBase(){
   var L = await listeArchive(DOSSIER);
   var fb = L.filter(function(f){ return f.nom === F_BASE; })[0];
@@ -413,12 +413,46 @@ async function chargerSecurite(){
     var fi = L2.filter(function(f){ return f.nom === 'FDS/fds_icpe.json'; })[0], j = null, c = await lire('icpe');
     if(fi && c && c.date === fi.date) j = c.json;
     else if(fi){ var b = await lireArchive('FDS/fds_icpe.json'); j = JSON.parse(new TextDecoder().decode(b)); await ecrire('icpe', {date:fi.date, json:j}); }
-    ICPE = {};
-    if(j && j.fiches) Object.keys(j.fiches).forEach(function(m){ ICPE[mgb12(m)] = j.fiches[m]; });
+    ICPE = {}; ICPE6 = {};
+    if(j && j.fiches) Object.keys(j.fiches).forEach(function(m){ var k = mgb12(m); ICPE[k] = j.fiches[m]; if(!ICPE6[k.slice(0,6)]) ICPE6[k.slice(0,6)] = j.fiches[m]; });
     ICPE_INFO.fds = Object.keys(ICPE).length;
   } catch(e){}
 }
 
+
+/* ----- pictogrammes : FDS, sinon déduits des mentions H (règlement CLP), sinon de la rubrique ICPE ----- */
+function pictosDesMentions(txt){
+  var H = String(txt || '').toUpperCase().match(/EUH\d{3}|H\d{3}/g) || [], P = {};
+  var n = function(h){ return +h.slice(1); };
+  H.forEach(function(h){
+    if(/^EUH/.test(h)) return;
+    var x = n(h);
+    if(x >= 200 && x <= 205) P.SGH01 = 1;
+    if(x === 240 || x === 241) { P.SGH01 = 1; P.SGH02 = 1; }
+    if([220,221,222,223,224,225,226,228,242,250,251,252,260,261].indexOf(x) >= 0) P.SGH02 = 1;
+    if(x >= 270 && x <= 272) P.SGH03 = 1;
+    if(x === 280 || x === 281) P.SGH04 = 1;
+    if(x === 290 || x === 314 || x === 318) P.SGH05 = 1;
+    if([300,301,310,311,330,331].indexOf(x) >= 0) P.SGH06 = 1;
+    if([302,312,315,317,319,332,335,336].indexOf(x) >= 0) P.SGH07 = 1;
+    if([304,334,340,341,350,351,360,361,362,370,371,372,373].indexOf(x) >= 0) P.SGH08 = 1;
+    if(x === 400 || x === 410 || x === 411) P.SGH09 = 1;
+  });
+  if(P.SGH06) delete P.SGH07;
+  if(P.SGH05 && !H.some(function(h){ return /^H(302|312|317|332|335|336)$/.test(h); })) delete P.SGH07;
+  return Object.keys(P).sort();
+}
+function pictosDeLaRubrique(r){
+  var P = {};
+  (String(r || '').match(/\d{4}/g) || []).forEach(function(c){
+    if(['4330','4331','4320','4321','4755'].indexOf(c) >= 0) P.SGH02 = 1;
+    if(c === '4718'){ P.SGH02 = 1; P.SGH04 = 1; }
+    if(c === '4441') P.SGH03 = 1;
+    if(c === '1630') P.SGH05 = 1;
+    if(['4510','4511','4741'].indexOf(c) >= 0) P.SGH09 = 1;
+  });
+  return Object.keys(P).sort();
+}
 /* ----- vue d'un article : base + ICPE des FDS + saisies manuelles ----- */
 function vide(v){ return v == null || v === '' || (Array.isArray(v) && !v.length) || (typeof v === 'number' && isNaN(v)); }
 function egal(a, b){
@@ -426,7 +460,7 @@ function egal(a, b){
   return (vide(a) && vide(b)) || a === b;
 }
 function fusion(m){
-  var b = BASE.articles[m] || {mgb:m}, a = Object.assign({}, b), C = SAISIES.champs[m] || {}, i = ICPE[m];
+  var b = BASE.articles[m] || {mgb:m}, a = Object.assign({}, b), C = SAISIES.champs[m] || {}, i = ICPE[m] || ICPE6[String(m).slice(0,6)];
   a._corr = {}; a._src = {};
   var ref = REFS[m] || REFS6[String(m).slice(0,6)];
   if(ref){ a.icpe = ref; a._src.icpe = 'réf. ICPE'; }
@@ -435,6 +469,11 @@ function fusion(m){
     var p = String(i.pictos || '').match(/SGH0?\d/gi);
     if(p && p.length){ a.pictos = p.map(function(x){ return 'SGH0' + x.slice(-1); }); a._src.pictos = 'FDS'; }
     if(i.mentions) a.mentions = i.mentions;
+  }
+  if(!a.pictos || !a.pictos.length){
+    var pd = pictosDesMentions(a.mentions);
+    if(pd.length){ a.pictos = pd; a._src.pictos = 'mentions H'; }
+    else { pd = pictosDeLaRubrique(a.icpe); if(pd.length){ a.pictos = pd; a._src.pictos = 'rubrique'; } }
   }
   if(!a.fds && FDSL[m]) { a.fds = FDSL[m].slice(4); a._src.fds = 'archive'; }
   Object.keys(C).forEach(function(k){
@@ -526,7 +565,7 @@ var CH = {
   emballage:['Emballage','s',['Europe (EPAL)','Logipal','CHEP','Palette perdue','Demi-palette','Quart de palette','Rolls','Bac plastique','Carton seul']],
   tailleEmballage:['Taille emballage','s',['80 × 120','100 × 120','60 × 80','40 × 60','120 × 120']],
   poidsColis:['Poids colis (kg)','n'], pictos:['Pictogrammes de danger','p'], fds:['Fiche FDS','u'],
-  colisCouche:['Colis / couche','n'], colisPalette:['Colis / palette','n'], dlv:['DLV (jours)','n'], abc:['Classe ABC','t'],
+  colisCouche:['Colis / couche','n'], colisPalette:['Colis / palette','n'], dlv:['DLV (jours)','n'], typeDate:['Type de date','s',['DLC','DDM']], abc:['Classe ABC','t'],
   prix:['Prix unitaire','n'], prixDate:['Date du prix','d'], prixSource:['Source du prix','t'], prixPiece:['Prix à la pièce','n'],
   prixPrec:['Prix précédent','n'], prixPrecDate:['Date prix précédent','d'],
   icpe:['Rubrique ICPE','t'], activation:['Article activé','b'], codeBlocage:['Code blocage','t'],
@@ -763,15 +802,28 @@ function secteurAllee(pos, zone){
   if(n >= 50 && n <= 57) return 'La Marée';
   return /IN|UNLOADING/i.test(String(pos) + String(zone)) ? 'Quai' : String(zone || '').replace(/_/g,' ').toLowerCase();
 }
+function joursRestants(d){
+  var m = String(d || '').match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/); if(!m) return null;
+  var t = new Date(+m[3], +m[2]-1, +m[1]), a = new Date(); a.setHours(0,0,0,0);
+  return Math.round((t - a) / 864e5);
+}
+function dateCourte(d, j){
+  if(j == null) return esc(d || '');
+  var c = j < 0 ? 'var(--err)' : j <= 7 ? 'var(--err)' : j <= 30 ? 'var(--warn)' : 'var(--ok)';
+  return esc(d) + ' <span style="color:' + c + ';font-size:.85em;font-weight:600">' + (j < 0 ? 'dépassée' : 'J-' + j) + '</span>';
+}
+function libDate(a){ return a.typeDate || 'DLC / DDM'; }
 function stockArt(){ return STOCK ? (STOCK[ART.mgb] || []) : null; }
 
 function page1(){
   var a = ART, st = {actif:['Actif','g'], nouveau:['Nouveau','b'], completer:['À compléter','o'], inactif:['Inactif','gr']}[a.statut] || ['—','gr'];
   var s = stockArt(), sh = s ? s.filter(function(x){ return !/INSPECTION/i.test(x.loc); }) : null, q = sh ? sh.reduce(function(t, x){ return t + x.q; }, 0) : null;
+  var proche = (sh || []).map(function(x){ return {dlc:x.dlc, j:joursRestants(x.dlc)}; }).filter(function(x){ return x.j != null; }).sort(function(x, y){ return x.j - y.j; })[0];
   var stock = '<div class="bloc"><h4>Stock du jour <span>' + (STOCK ? 'StockStatus du ' + fr(STOCK_DATE) : 'non disponible') + '</span></h4>' +
     (!sh ? '<span class="vide">StockStatus absent de GDS</span>' : !sh.length ? '<span style="color:var(--mut);font-size:.9em">Aucun stock</span>' :
-      '<table class="mini">' + sh.slice().sort(function(x, y){ return String(x.pos) < String(y.pos) ? -1 : 1; }).slice(0, 4).map(function(x){
-        return '<tr><td class="m">' + esc(x.pos) + '</td><td>' + esc(secteurAllee(x.pos, x.zone)) + '</td><td>' + esc(x.dlc) + '</td><td class="n">' + nb(x.q) + '</td></tr>'; }).join('') +
+      '<table class="mini"><tr><td class="lb">Emplacement</td><td class="lb">Secteur</td><td class="lb">' + esc(libDate(a)) + '</td><td class="lb" style="text-align:right">Qté</td></tr>' +
+      sh.slice().sort(function(x, y){ var a1 = joursRestants(x.dlc), b1 = joursRestants(y.dlc); return (a1 == null ? 1e9 : a1) - (b1 == null ? 1e9 : b1); }).slice(0, 4).map(function(x){
+        return '<tr><td class="m">' + esc(x.pos) + '</td><td>' + esc(secteurAllee(x.pos, x.zone)) + '</td><td>' + dateCourte(x.dlc, joursRestants(x.dlc)) + '</td><td class="n">' + nb(x.q) + '</td></tr>'; }).join('') +
       (sh.length > 4 ? '<tr><td colspan="4" style="color:var(--mut)">+ ' + (sh.length - 4) + ' autre(s) emplacement(s) · page 4</td></tr>' : '') + '</table>') + '</div>';
   var classe = '<div class="bloc bas"><h4>Classement Metro</h4><div class="classe">' +
     [['SA', [a.saNum, a.secteur].filter(Boolean).join(' - ')], ['SV', [a.svNum, a.rayon].filter(Boolean).join(' - ')], ['GA', a.ga], ['SGA', a.sga], ['SSGA', a.ssga]]
@@ -796,7 +848,8 @@ function page1(){
         (q != null && a.prix != null ? '<span>Valeur du stock <b>' + eur(q * a.prix) + '</b></span>' : '') + '</div></div>' +
     '<div class="tiles">' +
       '<div class="tile"><div class="lb">Unité</div><div class="v">' + champ('unite') + '</div><div class="v2">' + (a.ccvm ? a.ccvm + ' pièce(s) / colis' : '') + '</div></div>' +
-      '<div class="tile"><div class="lb">DLV</div><div class="v">' + champ('dlv') + (vide(a.dlv) ? '' : '<small>jours</small>') + '</div></div>' +
+      '<div class="tile"><div class="lb">' + champ('typeDate') + ' · durée de vie</div><div class="v">' + champ('dlv') + (vide(a.dlv) ? '' : '<small>jours</small>') + '</div>' +
+        '<div class="v2">' + (proche ? 'Plus proche en stock : ' + dateCourte(proche.dlc, proche.j) : 'Aucune date en stock') + '</div></div>' +
       '<div class="tile"><div class="lb">En stock</div><div class="v">' + (q == null ? '<span class="vide">—</span>' : nb(q) + '<small>' + sh.length + ' pos.</small>') + '</div></div>' +
     '</div>' +
     stock + classe +
@@ -823,7 +876,7 @@ function page2(){
   var fic = FDSL[a.mgb] || FDSL[mgb12(String(a.mgb).slice(0,6) + '001001')] || '';
   var fds = /^https?:/i.test(a.fds || '') ? '<a class="fdsb" href="' + esc(a.fds) + '" target="_blank" rel="noopener">' + ico + 'Ouvrir la FDS</a>'
           : fic ? '<button class="fdsb" data-fds="' + esc(fic) + '">' + ico + 'Ouvrir la FDS</button>' : '';
-  var dangereux = !vide(a.icpe) || P.length || H.length, cs = conseilStockage(a);
+  var dangereux = (String(a.icpe || '').match(/\d{4}/g) || []).some(function(c){ return c !== '1510'; }) || P.length || H.length, cs = conseilStockage(a);
   var codes = String(a.icpe || '').match(/\d{4}/g) || [];
   var secu;
   if(dangereux){
@@ -831,7 +884,7 @@ function page2(){
       '<div class="bandeau"><div><div class="lb">Rubrique ICPE</div><div class="rub">' + champ('icpe') + '</div>' +
         '<div class="rubl">' + esc(codes.map(function(c){ return RUBRIQUES[c] || ''; }).filter(Boolean).join(' · ')) + '</div></div>' + fds + '</div>' +
       '<div class="corps">' +
-        '<div class="danger"><div class="pictos" data-k="pictos">' + (P.length ? P.map(function(c){ return '<div class="pc">' + picto(c, 64) + '<span>' + esc(SGH[c] ? SGH[c][0] : c) + '</span></div>'; }).join('') : '<span class="vide">pictogrammes à renseigner</span>') + '</div>' +
+        '<div class="danger"><div class="pictos" data-k="pictos" title="' + (a._src.pictos ? 'Source : ' + a._src.pictos : 'Saisis à la main') + '">' + (P.length ? P.map(function(c){ return '<div class="pc">' + picto(c, 64) + '<span>' + esc(SGH[c] ? SGH[c][0] : c) + '</span></div>'; }).join('') : '<span class="vide">pictogrammes à renseigner</span>') + (P.length && a._src.pictos && a._src.pictos !== 'FDS' ? '<div style="width:100%;font-size:.62em;color:var(--mut)">déduits ' + (a._src.pictos === 'rubrique' ? 'de la rubrique ICPE' : 'des mentions H') + ' · à confirmer avec la FDS</div>' : '') + '</div>' +
           (H.length ? '<ul class="hphr">' + H.map(function(h){ return '<li><b>' + esc(h) + '</b><span>' + esc(HPHR[h] || '') + '</span></li>'; }).join('') + '</ul>'
                     : '<span style="color:var(--mut);font-size:.85em">Mentions de danger : voir la FDS.</span>') + '</div>' +
         (cs ? '<div class="conseils"><div class="cs or"><div class="lb">Rétention</div><div class="v">' + esc(cs.ret) + '</div><div class="d">' + esc(cs.retd) + '</div></div>' +
@@ -839,7 +892,7 @@ function page2(){
       '</div></div>';
   } else {
     secu = '<div class="secu ok"><div class="bandeau"><div><div class="lb">Sécurité</div><div class="rub" style="font-size:1.3em;font-family:\'DM Sans\'">Aucune rubrique ICPE connue</div>' +
-      '<div class="rubl">Produit non classé dans le référentiel ICPE' + (fic ? '' : ' · aucune FDS dans GDS') + '</div></div>' + fds + '</div>' +
+      '<div class="rubl">' + (a.icpe ? 'Rubrique ' + esc(a.icpe) + ' : entrepôt couvert, pas de danger particulier' : 'Produit non classé dans le référentiel ICPE') + (fic ? '' : ' · aucune FDS dans GDS') + '</div></div>' + fds + '</div>' +
       '<div class="corps"><div class="pictos" data-k="pictos"><span style="color:var(--mut);font-size:.85em">Aucun pictogramme</span></div></div></div>';
   }
   return '<div class="run">Fiche logistique</div>' +
@@ -858,7 +911,7 @@ function page2(){
 function page3c(){
   return '<div class="run">' + esc(ART.mgb) + '</div>' +
     '<div class="sec"><h3>Classification</h3><div class="rows">' + ['saNum','secteur','svNum','rayon'].map(function(k){ return ligne(k); }).join('') + ligne('ga', 1) + ligne('sga', 1) + ligne('ssga', 1) + '</div></div>' +
-    '<div class="sec"><h3>Conditionnement</h3><div class="rows">' + ['unite','ccaf','ccvm','umc','abc','mgb6'].map(function(k){ return ligne(k); }).join('') + '</div></div>' +
+    '<div class="sec"><h3>Conditionnement</h3><div class="rows">' + ['unite','ccaf','ccvm','umc','typeDate','dlv','abc','mgb6'].map(function(k){ return ligne(k); }).join('') + '</div></div>' +
     '<div class="sec"><h3>Prix</h3><div class="rows">' + ['prix','prixDate','prixPiece','prixSource','prixPrec','prixPrecDate'].map(function(k){ return ligne(k); }).join('') + '</div></div>' +
     '<div class="sec"><h3>Suivi</h3><div class="rows">' + ['codeBlocage','activation','creeLe','ajouteLe','majLe'].map(function(k){ return ligne(k); }).join('') + ligne('fds', 1) + '</div></div>' +
     '<div class="num">3</div>';
@@ -874,10 +927,10 @@ function page3(){
   h += '<p style="color:var(--mut);margin-top:0">StockStatus du ' + fr(STOCK_DATE) + '</p>';
   if(!s.length) return h + '<p>Aucun stock pour cet article.</p><div class="num">4</div>';
   var tq = 0;
-  h += '<table><thead><tr><th>Emplacement</th><th>Secteur</th><th>DLC</th><th style="text-align:right">Quantité</th><th style="text-align:right">Valeur</th></tr></thead><tbody>' +
+  h += '<table><thead><tr><th>Emplacement</th><th>Secteur</th><th>' + esc(libDate(ART)) + '</th><th style="text-align:right">Quantité</th><th style="text-align:right">Valeur</th></tr></thead><tbody>' +
     s.slice().sort(function(x, y){ return String(x.pos) < String(y.pos) ? -1 : 1; }).map(function(x){
       var ins = /INSPECTION/i.test(x.loc); if(!ins) tq += x.q;
-      return '<tr' + (ins ? ' style="color:var(--mut)"' : '') + '><td class="m">' + esc(x.pos) + '</td><td>' + esc(ins ? 'Litige' : secteurAllee(x.pos, x.zone)) + '</td><td>' + esc(x.dlc) + '</td><td class="n">' + nb(x.q) + '</td><td class="n">' + (ART.prix != null && !ins ? eur(x.q * ART.prix) : '') + '</td></tr>';
+      return '<tr' + (ins ? ' style="color:var(--mut)"' : '') + '><td class="m">' + esc(x.pos) + '</td><td>' + esc(ins ? 'Litige' : secteurAllee(x.pos, x.zone)) + '</td><td>' + dateCourte(x.dlc, joursRestants(x.dlc)) + '</td><td class="n">' + nb(x.q) + '</td><td class="n">' + (ART.prix != null && !ins ? eur(x.q * ART.prix) : '') + '</td></tr>';
     }).join('') +
     '<tr class="tot"><td colspan="3">Total hors litige</td><td class="n">' + nb(tq) + '</td><td class="n">' + (ART.prix != null ? eur(tq * ART.prix) : '') + '</td></tr></tbody></table>';
   return h + '<div class="num">4</div>';
