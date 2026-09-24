@@ -76,6 +76,35 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
 .icpe.dur{background:#fdf1ea;color:#a9530f;border-color:#f3d7c3}
 .icpe.ecart{background:#fdeaea;color:var(--rouge);border-color:#f2c2c2}
 .icpe.rien{background:transparent;border-color:transparent;color:var(--text-low);font-size:10.5px}
+.icpe.neant{background:transparent;border-color:transparent;color:var(--text-low);font-family:'DM Sans',sans-serif;font-size:11.5px}
+.icpe.doute{background:#fdf6e3;color:#8a6d1f;border-color:#efe0b8;font-weight:700}
+.boite{width:min(460px,100%);background:var(--white);border-radius:14px;overflow:hidden;
+  box-shadow:0 30px 70px -20px rgba(0,0,0,.55)}
+.boite-h{padding:16px 20px 13px;border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,#fff,#f7f9fc)}
+.boite-t{font-size:16px;font-weight:700;letter-spacing:-.3px}
+.boite-s{font-size:12.5px;color:var(--text-mid);margin-top:3px}
+.boite-c{padding:18px 20px;display:flex;flex-direction:column;gap:13px}
+.boite-p{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;
+  background:#fbfcfe}
+.champ{display:flex;flex-direction:column;gap:5px}
+.champ label{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:1.3px;
+  text-transform:uppercase;color:var(--text-low)}
+.champ input{padding:10px 12px;border:1px solid var(--border);border-radius:9px;background:var(--white);
+  font-family:'DM Sans',sans-serif;font-size:13.5px;color:var(--text);outline:none;transition:border-color .18s}
+.champ input:focus{border-color:var(--navy)}
+.champ input.mono{font-family:'DM Mono',monospace;letter-spacing:.5px}
+.champ .aide{font-size:11.5px;color:var(--text-low)}
+.champ .err{font-size:11.5px;color:var(--rouge);display:none}
+.champ.faux input{border-color:var(--rouge)}
+.champ.faux .err{display:block}
+.valider{border:1px solid rgba(255,255,255,.16);border-radius:9px;padding:10px 18px;cursor:pointer;
+  background:linear-gradient(180deg,#2a4576,var(--navy));color:#fff;
+  font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;
+  box-shadow:0 8px 18px -12px rgba(26,46,85,.9),inset 0 1px 0 rgba(255,255,255,.25)}
+.valider:hover{filter:brightness(1.12)}
+.valider.danger{background:linear-gradient(180deg,#d45c55,var(--rouge))}
+
 .lect-icpe{display:flex;gap:7px;flex-wrap:wrap;margin-top:6px}
 .lect-icpe .puce{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.6px;padding:3px 7px;
   border-radius:5px;background:#f2f5fa;border:1px solid var(--border);color:var(--text-mid)}
@@ -223,6 +252,17 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
       <input type="file" id="dossier" webkitdirectory directory multiple style="display:none">
     </div>
 
+    <div class="zone" style="padding:18px" id="zone-cle" onclick="changerCode()">
+      <div class="zone-t">Code de suppression</div>
+      <div class="zone-s" id="etat-cle">—</div>
+    </div>
+
+    <div class="zone" style="padding:18px" onclick="document.getElementById('f-ajout').click()">
+      <div class="zone-t">Ajouter une fiche trouvée ailleurs</div>
+      <div class="zone-s">Un PDF récupéré chez le fabricant ou sur Quick-FDS. Tu saisis le MGB et la désignation.</div>
+      <input type="file" id="f-ajout" accept=".pdf,application/pdf" style="display:none">
+    </div>
+
     <div class="zone" style="padding:18px" onclick="document.getElementById('f-icpe').click()">
       <div class="zone-t">Mettre à jour les rubriques ICPE</div>
       <div class="zone-s" id="etat-icpe">Dépose <b>fds_icpe.json</b>, produit par le téléchargeur de FDS.</div>
@@ -256,11 +296,28 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
         <div class="lect-mgb" id="l-mgb">—</div>
         <div class="lect-icpe" id="l-icpe"></div>
       </div>
+      <button class="mini" id="l-icpe-b" style="display:none">Rubrique ICPE</button>
+      <button class="mini" id="l-remp" style="display:none">Remplacer le PDF</button>
       <button class="mini" id="l-tel">Télécharger</button>
       <button class="mini" onclick="fermerLecteur()">Fermer</button>
+      <input type="file" id="f-remp" accept=".pdf,application/pdf" style="display:none">
     </div>
     <div class="lect-attente" id="l-attente">Ouverture de la fiche…</div>
     <iframe id="l-cadre" title="Fiche de données de sécurité" style="display:none"></iframe>
+  </div>
+</div>
+
+<div class="voile" id="voile-form" onclick="if(event.target===this) fermerForm()">
+  <div class="boite">
+    <div class="boite-h">
+      <div class="boite-t" id="form-t">—</div>
+      <div class="boite-s" id="form-s"></div>
+    </div>
+    <div class="boite-c" id="form-c"></div>
+    <div class="boite-p">
+      <button class="mini" onclick="fermerForm()">Annuler</button>
+      <button class="valider" id="form-ok">Valider</button>
+    </div>
   </div>
 </div>
 
@@ -282,6 +339,14 @@ var CLE_PUBLIQUE = GDS.CLE_PUBLIQUE;
    Le nom du fichier est conservé tel quel : le MGB est en tête,
    la désignation suit — rien à renommer, rien à saisir. */
 var DOSSIER = 'FDS/';
+
+/* Supprimer une fiche demande un code.
+   Le code n'est écrit nulle part : le serveur ne garde que son empreinte salée
+   (FDS/cle_suppression.json), et la page compare les empreintes. Lire le fichier
+   ne donne donc pas le code. Tant qu'aucune clé n'est posée, c'est 1234. */
+var CLE_FICHIER = 'cle_suppression.json';
+var CODE_PROVISOIRE = '1234';
+var CLE = null;
 var MAX_LIGNES = 400;
 var EN_PARALLELE = 3;
 
@@ -298,6 +363,7 @@ if(!jeton){ location.replace('index.html'); }
 
 var peutDeposer = role === 'admin' || role === 'admin_restreint';
 if(peutDeposer) document.getElementById('seg-depot').style.display = 'block';
+if(role !== 'admin') document.getElementById('zone-cle').style.display = 'none';
 
 document.getElementById('pastille').textContent =
   (nom || '?').split(' ').map(function(m){ return m[0]; }).join('').slice(0,2).toUpperCase();
@@ -374,6 +440,7 @@ async function chargerFiches(){
    chaque fiche. On le lit une fois, on l'indexe par MGB. Son absence
    n'empêche rien : la bibliothèque fonctionne sans. */
 var ICPE = {}, icpeDate = '';
+var ICPE_BRUT = { genere:'', fiches:{} };   /* le fichier tel qu'il est dans l'archive */
 
 function clefsMGB(m){
   var c = String(m || '').replace(/\D/g, '');
@@ -386,6 +453,8 @@ async function chargerIcpe(){
     var r = await fetch(API + '/archive/' + encodeURIComponent(DOSSIER + 'fds_icpe.json'), { headers: auth() });
     if(!r.ok) return;
     var d = await r.json();
+    if(!d.fiches) return;
+    ICPE_BRUT = d;
     icpeDate = d.genere || '';
     ICPE = {};
     Object.keys(d.fiches || {}).forEach(function(m){
@@ -400,22 +469,46 @@ function icpeDe(mgb){
   return null;
 }
 
-/* Une pastille par fiche : la rubrique, ou un tiret si elle n'a pas été analysée. */
+/* Une pastille par fiche. Trois états à ne pas confondre :
+   - une rubrique déduite      -> le numéro
+   - lue, aucune rubrique 4xxx -> « néant », c'est une réponse, pas un échec
+   - illisible ou mal repérée  -> « ? », il faut ouvrir la fiche */
 function pastilleIcpe(f){
   var i = icpeDe(f.mgb);
   var s = document.createElement('span');
-  if(!i || !i.rubrique || i.rubrique === '?'){
+
+  if(!i){
     s.className = 'icpe rien';
-    s.textContent = i ? '?' : '—';
-    s.title = i ? (i.justification || 'Aucune rubrique déduite : ouvrir la fiche')
-                : 'Fiche pas encore analysée';
+    s.textContent = '—';
+    s.title = 'Fiche pas encore analysée';
     return s;
   }
-  var ecart = (i.controle || '').indexOf('Écart') === 0;
-  s.className = 'icpe' + (ecart ? ' ecart' : ' dur');
-  s.textContent = i.rubrique;
-  s.title = [i.justification, i.mentions ? 'Mentions : ' + i.mentions : '',
-             i.controle ? 'Contrôle : ' + i.controle : ''].filter(Boolean).join('\n');
+
+  var r = (i.rubrique || '').trim();
+  var lue = (i.lecture || '').indexOf('OK') === 0 || (!i.lecture && !i.justification);
+
+  if(r && r !== '?'){
+    var ecart = (i.controle || '').indexOf('Écart') === 0;
+    s.className = 'icpe' + (ecart ? ' ecart' : ' dur');
+    s.textContent = r;
+    s.title = [i.justification, i.mentions ? 'Mentions : ' + i.mentions : '',
+               i.controle ? 'Contrôle : ' + i.controle : '',
+               i.manuel ? 'Saisie à la main' : ''].filter(Boolean).join('\n');
+    if(i.manuel) s.style.borderStyle = 'dashed';
+    return s;
+  }
+
+  if(!r && lue){
+    s.className = 'icpe neant';
+    s.textContent = 'néant';
+    s.title = 'Aucune rubrique ICPE : les dangers de cette FDS ne relèvent d\'aucune rubrique 4xxx'
+            + (i.mentions ? '\nMentions : ' + i.mentions : '\nAucune mention de danger');
+    return s;
+  }
+
+  s.className = 'icpe doute';
+  s.textContent = '?';
+  s.title = i.justification || i.lecture || 'Rubrique indéterminée : ouvrir la fiche';
   return s;
 }
 
@@ -559,6 +652,176 @@ async function toutTelecharger(){
   majBoutonTout(filtrees().length);
 }
 
+/* ══════════ CODE DE SUPPRESSION ══════════ */
+async function empreinte(sel, code){
+  if(!(window.crypto && crypto.subtle))
+    throw new Error('Empreinte indisponible : la page doit être servie en HTTPS.');
+  var octets = new TextEncoder().encode(sel + ':' + code);
+  var brut = await crypto.subtle.digest('SHA-256', octets);
+  return Array.from(new Uint8Array(brut))
+              .map(function(o){ return o.toString(16).padStart(2, '0'); }).join('');
+}
+
+function selNeuf(){
+  var t = new Uint8Array(16);
+  crypto.getRandomValues(t);
+  return Array.from(t).map(function(o){ return o.toString(16).padStart(2, '0'); }).join('');
+}
+
+async function chargerCle(){
+  try {
+    var r = await fetch(API + '/archive/' + encodeURIComponent(DOSSIER + CLE_FICHIER), { headers: auth() });
+    if(!r.ok) return;
+    var d = await r.json();
+    if(d && d.sel && d.empreinte) CLE = d;
+  } catch(e){ /* pas de clé posée : le code provisoire s'applique */ }
+}
+
+async function codeJuste(code){
+  if(!CLE) return code === CODE_PROVISOIRE;
+  try { return (await empreinte(CLE.sel, code)) === CLE.empreinte; }
+  catch(e){ return false; }
+}
+
+/* Poser ou changer le code. L'ancien est exigé dès qu'une clé existe. */
+function changerCode(){
+  var champs = [];
+  if(CLE) champs.push({ id:'ancien', label:'Code actuel', mono:true, max:12, exemple:'••••',
+                        erreur:'Code incorrect', attendreControle:true });
+  champs.push({ id:'neuf', label:'Nouveau code', mono:true, max:12, exemple:'4 à 12 chiffres',
+                aide:'Il n\'est enregistré nulle part : seule son empreinte part sur le serveur. Note-le.',
+                erreur:'Entre 4 et 12 chiffres',
+                controle: function(v){ return /^\d{4,12}$/.test(v); } });
+  champs.push({ id:'confirme', label:'Répéter le nouveau code', mono:true, max:12,
+                erreur:'Les deux saisies diffèrent',
+                controle: function(v){ return v === document.getElementById('saisie-neuf').value.trim(); } });
+
+  formulaire(CLE ? 'Changer le code de suppression' : 'Poser un code de suppression',
+    CLE ? 'La clé actuelle sera remplacée.' : 'Tant qu\'aucun code n\'est posé, GDS accepte ' + CODE_PROVISOIRE + '.',
+    champs,
+    async function(v){
+      if(CLE && !(await codeJuste(v.ancien))){
+        document.getElementById('champ-ancien').classList.add('faux');
+        document.getElementById('saisie-ancien').focus();
+        return;
+      }
+      try {
+        var sel = selNeuf();
+        var cle = { algo:'SHA-256', sel:sel, empreinte: await empreinte(sel, v.neuf),
+                    pose: new Date().toLocaleString('fr-FR'), par: nom || '' };
+        var r = await fetch(API + '/archive/' + encodeURIComponent(DOSSIER + CLE_FICHIER), {
+          method:'POST', headers: auth({ 'Content-Type':'application/json' }), body: JSON.stringify(cle)
+        });
+        if(refus(r)) throw new Error('refus');
+        if(!r.ok) throw new Error('envoi');
+        CLE = cle;
+        fermerForm();
+        majEtatCle();
+        dire('Code enregistré', 'ok');
+      } catch(err){ dire('Enregistrement impossible : ' + err.message, 'err'); }
+    }, CLE ? 'Changer le code' : 'Poser le code');
+}
+
+function majEtatCle(){
+  var e = document.getElementById('etat-cle');
+  if(!e) return;
+  e.textContent = CLE ? 'Code posé le ' + (CLE.pose || '?') + (CLE.par ? ' par ' + CLE.par : '') +
+                        ' · seule son empreinte est sur le serveur'
+                      : 'Aucun code posé : GDS accepte ' + CODE_PROVISOIRE + '. À changer.';
+}
+
+/* ══════════ BOÎTE DE DIALOGUE ══════════
+   Un seul formulaire réutilisé : titre, sous-titre, quelques champs,
+   et une fonction de validation qui reçoit les valeurs saisies. */
+function formulaire(titre, sousTitre, champs, valider, libelleBouton, danger){
+  document.getElementById('form-t').textContent = titre;
+  document.getElementById('form-s').textContent = sousTitre || '';
+  var c = document.getElementById('form-c');
+  c.innerHTML = '';
+
+  champs.forEach(function(ch){
+    var d = document.createElement('div');
+    d.className = 'champ';
+    d.id = 'champ-' + ch.id;
+    var l = document.createElement('label');
+    l.textContent = ch.label;
+    l.setAttribute('for', 'saisie-' + ch.id);
+    var i = document.createElement('input');
+    i.id = 'saisie-' + ch.id;
+    i.type = ch.type || 'text';
+    i.value = ch.valeur || '';
+    i.placeholder = ch.exemple || '';
+    if(ch.mono) i.className = 'mono';
+    if(ch.max) i.maxLength = ch.max;
+    d.appendChild(l); d.appendChild(i);
+    if(ch.aide){
+      var a = document.createElement('div');
+      a.className = 'aide'; a.textContent = ch.aide;
+      d.appendChild(a);
+    }
+    var e = document.createElement('div');
+    e.className = 'err'; e.textContent = ch.erreur || 'Valeur attendue';
+    d.appendChild(e);
+    c.appendChild(d);
+  });
+
+  var bouton = document.getElementById('form-ok');
+  bouton.textContent = libelleBouton || 'Valider';
+  bouton.className = 'valider' + (danger ? ' danger' : '');
+  bouton.disabled = false;
+
+  function valeurs(){
+    var v = {};
+    champs.forEach(function(ch){ v[ch.id] = document.getElementById('saisie-' + ch.id).value.trim(); });
+    return v;
+  }
+
+  bouton.onclick = async function(){
+    var v = valeurs(), faux = null;
+    champs.forEach(function(ch){
+      var d = document.getElementById('champ-' + ch.id);
+      var ok = ch.attendreControle ? true : (ch.controle ? ch.controle(v[ch.id]) : true);
+      d.classList.toggle('faux', !ok);
+      if(!ok && !faux) faux = ch.id;
+    });
+    if(faux){ document.getElementById('saisie-' + faux).focus(); return; }
+    bouton.disabled = true;
+    try { await valider(v); } finally { bouton.disabled = false; }
+  };
+
+  document.getElementById('voile-form').classList.add('on');
+  var premier = document.getElementById('saisie-' + champs[0].id);
+  if(premier){ premier.focus(); premier.select(); }
+  c.onkeydown = function(e){ if(e.key === 'Enter') bouton.click(); };
+}
+
+function fermerForm(){ document.getElementById('voile-form').classList.remove('on'); }
+
+/* ══════════ ÉCRITURE DU FICHIER DES RUBRIQUES ══════════ */
+function mgb12(m){ return String(m || '').replace(/\D/g, '').padStart(12, '0'); }
+
+function nomPdf(mgb, libelle){
+  var base = String(libelle || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+               .replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 80);
+  return mgb12(mgb) + '_' + (base || 'FICHE') + '.pdf';
+}
+
+/* Réécrit fds_icpe.json dans l'archive avec une fiche modifiée ou ajoutée. */
+async function enregistrerIcpe(mgb, valeurs){
+  var m = mgb12(mgb);
+  var actuel = ICPE_BRUT.fiches[m] || icpeDe(mgb) || {};
+  ICPE_BRUT.fiches[m] = Object.assign({}, actuel, valeurs, { manuel: true });
+  ICPE_BRUT.genere = ICPE_BRUT.genere || '';
+
+  var r = await fetch(API + '/archive/' + encodeURIComponent(DOSSIER + 'fds_icpe.json'), {
+    method:'POST', headers: auth({ 'Content-Type':'application/json' }),
+    body: JSON.stringify(ICPE_BRUT)
+  });
+  if(refus(r)) throw new Error('refus');
+  if(!r.ok) throw new Error('enregistrement');
+  await chargerIcpe();
+}
+
 /* ══════════ LECTEUR ══════════ */
 var urlCourante = null;
 
@@ -587,6 +850,12 @@ async function ouvrir(f){
   document.getElementById('l-nom').textContent = f.libelle;
   document.getElementById('l-mgb').textContent = 'MGB ' + f.mgb;
   bandeauIcpe(f.mgb);
+  if(peutDeposer){
+    var bi = document.getElementById('l-icpe-b'), br = document.getElementById('l-remp');
+    bi.style.display = 'block'; br.style.display = 'block';
+    bi.onclick = function(){ editerIcpe(f); };
+    br.onclick = function(){ remplacerFiche(f); };
+  }
   document.getElementById('l-attente').style.display = 'flex';
   document.getElementById('l-attente').textContent = 'Ouverture de la fiche…';
   document.getElementById('l-cadre').style.display = 'none';
@@ -621,22 +890,142 @@ function fermerLecteur(){
   document.getElementById('l-cadre').src = 'about:blank';
 }
 
-document.addEventListener('keydown', function(e){ if(e.key === 'Escape') fermerLecteur(); });
+document.addEventListener('keydown', function(e){
+  if(e.key !== 'Escape') return;
+  if(document.getElementById('voile-form').classList.contains('on')) fermerForm();
+  else fermerLecteur();
+});
 
-async function supprimer(f, bouton){
-  if(!confirm('Supprimer définitivement la fiche « ' + f.libelle + ' » ?')) return;
-  bouton.disabled = true; bouton.textContent = '…';
-  try {
-    var r = await fetch(API + '/archive/' + encodeURIComponent(f.nomFichier),
-                        { method:'DELETE', headers: auth() });
-    if(refus(r)) return;
-    if(!r.ok) throw new Error();
-    dire('Fiche supprimée', 'ok');
-    await chargerFiches(); accroche(); afficher();
-  } catch(e){
-    bouton.disabled = false; bouton.textContent = 'Supprimer';
-    dire('Suppression impossible', 'err');
-  }
+/* La suppression est définitive : on demande un code, pas un simple « OK ». */
+function supprimer(f, bouton){
+  formulaire('Supprimer la fiche', f.libelle + ' — MGB ' + f.mgb,
+    [{ id:'code', label:'Code de suppression', mono:true, max:12, exemple:'••••',
+       aide:'La fiche sera effacée de l\'archive, sans retour possible.',
+       erreur:'Code incorrect', attendreControle:true }],
+    async function(v){
+      if(!(await codeJuste(v.code))){
+        document.getElementById('champ-code').classList.add('faux');
+        document.getElementById('saisie-code').focus();
+        return;
+      }
+      bouton.disabled = true; bouton.textContent = '…';
+      try {
+        var r = await fetch(API + '/archive/' + encodeURIComponent(f.nomFichier),
+                            { method:'DELETE', headers: auth() });
+        if(refus(r)) throw new Error('refus');
+        if(!r.ok) throw new Error();
+        /* la rubrique n'a plus d'objet sans sa fiche */
+        var m = mgb12(f.mgb);
+        if(ICPE_BRUT.fiches[m]){
+          delete ICPE_BRUT.fiches[m];
+          try {
+            await fetch(API + '/archive/' + encodeURIComponent(DOSSIER + 'fds_icpe.json'), {
+              method:'POST', headers: auth({ 'Content-Type':'application/json' }),
+              body: JSON.stringify(ICPE_BRUT) });
+            await chargerIcpe();
+          } catch(e){}
+        }
+        fermerForm();
+        dire('Fiche supprimée', 'ok');
+        await chargerFiches(); accroche(); afficher();
+      } catch(e){
+        bouton.disabled = false; bouton.textContent = 'Supprimer';
+        dire('Suppression impossible', 'err');
+      }
+    }, 'Supprimer définitivement', true);
+}
+
+/* ══════════ REMPLACER, AJOUTER, CORRIGER ══════════ */
+
+async function envoyerPdf(chemin, fichier){
+  var r = await fetch(API + '/archive/' + encodeURIComponent(chemin), {
+    method:'POST', headers: auth({ 'Content-Type':'application/pdf' }), body: fichier
+  });
+  if(refus(r)) throw new Error('refus');
+  if(!r.ok) throw new Error('envoi');
+}
+
+/* Remplacer le PDF d'une fiche existante : une meilleure version, une plus récente. */
+function remplacerFiche(f){
+  var champ = document.getElementById('f-remp');
+  champ.onchange = async function(e){
+    var fichier = e.target.files[0];
+    e.target.value = '';
+    if(!fichier) return;
+    formulaire('Remplacer le PDF', f.libelle + ' — MGB ' + f.mgb,
+      [{ id:'nom', label:'Nouveau fichier', valeur: fichier.name, mono:true,
+         aide: 'Taille ' + poids(fichier.size) + '. L\'ancienne version sera effacée.',
+         controle: function(v){ return v.length > 4; } }],
+      async function(){
+        try {
+          await envoyerPdf(f.nomFichier, fichier);      /* même nom : remplacement direct */
+          fermerForm();
+          dire('Fiche remplacée', 'ok');
+          await chargerFiches(); accroche(); afficher();
+          fermerLecteur();
+        } catch(err){ dire('Remplacement impossible', 'err'); }
+      }, 'Remplacer', true);
+  };
+  champ.click();
+}
+
+/* Ajouter une fiche trouvée ailleurs : fabricant, Quick-FDS, courriel fournisseur. */
+document.getElementById('f-ajout').addEventListener('change', function(e){
+  var fichier = e.target.files[0];
+  e.target.value = '';
+  if(!fichier) return;
+
+  var c = decouper(fichier.name) || { mgb:'', libelle: fichier.name.replace(/\.pdf$/i, '') };
+  formulaire('Ajouter une fiche', 'Fichier : ' + fichier.name + ' · ' + poids(fichier.size),
+    [{ id:'mgb', label:'MGB', valeur: c.mgb, mono:true, exemple:'387544001001',
+       aide:'Le MGB complet, 12 chiffres. Il devient le début du nom du fichier.',
+       erreur:'Entre 8 et 14 chiffres attendus',
+       controle: function(v){ return /^\d{8,14}$/.test(v.replace(/\D/g, '')) ; } },
+     { id:'libelle', label:'Désignation', valeur: c.libelle, exemple:'MPRO Nettoyant sol 5 L',
+       erreur:'Désignation obligatoire',
+       controle: function(v){ return v.length > 2; } },
+     { id:'rubrique', label:'Rubrique ICPE (facultatif)', mono:true, exemple:'4331',
+       aide:'Laisse vide si tu ne sais pas encore : la fiche s\'affichera avec un « ? ».' }],
+    async function(v){
+      var cible = DOSSIER + nomPdf(v.mgb, v.libelle);
+      try {
+        await envoyerPdf(cible, fichier);
+        await enregistrerIcpe(v.mgb, {
+          libelle: v.libelle, fichier: cible.slice(DOSSIER.length),
+          rubrique: v.rubrique, lecture: v.rubrique ? 'OK (saisi à la main)' : '',
+          justification: v.rubrique ? 'Rubrique saisie à la main' : '',
+          controle: 'Saisi à la main'
+        });
+        fermerForm();
+        dire('Fiche ajoutée', 'ok');
+        await chargerFiches(); accroche(); afficher();
+      } catch(err){ dire('Ajout impossible', 'err'); }
+    }, 'Ajouter la fiche');
+});
+
+/* Corriger ou renseigner la rubrique d'une fiche déjà en ligne. */
+function editerIcpe(f){
+  var i = icpeDe(f.mgb) || {};
+  formulaire('Rubrique ICPE', f.libelle + ' — MGB ' + f.mgb,
+    [{ id:'rubrique', label:'Rubrique', valeur: i.rubrique === '?' ? '' : (i.rubrique || ''),
+       mono:true, exemple:'4331',
+       aide:'Vide = aucune rubrique applicable. La saisie remplace la déduction automatique.' },
+     { id:'mentions', label:'Mentions de danger', valeur: i.mentions || '', mono:true, exemple:'H225 H319' },
+     { id:'justification', label:'Justification', valeur: i.justification || '',
+       exemple:'Liquide inflammable cat. 2 (H225)' }],
+    async function(v){
+      try {
+        await enregistrerIcpe(f.mgb, {
+          libelle: f.libelle, fichier: f.nomFichier.slice(DOSSIER.length),
+          rubrique: v.rubrique, mentions: v.mentions,
+          justification: v.justification || 'Rubrique saisie à la main',
+          lecture: 'OK (saisi à la main)', controle: 'Saisi à la main'
+        });
+        fermerForm();
+        dire('Rubrique enregistrée', 'ok');
+        afficher(); bandeauIcpe(f.mgb);
+      } catch(err){ dire('Enregistrement impossible', 'err'); }
+    }, 'Enregistrer');
 }
 
 /* ══════════ DÉPÔT DU FICHIER ICPE ══════════ */
@@ -650,15 +1039,27 @@ document.getElementById('f-icpe').addEventListener('change', async function(e){
     var texte = await f.text();
     var d = JSON.parse(texte);                       /* refuse un fichier qui n'est pas le bon */
     if(!d.fiches) throw new Error('fichier inattendu');
+
+    /* Ce que tu as saisi à la main l'emporte sur la déduction du script :
+       une correction validée ne doit pas sauter à la relance suivante. */
+    var gardees = 0;
+    Object.keys(ICPE_BRUT.fiches || {}).forEach(function(m){
+      if(ICPE_BRUT.fiches[m] && ICPE_BRUT.fiches[m].manuel){
+        d.fiches[m] = ICPE_BRUT.fiches[m];
+        gardees++;
+      }
+    });
+
     var r = await fetch(API + '/archive/' + encodeURIComponent(DOSSIER + 'fds_icpe.json'), {
-      method:'POST', headers: auth({ 'Content-Type':'application/json' }), body: texte
+      method:'POST', headers: auth({ 'Content-Type':'application/json' }), body: JSON.stringify(d)
     });
     if(refus(r)) throw new Error('refus');
     if(!r.ok) throw new Error('envoi');
     await chargerIcpe();
     accroche(); afficher();
     var n = Object.keys(d.fiches).length;
-    etat.textContent = n + ' rubrique(s) chargée(s) · ' + (d.genere || '');
+    etat.textContent = n + ' rubrique(s) chargée(s) · ' + (d.genere || '') +
+                       (gardees ? ' · ' + gardees + ' saisie(s) à la main conservée(s)' : '');
     dire('Rubriques ICPE mises à jour', 'ok');
   } catch(err){
     etat.textContent = 'Échec : ' + (err.message === 'fichier inattendu'
@@ -833,6 +1234,7 @@ async function envoyerLot(){
   try {
     await chargerFiches();
     await chargerIcpe();
+    if(role === 'admin'){ await chargerCle(); majEtatCle(); }
     accroche(); afficher();
   } catch(e){
     document.getElementById('accroche').textContent =
