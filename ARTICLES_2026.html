@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GDS · Base articles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>window.XLSX||document.write('<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"><\/script>')</script>
+<script src="config.js"></script>
+<style>
+:root{--navy:#14254a;--navy2:#1f3a6e;--or:#f28c28;--or2:#ffb366;--bg:#f3f5f9;--card:#fff;--txt:#1b2438;--mut:#6b7690;--bd:#dfe4ee;--ok:#1f9d63;--warn:#d97706;--err:#d0342c}
+*{box-sizing:border-box}
+body{margin:0;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt)}
+header{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;padding:14px 22px;display:flex;align-items:center;gap:14px;box-shadow:0 2px 10px rgba(0,0,0,.2)}
+header h1{font-size:19px;margin:0;font-weight:700}
+header .sub{font-size:12px;opacity:.75}
+header .ver{margin-left:auto;font-family:'DM Mono';font-size:11px;background:rgba(255,255,255,.12);padding:3px 8px;border-radius:6px}
+.logo{width:36px;height:36px;border-radius:9px;background:linear-gradient(145deg,var(--or2),var(--or));display:grid;place-items:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.5)}
+main{max-width:1400px;margin:0 auto;padding:18px 16px 40px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(20,37,74,.06)}
+.card h2{font-size:14px;margin:0 0 10px;color:var(--navy)}
+.drop{border:2px dashed #b9c3d8;border-radius:12px;padding:22px;text-align:center;cursor:pointer;transition:.15s;color:var(--mut)}
+.drop.on,.drop:hover{border-color:var(--or);background:#fff7ef;color:var(--txt)}
+.drop b{color:var(--navy)}
+.src{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;margin-top:12px}
+.s{border:1px solid var(--bd);border-radius:10px;padding:8px 10px;font-size:12px;background:#f8f9fc}
+.s b{display:block;font-size:13px;color:var(--navy)}
+.s .f{font-family:'DM Mono';font-size:11px;color:var(--mut);margin-top:3px;word-break:break-all}
+.s.ok{border-color:#9ad7b8;background:#ecf9f2}
+.s.need{border-color:#f1a9a4;background:#fdeeed}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{font-size:11px;border-radius:20px;padding:3px 9px;border:1px solid #f1a9a4;background:#fdeeed;color:var(--err);font-family:'DM Mono'}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+button{font-family:inherit;font-size:13px;font-weight:500;border:0;border-radius:9px;padding:9px 14px;cursor:pointer;background:var(--navy);color:#fff}
+button.or{background:linear-gradient(145deg,var(--or2),var(--or))}
+button.lt{background:#e9edf5;color:var(--navy)}
+button:disabled{opacity:.4;cursor:default}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.kpi{background:#f8f9fc;border:1px solid var(--bd);border-radius:11px;padding:10px 12px;cursor:pointer}
+.kpi:hover{border-color:var(--or)}
+.kpi .v{font-size:22px;font-weight:700;color:var(--navy);font-family:'DM Mono'}
+.kpi .l{font-size:12px;color:var(--mut)}
+.kpi.w .v{color:var(--warn)} .kpi.e .v{color:var(--err)} .kpi.g .v{color:var(--ok)}
+input[type=search],select{font-family:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--bd);border-radius:9px;background:#fff}
+input[type=search]{min-width:260px}
+.tw{max-height:62vh;overflow:auto;border:1px solid var(--bd);border-radius:10px;margin-top:12px}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th{position:sticky;top:0;background:var(--navy);color:#fff;text-align:left;padding:8px;font-weight:500;white-space:nowrap;z-index:1}
+td{padding:6px 8px;border-bottom:1px solid #eef1f6;white-space:nowrap}
+td.m{font-family:'DM Mono'} td.n{text-align:right;font-family:'DM Mono'}
+td.lib{max-width:340px;overflow:hidden;text-overflow:ellipsis}
+tr:nth-child(even) td{background:#fafbfd}
+.st{font-size:11px;border-radius:6px;padding:2px 7px}
+.st.actif{background:#e6f6ee;color:var(--ok)} .st.nouveau{background:#e8efff;color:#2a56c6} .st.completer{background:#fff4e0;color:var(--warn)} .st.inactif{background:#eceff4;color:var(--mut)}
+.old{color:var(--warn)}
+.msg{font-size:13px;color:var(--mut)}
+.hint{font-size:12px;color:var(--mut);margin-top:8px;line-height:1.5}
+
+[hidden]{display:none!important}
+.etat{font-size:11.5px;opacity:.9;display:flex;align-items:center;gap:6px;margin-left:auto}
+.etat i{width:8px;height:8px;border-radius:50%;background:#4ade80;display:inline-block}
+.etat.att i{background:var(--or2)} .etat.err i{background:#f87171}
+header .ver{margin-left:10px}
+.onglets{display:flex;gap:6px;margin-bottom:14px}
+.onglets button{background:#fff;color:var(--navy);box-shadow:0 1px 4px rgba(20,37,74,.08)}
+.onglets button.on{background:var(--navy);color:#fff}
+td.ed{cursor:cell}
+td.ed:hover{background:#fff4e6!important;outline:1px dashed var(--or)}
+td .vid{color:#c4cad6}
+td.corr::after{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--or);margin-left:5px;vertical-align:middle}
+td input,td select{font:inherit;width:100%;min-width:90px;border:1px solid var(--or);border-radius:5px;padding:3px 5px}
+td.m a{color:var(--navy);text-decoration:none;border-bottom:1px dotted var(--navy)}
+.src-i{font-size:10px;color:var(--mut)}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:12px;font-size:13px;opacity:0;transition:.25s;display:flex;gap:12px;align-items:center;z-index:9}
+.toast.on{opacity:1}
+.toast button{background:none;color:var(--or2);padding:0;font-weight:700}
+.diff .kpi{cursor:default}
+.load{width:40px;height:40px;border-radius:50%;border:4px solid #dde3ee;border-top-color:var(--or);margin:30px auto;animation:t 1s linear infinite}@keyframes t{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M3 14h18M9 4v16"/></svg></div>
+  <div><h1>Base articles</h1><div class="sub">Dossier BASE_ARTICLES · toutes les références du dépôt</div></div>
+  <span class="etat" id="etat"></span>
+  <div class="ver">v7</div>
+</header>
+<main>
+  <div class="card" id="bloque" hidden><h2 id="bloqueT"></h2><div class="msg" id="bloqueM"></div></div>
+  <div id="chargement"><div class="load"></div></div>
+
+  <div id="page" hidden>
+    <div class="onglets">
+      <button id="oT" class="on">Tableau</button>
+      <button id="oM">Mise à jour data / StockStatus</button>
+      <button id="oH">Historique des saisies</button>
+    </div>
+
+    <!-- TABLEAU -->
+    <div id="vT">
+      <div class="card">
+        <div class="kpis" id="kpis"></div>
+        <div class="bar" style="margin-top:14px">
+          <input type="search" id="q" placeholder="MGB, subsys, EAN, libellé, fournisseur…">
+          <select id="fst"><option value="">Tous les statuts</option><option value="nouveau">Nouveau</option><option value="completer">À compléter</option><option value="actif">Actif</option><option value="inactif">Inactif</option></select>
+          <select id="fsec"><option value="">Tous les secteurs</option></select>
+          <select id="fmq"><option value="">Toutes les fiches</option><option value="ean">Sans EAN</option><option value="emballage">Sans emballage</option><option value="poidsColis">Sans poids colis</option><option value="prix">Sans prix</option><option value="corr">Corrigées à la main</option></select>
+          <span style="margin-left:auto"></span>
+          <button class="lt" id="bUndo" disabled>Annuler</button>
+        </div>
+        <div class="hint">Clique sur une cellule pour la modifier : c'est enregistré dans GDS aussitôt. Un point orange = valeur corrigée à la main. Clique sur un MGB pour ouvrir sa fiche.</div>
+        <div class="tw"><table><thead><tr id="th"></tr></thead><tbody id="tb"></tbody></table></div>
+        <div class="msg" id="cnt" style="margin-top:8px"></div>
+      </div>
+    </div>
+
+    <!-- MISE À JOUR -->
+    <div id="vM" hidden>
+      <div class="card">
+        <h2>Sources lues dans GDS</h2>
+        <div class="src" id="srcGds"><div class="s">Lecture de l'espace courant…</div></div>
+        <div class="hint">La mise à jour prend le <b>data</b> et le <b>StockStatus</b> les plus récents de l'espace courant. Les saisies manuelles ne sont jamais écrasées.</div>
+        <div class="bar" style="margin-top:14px">
+          <button class="or" id="go" disabled>Analyser la mise à jour</button>
+          <button class="lt" id="relire">Relire GDS</button>
+          <span class="msg" id="msg"></span>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Compléments du poste (facultatif)</h2>
+        <div class="drop" id="drop">
+          <div>Glisse ici des <b>fichiers prix hebdo</b> (__S35.xlsx…), ou clique pour les choisir</div>
+          <input type="file" id="inp" multiple accept=".xlsx,.xlsm,.xlsb,.xls,.csv" hidden>
+          <input type="file" id="inpd" webkitdirectory multiple hidden>
+        </div>
+        <div class="bar" style="margin-top:10px"><button class="lt" id="bdos">Choisir un dossier</button><span class="msg" id="msgLoc"></span></div>
+        <div class="chips" id="loc"></div>
+      </div>
+      <div class="card" id="res" hidden>
+        <h2>Ce que la mise à jour va changer</h2>
+        <div class="kpis diff" id="diff"></div>
+        <div class="bar" style="margin-top:14px">
+          <button class="or" id="pub">Publier dans BASE_ARTICLES</button>
+          <span class="msg">Une copie datée de l'ancienne base est gardée dans BASE_ARTICLES/historique.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORIQUE -->
+    <div id="vH" hidden>
+      <div class="card">
+        <div class="bar"><input type="search" id="qh" placeholder="MGB ou nom…"></div>
+        <div class="tw"><table><thead><tr><th>Date</th><th>Par</th><th>MGB</th><th>Libellé</th><th>Champ</th><th>Avant</th><th>Après</th><th></th></tr></thead><tbody id="tbh"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+</main>
+<div class="toast" id="toast"><span id="tMsg"></span><button id="tUndo">Annuler</button></div>
+
+<script>
+/* ================= GDS : dossier BASE_ARTICLES/ de l'archive ================= */
+var API = (window.GDS && GDS.API) || '', CLE = (window.GDS && GDS.CLE_PUBLIQUE) || '';
+function lireS(c){ try { return sessionStorage.getItem(c) || localStorage.getItem(c); } catch(e){ return null; } }
+var JETON = lireS('gds_jeton'), ROLE = lireS('gds_role') || '', QUI = lireS('gds_nom') || ROLE || '?';
+/* seuls Patrick (admin) et Maxime (admin restreint) modifient */
+var PEUT = ROLE === 'admin' || ROLE === 'admin_restreint';
+var DOSSIER = 'BASE_ARTICLES/', F_BASE = DOSSIER + 'base_articles.json.gz', F_SAISIES = DOSSIER + 'saisies.json', F_HIST = DOSSIER + 'historique/';
+function auth(sup){ var h = {'Authorization':'Bearer ' + CLE, 'apikey':CLE, 'X-GDS-Session':JETON}; if(sup) for(var k in sup) h[k] = sup[k]; return h; }
+function Refus(){ this.message = 'accès refusé par le serveur'; }
+async function gds(chemin, opt){
+  var r = await fetch(API + chemin, Object.assign({headers:auth()}, opt || {}));
+  if(r.status === 401 || r.status === 403) throw new Refus();
+  return r;
+}
+async function listeCourant(){
+  var r = await gds('/fichiers', {method:'POST', headers:auth({'Content-Type':'application/json'}), body:JSON.stringify({prefix:''})});
+  if(!r.ok) throw new Error('liste de l\'espace courant indisponible');
+  var d = await r.json();
+  return (Array.isArray(d) ? d : []).filter(function(f){ return f.name; }).map(function(f){ return {nom:f.name, date:f.updated_at || f.created_at || ''}; });
+}
+async function listeArchive(prefixe){
+  var r = await gds('/archive', {method:'POST', headers:auth({'Content-Type':'application/json'}), body:JSON.stringify({prefix:prefixe})});
+  if(!r.ok) throw new Error('liste de l\'archive indisponible');
+  var d = await r.json();
+  return (d.files || []).map(function(f){ return {nom:f.fileName, date:String(f.uploadTimestamp || ''), taille:f.contentLength || 0}; });
+}
+async function lireArchive(chemin){
+  var r = await gds('/archive/' + encodeURIComponent(chemin));
+  if(r.status === 404) return null;
+  if(!r.ok) throw new Error('lecture de ' + chemin + ' impossible');
+  return await r.arrayBuffer();
+}
+async function ecrireArchive(chemin, corps, type){
+  var r = await gds('/archive/' + encodeURIComponent(chemin), {method:'POST', headers:auth({'Content-Type':type}), body:corps});
+  if(!r.ok) throw new Error('écriture de ' + chemin + ' impossible');
+}
+async function compresser(texte){
+  if(!window.CompressionStream) return new Blob([texte], {type:'application/json'});
+  return await new Response(new Blob([texte]).stream().pipeThrough(new CompressionStream('gzip'))).blob();
+}
+async function decompresser(buf){
+  var u = new Uint8Array(buf);
+  if(u[0] === 0x1f && u[1] === 0x8b) return await new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+  return new TextDecoder().decode(buf);
+}
+
+/* ----- cache local (IndexedDB) : la base n'est retéléchargée que si elle a changé ----- */
+var DB = null;
+function idb(){ return new Promise(function(ok){
+  if(DB) return ok(DB);
+  try { var r = indexedDB.open('gds-base-articles', 1); r.onupgradeneeded = function(){ r.result.createObjectStore('k'); };
+        r.onsuccess = function(){ DB = r.result; ok(DB); }; r.onerror = function(){ ok(null); }; } catch(e){ ok(null); }
+}); }
+async function lire(k){ var d = await idb(); if(!d) return null; return new Promise(function(ok){ var t = d.transaction('k').objectStore('k').get(k); t.onsuccess = function(){ ok(t.result || null); }; t.onerror = function(){ ok(null); }; }); }
+async function ecrire(k, v){ var d = await idb(); if(!d) return false; return new Promise(function(ok){ var t = d.transaction('k','readwrite'); t.objectStore('k').put(v, k); t.oncomplete = function(){ ok(true); }; t.onerror = function(){ ok(false); }; }); }
+
+/* ----- chargement base + saisies + ICPE ----- */
+var BASE = null, SAISIES = {version:1, champs:{}, historique:[]}, ICPE = {}, FDSL = {}, ATTENTE = [], PILE = [];
+async function chargerBase(){
+  var L = await listeArchive(DOSSIER);
+  var fb = L.filter(function(f){ return f.nom === F_BASE; })[0];
+  if(!fb){ BASE = null; return false; }
+  var c = await lire('base');
+  if(c && c.date === fb.date && c.json){ BASE = c.json; return true; }
+  var b = await lireArchive(F_BASE);
+  BASE = JSON.parse(await decompresser(b));
+  await ecrire('base', {date:fb.date, json:BASE});
+  return true;
+}
+async function lireSaisies(){
+  var b = await lireArchive(F_SAISIES), j = null;
+  if(b){ try { j = JSON.parse(new TextDecoder().decode(b)); } catch(e){} }
+  if(!j || !j.champs) j = {version:1, champs:{}, historique:[]};
+  j.historique = j.historique || [];
+  return j;
+}
+async function chargerSaisies(){
+  SAISIES = await lireSaisies();
+  ATTENTE = (await lire('attente')) || [];
+  ATTENTE.forEach(function(x){ appliquerSaisie(SAISIES, x); });
+  if(ATTENTE.length) pousser();
+}
+async function chargerSecurite(){
+  try {
+    var L = await listeArchive('FDS/'); FDSL = {};
+    L.forEach(function(f){ var m = f.nom.slice(4).match(/^(\d{8,14})[_\-\s]/); if(m && /\.pdf$/i.test(f.nom)) FDSL[mgb12(m[1])] = f.nom; });
+    var fi = L.filter(function(f){ return f.nom === 'FDS/fds_icpe.json'; })[0], j = null, c = await lire('icpe');
+    if(fi && c && c.date === fi.date) j = c.json;
+    else if(fi){ var b = await lireArchive('FDS/fds_icpe.json'); j = JSON.parse(new TextDecoder().decode(b)); await ecrire('icpe', {date:fi.date, json:j}); }
+    ICPE = {};
+    if(j && j.fiches) Object.keys(j.fiches).forEach(function(m){ ICPE[mgb12(m)] = j.fiches[m]; });
+  } catch(e){}
+}
+
+/* ----- vue d'un article : base + ICPE des FDS + saisies manuelles ----- */
+function vide(v){ return v == null || v === '' || (Array.isArray(v) && !v.length) || (typeof v === 'number' && isNaN(v)); }
+function egal(a, b){
+  if(Array.isArray(a) || Array.isArray(b)) return JSON.stringify(a || []) === JSON.stringify(b || []);
+  return (vide(a) && vide(b)) || a === b;
+}
+function fusion(m){
+  var b = BASE.articles[m] || {mgb:m}, a = Object.assign({}, b), C = SAISIES.champs[m] || {}, i = ICPE[m];
+  a._corr = {}; a._src = {};
+  if(i){
+    if(i.rubrique && i.rubrique !== '?'){ a.icpe = i.rubrique; a._src.icpe = 'FDS'; }
+    var p = String(i.pictos || '').match(/SGH0?\d/gi);
+    if(p && p.length){ a.pictos = p.map(function(x){ return 'SGH0' + x.slice(-1); }); a._src.pictos = 'FDS'; }
+    if(i.mentions) a.mentions = i.mentions;
+  }
+  if(!a.fds && FDSL[m]) { a.fds = FDSL[m].slice(4); a._src.fds = 'archive'; }
+  Object.keys(C).forEach(function(k){
+    var s = C[k];
+    if(k === 'prix'){
+      if(b.prixDate && s.le < b.prixDate) return;           // un prix plus récent est arrivé par le data
+      a.prixPrec = b.prix; a.prixPrecDate = b.prixDate; a.prix = s.v; a.prixDate = s.le; a.prixSource = 'saisie manuelle';
+      return;
+    }
+    if(!vide(a[k]) && !egal(a[k], s.v)) a._corr[k] = {orig:a[k], le:s.le, par:s.par};
+    a[k] = s.v; delete a._src[k];
+  });
+  if(a.ccvm && a.prix != null) a.prixPiece = Math.round(a.prix / a.ccvm * 10000) / 10000;
+  return a;
+}
+
+/* ----- saisies : enregistrées dans GDS, avec historique ----- */
+function appliquerSaisie(S, x){
+  if(S.historique.some(function(h){ return h.id === x.id; })) return;
+  S.historique.push(x);
+  var b = ((BASE && BASE.articles[x.mgb]) || {})[x.k];
+  var C = S.champs[x.mgb] = S.champs[x.mgb] || {};
+  if(x.k !== 'prix' && egal(b, x.apres)) delete C[x.k];
+  else C[x.k] = {v:x.apres, le: x.k === 'prix' ? x.jour : x.le.slice(0,10), par:x.par};
+  if(!Object.keys(C).length) delete S.champs[x.mgb];
+}
+function saisir(m, k, nv){
+  if(!PEUT) return false;
+  var avant = fusion(m)[k];
+  if(egal(avant, nv)) return false;
+  var x = {id: Date.now() * 1000 + Math.floor(Math.random()*1000), mgb:m, k:k, avant: vide(avant) ? null : avant, apres: vide(nv) ? null : nv,
+           le:new Date().toISOString(), jour:new Date().toISOString().slice(0,10), par:QUI};
+  appliquerSaisie(SAISIES, x);
+  ATTENTE.push(x); ecrire('attente', ATTENTE);
+  PILE.push(x.id);
+  pousser();
+  return x;
+}
+function retablir(id){
+  var x = SAISIES.historique.find(function(h){ return h.id === id; });
+  if(x) return saisir(x.mgb, x.k, x.avant);
+}
+function annulerDerniere(){
+  var id = PILE.pop(); if(id == null) return null;
+  var x = SAISIES.historique.find(function(h){ return h.id === id; }); if(!x) return null;
+  saisir(x.mgb, x.k, x.avant); PILE.pop();
+  return x;
+}
+var ENVOI = false, tR;
+async function pousser(){
+  if(ENVOI || !ATTENTE.length){ etatSynchro(); return; }
+  ENVOI = true; etatSynchro();
+  var lot = ATTENTE.slice();
+  try {
+    var serveur = await lireSaisies();                       // on repart de la version du serveur
+    lot.forEach(function(x){ appliquerSaisie(serveur, x); });
+    serveur.majLe = new Date().toISOString(); serveur.par = QUI;
+    await ecrireArchive(F_SAISIES, JSON.stringify(serveur), 'application/json');
+    ATTENTE = ATTENTE.filter(function(x){ return lot.indexOf(x) < 0; });
+    await ecrire('attente', ATTENTE);
+    SAISIES = serveur; ATTENTE.forEach(function(x){ appliquerSaisie(SAISIES, x); });
+    ENVOI = false; etatSynchro();
+    if(typeof apresSynchro === 'function') apresSynchro();
+    if(ATTENTE.length) pousser();
+  } catch(e){
+    ENVOI = false; etatSynchro(e instanceof Refus ? 'refus' : 'erreur');
+    clearTimeout(tR); tR = setTimeout(pousser, 15000);
+  }
+}
+function etatSynchro(err){
+  var e = document.getElementById('etat'); if(!e) return;
+  var t, c = '';
+  if(err === 'refus'){ t = 'Enregistrement refusé par GDS'; c = 'err'; }
+  else if(err){ t = ATTENTE.length + ' modif. en attente · nouvel essai'; c = 'err'; }
+  else if(ENVOI || ATTENTE.length){ t = 'Enregistrement dans GDS…'; c = 'att'; }
+  else t = 'Enregistré dans GDS';
+  e.className = 'etat ' + c; e.innerHTML = '<i></i>' + t;
+  var u = document.getElementById('bUndo'); if(u) u.disabled = !PILE.length;
+}
+window.addEventListener('beforeunload', function(e){ if(ATTENTE.length){ e.preventDefault(); e.returnValue = ''; } });
+
+
+/* ================= état ================= */
+var VERSION_BASE = 2, FICHIERS = [], SOURCES = {}, NOUVELLE = null;
+var AUJ = new Date().toISOString().slice(0,10);
+var tT;
+function toast(m, undo){ document.getElementById('tMsg').textContent = m; document.getElementById('tUndo').hidden = !undo; var t = document.getElementById('toast'); t.classList.add('on'); clearTimeout(tT); tT = setTimeout(function(){ t.classList.remove('on'); }, undo ? 5000 : 3000); }
+function norm(s){ return String(s == null ? '' : s).trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[\s_]+/g,' '); }
+function txt(v){ return v == null ? '' : (v instanceof Date ? jour(v) : String(v).trim()); }
+function mgb12(v){ var s = txt(v).replace(/\.0+$/,''); return /^\d{1,12}$/.test(s) ? s.padStart(12,'0') : ''; }
+function tronque(m){ return m.slice(-6) === '000000'; }
+function nombre(v){ if(typeof v === 'number') return v; var s = txt(v).replace(/\s/g,'').replace(',','.'); return s === '' || isNaN(+s) ? null : +s; }
+function jour(v){
+  if(v instanceof Date) return new Date(v.getTime() + 12*3600e3).toISOString().slice(0,10);
+  if(typeof v === 'number' && v > 20000 && v < 80000) return new Date(Math.round((v - 25569)*864e5) + 12*3600e3).toISOString().slice(0,10);
+  var s = txt(v), m;
+  if(m = s.match(/^(\d{4})-(\d{2})-(\d{2})/)) return m[1]+'-'+m[2]+'-'+m[3];
+  if(m = s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/)) return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+  return '';
+}
+function dateNom(n){ var m; if(m = n.match(/(20\d\d)-(\d\d)-(\d\d)/)) return m[1]+'-'+m[2]+'-'+m[3]; if(m = n.match(/(\d\d)-(\d\d)-(20\d\d)/)) return m[3]+'-'+m[2]+'-'+m[1]; return ''; }
+function fr(d){ return d ? d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4) : ''; }
+function px(n){ return n == null ? '' : n.toLocaleString('fr-FR',{minimumFractionDigits:2, maximumFractionDigits:4}); }
+function nb(n){ return n.toLocaleString('fr-FR'); }
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function dire(t){ document.getElementById('msg').textContent = t; }
+function jours(a, b){ return Math.round((new Date(b) - new Date(a)) / 864e5); }
+function sansCode(v){ return txt(v).replace(/^\d+\s*-\s*/,''); }
+
+
+/* ---------- lecture d'un contenu ---------- */
+function decoder(nom, buf){
+  var ext = (nom.match(/\.(\w+)$/) || ['',''])[1].toLowerCase();
+  var wb = ext === 'csv' ? XLSX.read(new TextDecoder('utf-8').decode(buf), {type:'string', raw:true})
+                         : XLSX.read(new Uint8Array(buf), {type:'array', cellDates:true});
+  var l = [];
+  wb.SheetNames.forEach(function(n){ l = l.concat(XLSX.utils.sheet_to_json(wb.Sheets[n], {header:1, raw:true, defval:''})); });
+  return l;
+}
+function analyser(nom, date, L){
+  for(var i = 0; i < Math.min(L.length, 30); i++){
+    var h = L[i].map(norm), col = {};
+    h.forEach(function(x, j){ if(x && !(x in col)) col[x] = j; });
+    var a = function(k){ return k in col; };
+    var o = {nom:nom, date:date, lignes:L.slice(i+1), col:col};
+    if(a('art mgb12') && a('art bp 2net')){ o.type = 'PRIX'; return o; }
+    if(a('subsys') && a('prix') && a('date prix')){ o.type = 'PRIXC'; return o; }
+    if(a('location code') && a('subsys') && a('quantity')){ o.type = 'STOCK'; return o; }
+    if(a('mgb 12')) col['mgb12'] = col['mgb 12'];
+    if(a('mgb12') && a('libelle')){ o.type = 'DATA'; return o; }
+  }
+  return {nom:nom, type:'AUTRE'};
+}
+
+/* ---------- sources GDS ---------- */
+function dateFichier(f){ return dateNom(f.nom) || String(f.date).slice(0,10); }
+function plusRecent(l){ return l.sort(function(a, b){ var x = dateFichier(a) + a.date, y = dateFichier(b) + b.date; return x < y ? 1 : -1; })[0] || null; }
+async function lireSources(){
+  document.getElementById('go').disabled = true;
+  try {
+    var L = await listeCourant();
+    SOURCES = {
+      DATA:  plusRecent(L.filter(function(f){ return /^data\b.*\.(xlsx|xlsm|xlsb|xls|csv)$/i.test(f.nom); })),
+      STOCK: plusRecent(L.filter(function(f){ return /^StockStatus_.*\.csv$/i.test(f.nom); })),
+      PRIXC: plusRecent(L.filter(function(f){ return /^PRIX_ARTICLES.*\.(xlsx|csv)$/i.test(f.nom); }))
+    };
+    var T = [['DATA','Data articles','obligatoire — dépose-le dans GDS'], ['STOCK','StockStatus','nouvelles références'],
+             ['PRIXC','PRIX_ARTICLES','complément de prix']];
+    document.getElementById('srcGds').innerHTML = T.map(function(t){
+      var f = SOURCES[t[0]];
+      return '<div class="s ' + (f ? 'ok' : (t[0] === 'DATA' ? 'need' : '')) + '"><b>' + t[1] + '</b><div class="f">' +
+        (f ? esc(f.nom) + '<br>du ' + fr(dateFichier(f)) : t[2]) + '</div></div>';
+    }).join('');
+    document.getElementById('go').disabled = !SOURCES.DATA && !FICHIERS.some(function(f){ return f.type === 'DATA'; });
+  } catch(e){
+    document.getElementById('srcGds').innerHTML = '<div class="s need"><b>GDS injoignable</b><div class="f">' + esc(e.message) + '</div></div>';
+  }
+}
+
+/* ---------- compléments du poste ---------- */
+function utile(f){ return /\.(xlsx|xlsm|xlsb|xls|csv)$/i.test(f.name) && !/^~\$/.test(f.name); }
+function lireLocal(f){ return new Promise(function(ok, ko){ var r = new FileReader(); r.onload = function(){ ok(r.result); }; r.onerror = ko; r.readAsArrayBuffer(f); }); }
+function lireEntree(e){
+  return new Promise(function(ok){
+    if(e.isFile){ e.file(function(f){ ok([f]); }, function(){ ok([]); }); return; }
+    if(!e.isDirectory){ ok([]); return; }
+    var r = e.createReader(), tout = [];
+    (function lot(){ r.readEntries(async function(ents){
+      if(!ents.length){ var res = []; for(var i = 0; i < tout.length; i++) res = res.concat(await lireEntree(tout[i])); ok(res); return; }
+      tout = tout.concat(Array.from(ents)); lot(); }, function(){ ok([]); }); })();
+  });
+}
+async function ajouter(liste){
+  liste = liste.filter(utile);
+  for(var i = 0; i < liste.length; i++){
+    var f = liste[i];
+    if(FICHIERS.some(function(x){ return x.nom === f.name && x.taille === f.size; })) continue;
+    document.getElementById('msgLoc').textContent = 'Lecture ' + (i+1) + ' / ' + liste.length + ' : ' + f.name + '…';
+    var x;
+    try { x = analyser(f.name, dateNom(f.name) || new Date(f.lastModified).toISOString().slice(0,10), decoder(f.name, await lireLocal(f))); }
+    catch(e){ x = {nom:f.name, type:'AUTRE'}; }
+    x.taille = f.size; x.local = true;
+    FICHIERS.push(x);
+  }
+  var lab = {PRIX:'prix hebdo', PRIXC:'PRIX_ARTICLES', DATA:'data', STOCK:'StockStatus', AUTRE:'non reconnu'};
+  var par = {};
+  FICHIERS.filter(function(f){ return f.local; }).forEach(function(f){ par[f.type] = (par[f.type] || 0) + 1; });
+  document.getElementById('loc').innerHTML = Object.keys(par).map(function(t){
+    return '<span class="chip" style="' + (t === 'AUTRE' ? '' : 'border-color:#9ad7b8;background:#ecf9f2;color:#1f9d63') + '">' + par[t] + ' ' + lab[t] + '</span>';
+  }).join('');
+  document.getElementById('msgLoc').textContent = '';
+  lireSources();
+}
+
+
+/* ================= mise à jour ================= */
+async function construire(){
+  var btn = document.getElementById('go'); btn.disabled = true;
+  try {
+    FICHIERS = FICHIERS.filter(function(f){ return f.local; });
+    var aLire = ['DATA','STOCK','PRIXC'].filter(function(t){ return SOURCES[t]; });
+    for(var i = 0; i < aLire.length; i++){
+      var s = SOURCES[aLire[i]];
+      dire('Lecture de ' + s.nom + ' dans GDS…');
+      var r = await gds('/fichier/' + encodeURIComponent(s.nom));
+      if(!r.ok) continue;
+      var x = analyser(s.nom, dateFichier(s), decoder(s.nom, await r.arrayBuffer()));
+      if(x.type !== 'AUTRE') FICHIERS.push(x);
+    }
+    if(!FICHIERS.some(function(f){ return f.type === 'DATA'; })) throw new Error('aucun data trouvé dans GDS');
+    dire('Analyse…');
+    await new Promise(function(r){ setTimeout(r, 20); });
+    calculer();
+    dire('');
+  } catch(e){ dire('Analyse impossible : ' + e.message); }
+  btn.disabled = false;
+}
+function calculer(){
+  var par = function(t){ return FICHIERS.filter(function(f){ return f.type === t; }).sort(function(a,b){ return a.date < b.date ? -1 : 1; }); };
+  var A = {}, parSub = {}, AVANT = BASE, initiale = !AVANT;
+
+  if(AVANT) Object.keys(AVANT.articles).forEach(function(m){
+    var o = AVANT.articles[m];
+    A[m] = {mgb:m, statut:o.statut, ajouteLe:o.ajouteLe, prix:o.prix, prixDate:o.prixDate, prixSource:o.prixSource, prixPrec:o.prixPrec, prixPrecDate:o.prixPrecDate,
+            libelle:o.libelle, subsys:o.subsys, _garde:o};
+    A[m]._vu = false;
+    if(o.subsys) parSub[o.subsys] = m;
+  });
+
+  var prixCand = {};
+  function cand(m, p, d, src){ if(p == null || p <= 0 || !d) return; (prixCand[m] = prixCand[m] || []).push({p:p, d:d, src:src}); }
+
+  par('DATA').forEach(function(f){
+    var c = f.col, g = function(l, k){ return k in c ? l[c[k]] : ''; };
+    f.lignes.forEach(function(l){
+      var m = mgb12(g(l,'mgb12')); if(!m) return;
+      var a = A[m];
+      if(!a) a = A[m] = {mgb:m, statut: initiale ? 'actif' : 'nouveau', ajouteLe: AUJ};
+      delete a._garde; a._vu = true;
+      var sub = txt(g(l,'subsys')).replace(/\.0+$/,'');
+      Object.assign(a, {
+        mgb6: m.slice(0,6), subsys: sub, libelle: txt(g(l,'libelle')),
+        fournisseur: txt(g(l,'nomfournisseur')), fournisseurNum: txt(g(l,'fournisseur original')),
+        saNum: txt(g(l,'numero sa')), secteur: txt(g(l,'sa name')), svNum: txt(g(l,'numero sv')), rayon: txt(g(l,'sv name')),
+        ga: txt(g(l,'ga')), sga: txt(g(l,'sga')), ssga: txt(g(l,'ssga')),
+        unite: txt(g(l,'conditionnement ccaf')), ccaf: nombre(g(l,'ccaf')), ccvm: nombre(g(l,'ccvm')), umc: nombre(g(l,'umc')),
+        colisCouche: nombre(g(l,'couche ccvm')), colisPalette: nombre(g(l,'palette ccvm')),
+        dlv: nombre(g(l,'dlv')), abc: txt(g(l,'classe abc')),
+        activation: txt(g(l,'activation article')) === '1', codeBlocage: txt(g(l,'code blocage')),
+        creeLe: jour(g(l,'date creation art')), majLe: f.date, source: 'data'
+      });
+      if(a.creeLe && a.creeLe < '1901-01-01') a.creeLe = '';
+      if(a.statut === 'completer' || a.statut === 'inactif') a.statut = 'actif';
+      if(sub) parSub[sub] = m;
+      var stk = nombre(g(l,'stk deb jr mms')), val = nombre(g(l,'val stock pa j1'));
+      if(stk > 0 && val != null) cand(m, Math.round(val / stk * 10000) / 10000, f.date, 'data');
+    });
+  });
+
+  par('PRIX').concat(par('PRIXC')).forEach(function(f){
+    var c = f.col, g = function(l, k){ return k in c ? l[c[k]] : ''; }, P = f.type === 'PRIX';
+    f.lignes.forEach(function(l){
+      var sub = txt(g(l, P ? 'art subsys' : 'subsys')).replace(/\.0+$/,''), m = parSub[sub];
+      if(!m){ var mm = mgb12(g(l, P ? 'art mgb12' : 'mgb 12')); if(mm && !tronque(mm) && A[mm]) m = mm; }
+      if(m) cand(m, nombre(g(l, P ? 'art bp 2net' : 'prix')), jour(g(l, P ? 'day id' : 'date prix')), 'fichier prix');
+    });
+  });
+
+  par('STOCK').forEach(function(f){
+    var c = f.col, g = function(l, k){ return k in c ? l[c[k]] : ''; };
+    f.lignes.forEach(function(l){
+      if(/INSPECTION/i.test(txt(g(l,'location code')))) return;
+      var m = mgb12(g(l,'mgb')); if(!m) return;
+      if(!A[m]) A[m] = {mgb:m, mgb6:m.slice(0,6), subsys:txt(g(l,'subsys')), libelle:txt(g(l,'description')), statut:'completer', ajouteLe:AUJ, majLe:f.date, source:'StockStatus'};
+      A[m]._vu = A[m]._vu || A[m].statut === 'completer';
+    });
+  });
+
+  Object.keys(A).forEach(function(m){
+    var a = A[m], l = prixCand[m];
+    if(!l) return;
+    l.sort(function(x, y){ return x.d !== y.d ? (x.d < y.d ? 1 : -1) : (x.src === 'data' ? -1 : 1); });
+    var n = l[0];
+    if(a.prix != null && a.prixDate && a.prixDate > n.d) return;
+    if(a.prix != null && Math.abs(a.prix - n.p) > 0.00005){ a.prixPrec = a.prix; a.prixPrecDate = a.prixDate; }
+    else if(a.prix == null){ var p = l.filter(function(x){ return Math.abs(x.p - n.p) > 0.00005; })[0]; if(p){ a.prixPrec = p.p; a.prixPrecDate = p.d; } }
+    a.prix = n.p; a.prixDate = n.d; a.prixSource = n.src;
+  });
+
+  Object.keys(A).forEach(function(m){
+    var a = A[m];
+    if(a._garde){ var o = a._garde; Object.keys(o).forEach(function(k){ if(!(k in a)) a[k] = o[k]; }); }  // article absent du data : on garde tout
+    if(a.ccvm && a.prix != null) a.prixPiece = Math.round(a.prix / a.ccvm * 10000) / 10000;
+    if(!initiale && !a._vu) a.statut = 'inactif';
+    delete a._vu; delete a._garde;
+    Object.keys(a).forEach(function(k){ if(a[k] === '' || a[k] == null) delete a[k]; });   // base compacte
+  });
+
+  NOUVELLE = {version:VERSION_BASE, majLe:AUJ, par:QUI,
+          sources: FICHIERS.map(function(f){ return {fichier:f.nom, type:f.type, date:f.date, poste:!!f.local}; }),
+          articles:A};
+  bilan();
+}
+
+
+function bilan(){
+  var N = NOUVELLE.articles, A = BASE ? BASE.articles : {}, c = {tot:0, nouv:0, inact:0, compl:0, prix:0};
+  Object.keys(N).forEach(function(m){
+    var n = N[m], a = A[m]; c.tot++;
+    if(!a && n.statut !== 'completer') c.nouv++;
+    if(n.statut === 'completer' && !a) c.compl++;
+    if(n.statut === 'inactif' && (!a || a.statut !== 'inactif')) c.inact++;
+    if(a && n.prix != null && a.prix != null && Math.abs(n.prix - a.prix) > 0.00005) c.prix++;
+  });
+  document.getElementById('diff').innerHTML = [
+    ['Références', nb(c.tot), ''], ['Nouvelles (data)', nb(c.nouv), 'g'], ['Nouvelles à compléter (StockStatus)', nb(c.compl), 'w'],
+    ['Passent inactives', nb(c.inact), ''], ['Prix modifiés', nb(c.prix), 'w']
+  ].map(function(k){ return '<div class="kpi ' + k[2] + '"><div class="v">' + k[1] + '</div><div class="l">' + k[0] + '</div></div>'; }).join('');
+  document.getElementById('res').hidden = false;
+}
+document.getElementById('pub').onclick = async function(){
+  if(!NOUVELLE) return;
+  if(!confirm('Publier cette mise à jour dans BASE_ARTICLES ?')) return;
+  var b = this; b.disabled = true;
+  try {
+    var j8 = AUJ.replace(/-/g,'') + '_' + new Date().toTimeString().slice(0,5).replace(':','');
+    if(BASE){
+      dire('Sauvegarde de l\'ancienne base…');
+      await ecrireArchive(F_HIST + 'base_articles_' + j8 + '.json.gz', await compresser(JSON.stringify(BASE)), 'application/gzip');
+      await ecrireArchive(F_HIST + 'saisies_' + j8 + '.json', JSON.stringify(SAISIES), 'application/json');
+    }
+    NOUVELLE.publieLe = new Date().toISOString();
+    var z = await compresser(JSON.stringify(NOUVELLE));
+    dire('Publication (' + (z.size / 1048576).toFixed(1) + ' Mo)…');
+    await ecrireArchive(F_BASE, z, 'application/gzip');
+    BASE = NOUVELLE; NOUVELLE = null;
+    await ecrire('base', {date:'', json:BASE});
+    document.getElementById('res').hidden = true;
+    dire('Base publiée le ' + new Date().toLocaleString('fr-FR') + '.');
+    toast('Base publiée dans BASE_ARTICLES');
+    preparerTableau(); vue('T');
+  } catch(e){ dire('Publication impossible : ' + e.message); }
+  b.disabled = false;
+};
+
+/* ================= tableau ================= */
+var CH = {
+  mgb:['MGB 12','t'], libelle:['Libellé','t'], ean:['EAN','t'], secteur:['Secteur','t'], ga:['GA','t'], fournisseur:['Fournisseur','t'],
+  unite:['Unité','t'], colisCouche:['Colis/couche','n'], colisPalette:['Colis/palette','n'], poidsColis:['Poids colis (kg)','n'],
+  emballage:['Emballage','s',['Europe (EPAL)','Logipal','CHEP','Palette perdue','Demi-palette','Quart de palette','Rolls','Bac plastique','Carton seul']],
+  tailleEmballage:['Taille emb.','s',['80 × 120','100 × 120','60 × 80','40 × 60','120 × 120']],
+  dlv:['DLV (j)','n'], icpe:['ICPE','t'], prix:['Prix unitaire','n'], prixDate:['Date prix','d'], statut:['Statut','x']
+};
+var COLS = Object.keys(CH);
+var STATUT = {actif:'Actif', nouveau:'Nouveau', completer:'À compléter', inactif:'Inactif'};
+function aff(k, v){
+  if(vide(v)) return '';
+  var t = CH[k] ? CH[k][1] : 't';
+  if(k === 'prix') return px(+v);
+  if(t === 'n') return (+v).toLocaleString('fr-FR', {maximumFractionDigits:3});
+  if(t === 'd') return fr(v);
+  if(k === 'statut') return STATUT[v] || v;
+  if(Array.isArray(v)) return v.join(', ');
+  return v;
+}
+var VUE = [];
+function preparerTableau(){
+  var secs = {};
+  Object.values(BASE.articles).forEach(function(a){ if(a.secteur) secs[a.secteur] = 1; });
+  document.getElementById('fsec').innerHTML = '<option value="">Tous les secteurs</option>' + Object.keys(secs).sort().map(function(s){ return '<option>' + esc(s) + '</option>'; }).join('');
+  document.getElementById('th').innerHTML = COLS.map(function(k){ return '<th>' + CH[k][0] + '</th>'; }).join('');
+  kpis(); afficher();
+}
+function toutes(){ return Object.keys(BASE.articles).map(fusion); }
+function kpis(){
+  var L = toutes(), c = function(fn){ return nb(L.filter(fn).length); };
+  document.getElementById('kpis').innerHTML = [
+    ['Références', nb(L.length), '', ''], ['Nouvelles', c(function(a){ return a.statut === 'nouveau'; }), 'g', 'st:nouveau'],
+    ['À compléter', c(function(a){ return a.statut === 'completer'; }), 'w', 'st:completer'],
+    ['Sans EAN', c(function(a){ return vide(a.ean); }), 'e', 'mq:ean'], ['Sans emballage', c(function(a){ return vide(a.emballage); }), 'e', 'mq:emballage'],
+    ['Sans prix', c(function(a){ return a.prix == null; }), 'e', 'mq:prix'], ['Corrigées à la main', nb(Object.keys(SAISIES.champs).length), '', 'mq:corr']
+  ].map(function(k){ return '<div class="kpi ' + k[2] + '" data-f="' + k[3] + '"><div class="v">' + k[1] + '</div><div class="l">' + k[0] + '</div></div>'; }).join('');
+  document.querySelectorAll('#kpis .kpi').forEach(function(e){ e.onclick = function(){
+    var f = e.dataset.f; document.getElementById('fst').value = f.indexOf('st:') === 0 ? f.slice(3) : ''; document.getElementById('fmq').value = f.indexOf('mq:') === 0 ? f.slice(3) : ''; afficher(); }; });
+}
+function filtres(){
+  var q = norm(document.getElementById('q').value), st = document.getElementById('fst').value,
+      sec = document.getElementById('fsec').value, mq = document.getElementById('fmq').value;
+  return toutes().filter(function(a){
+    if(st && a.statut !== st) return false;
+    if(sec && a.secteur !== sec) return false;
+    if(mq === 'corr'){ if(!SAISIES.champs[a.mgb]) return false; }
+    else if(mq && !vide(a[mq])) return false;
+    if(q && (a.mgb + ' ' + (a.subsys || '') + ' ' + (a.ean || '') + ' ' + norm(a.libelle) + ' ' + norm(a.fournisseur)).indexOf(q) < 0) return false;
+    return true;
+  }).sort(function(x, y){ return x.mgb < y.mgb ? -1 : 1; });
+}
+function cellule(a, k){
+  var v = a[k], c = a._corr[k], s = SAISIES.champs[a.mgb] && SAISIES.champs[a.mgb][k];
+  if(k === 'mgb') return '<td class="m"><a href="FICHE_ARTICLE_2026.html#' + a.mgb + '" target="_blank">' + a.mgb + '</a></td>';
+  if(k === 'statut') return '<td><span class="st ' + v + '">' + (STATUT[v] || '') + '</span></td>';
+  var cls = (CH[k][1] === 'n' || k === 'prix' ? 'n ' : '') + (k !== 'prixDate' ? 'ed ' : '') + (c || (s && k === 'prix' && a.prixSource === 'saisie manuelle') ? 'corr' : '');
+  var t = vide(v) ? '<span class="vid">—</span>' : esc(aff(k, v)) + (a._src[k] ? ' <span class="src-i">' + a._src[k] + '</span>' : '');
+  return '<td class="' + cls + (k === 'libelle' || k === 'fournisseur' ? ' lib' : '') + '" data-m="' + a.mgb + '" data-k="' + k + '"' + (c ? ' title="Origine : ' + esc(aff(k, c.orig)) + ' · corrigé par ' + esc(c.par) + ' le ' + fr(c.le) + '"' : '') + '>' + t + '</td>';
+}
+function afficher(){
+  var l = filtres(), max = 1000; VUE = l;
+  document.getElementById('tb').innerHTML = l.slice(0, max).map(function(a){ return '<tr>' + COLS.map(function(k){ return cellule(a, k); }).join('') + '</tr>'; }).join('');
+  document.getElementById('cnt').textContent = nb(l.length) + ' référence(s)' + (l.length > max ? ' · ' + max + ' premières affichées, affine la recherche' : '');
+}
+function ligne(m){
+  var td = document.querySelector('td[data-m="' + m + '"]'); if(!td) return;
+  var a = fusion(m); td.parentNode.innerHTML = COLS.map(function(k){ return cellule(a, k); }).join('');
+}
+document.getElementById('tb').addEventListener('click', function(e){
+  var td = e.target.closest('td.ed'); if(!td || td.querySelector('input,select')) return;
+  var m = td.dataset.m, k = td.dataset.k, t = CH[k][1], v = fusion(m)[k], inp;
+  if(t === 's'){
+    inp = document.createElement('select');
+    var ops = CH[k][2].slice(); if(!vide(v) && ops.indexOf(v) < 0) ops.unshift(v);
+    inp.innerHTML = '<option value="">—</option>' + ops.map(function(o){ return '<option>' + esc(o) + '</option>'; }).join('') + '<option value="__autre">Autre…</option>';
+    inp.value = vide(v) ? '' : v;
+  } else { inp = document.createElement('input'); inp.value = vide(v) ? '' : (t === 'n' ? String(v).replace('.', ',') : v); }
+  td.innerHTML = ''; td.appendChild(inp); inp.focus(); if(inp.select) inp.select();
+  var fini = false;
+  var valider = function(garder){
+    if(fini) return; fini = true;
+    if(garder){
+      var nv = inp.value.trim();
+      if(t === 'n'){ nv = nv === '' ? null : +nv.replace(/\s/g,'').replace(',', '.'); if(nv !== null && isNaN(nv)){ toast('Nombre invalide'); ligne(m); return; } }
+      if(t === 's' && nv === '__autre'){ nv = (prompt(CH[k][0] + ' :', '') || '').trim(); if(!nv){ ligne(m); return; } }
+      if(k === 'ean' && nv && !/^\d{8,14}$/.test(nv)){ toast('EAN invalide : 8 à 14 chiffres'); ligne(m); return; }
+      if(k === 'libelle' && !nv){ toast('Le libellé ne peut pas être vide'); ligne(m); return; }
+      if(saisir(m, k, nv)) toast(CH[k][0] + ' enregistré', true);
+    }
+    ligne(m);
+  };
+  inp.onblur = function(){ valider(true); };
+  inp.onkeydown = function(ev){ if(ev.key === 'Enter'){ ev.preventDefault(); valider(true); } if(ev.key === 'Escape') valider(false); };
+  if(t === 's') inp.onchange = function(){ valider(true); };
+});
+function apresSynchro(){ if(!document.querySelector('#tb input,#tb select') && !document.getElementById('vT').hidden) kpis(); if(!document.getElementById('vH').hidden) historique(); }
+function annuler(){ var x = annulerDerniere(); if(x){ toast('Modification annulée'); ligne(x.mgb); } etatSynchro(); }
+document.getElementById('bUndo').onclick = annuler;
+document.getElementById('tUndo').onclick = function(){ document.getElementById('toast').classList.remove('on'); annuler(); };
+document.addEventListener('keydown', function(e){ if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)){ e.preventDefault(); annuler(); } });
+
+/* ================= historique ================= */
+function historique(){
+  var q = norm(document.getElementById('qh').value);
+  var H = SAISIES.historique.slice().reverse().filter(function(x){ return !q || (x.mgb + ' ' + norm(x.par)).indexOf(q) >= 0; }).slice(0, 500);
+  document.getElementById('tbh').innerHTML = H.map(function(x){
+    var d = new Date(x.le), a = BASE && BASE.articles[x.mgb];
+    return '<tr><td>' + d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}) + '</td><td>' + esc(x.par) + '</td>' +
+      '<td class="m"><a href="FICHE_ARTICLE_2026.html#' + x.mgb + '" target="_blank">' + x.mgb + '</a></td><td class="lib">' + esc(a ? a.libelle : '') + '</td>' +
+      '<td>' + esc(CH[x.k] ? CH[x.k][0] : x.k) + '</td><td style="color:var(--mut);text-decoration:line-through">' + esc(aff(x.k, x.avant)) + '</td><td>' + esc(aff(x.k, x.apres)) + '</td>' +
+      '<td><button class="lt" data-rt="' + x.id + '" style="padding:4px 10px">Rétablir</button></td></tr>';
+  }).join('') || '<tr><td colspan="8" style="color:var(--mut)">Aucune saisie pour le moment.</td></tr>';
+  document.querySelectorAll('[data-rt]').forEach(function(b){ b.onclick = function(){ var x = retablir(+b.dataset.rt); if(x){ toast('Valeur rétablie'); historique(); } }; });
+}
+document.getElementById('qh').oninput = historique;
+
+/* ================= interface ================= */
+function vue(v){
+  ['T','M','H'].forEach(function(x){ document.getElementById('v' + x).hidden = x !== v; document.getElementById('o' + x).classList.toggle('on', x === v); });
+  if(v === 'M') lireSources();
+  if(v === 'H') historique();
+  if(v === 'T' && BASE) afficher();
+}
+document.getElementById('oT').onclick = function(){ if(BASE) vue('T'); else toast('La base est vide : fais d\'abord une mise à jour'); };
+document.getElementById('oM').onclick = function(){ vue('M'); };
+document.getElementById('oH').onclick = function(){ vue('H'); };
+var drop = document.getElementById('drop'), inp = document.getElementById('inp'), inpd = document.getElementById('inpd');
+drop.onclick = function(){ inp.click(); };
+document.getElementById('bdos').onclick = function(){ inpd.click(); };
+inp.onchange = function(){ ajouter(Array.from(inp.files)); inp.value = ''; };
+inpd.onchange = function(){ ajouter(Array.from(inpd.files)); inpd.value = ''; };
+drop.ondragover = function(e){ e.preventDefault(); drop.classList.add('on'); };
+drop.ondragleave = function(){ drop.classList.remove('on'); };
+drop.ondrop = async function(e){
+  e.preventDefault(); drop.classList.remove('on');
+  var ents = Array.from(e.dataTransfer.items || []).map(function(it){ return it.webkitGetAsEntry ? it.webkitGetAsEntry() : null; }), l = [];
+  if(ents.length && ents.every(Boolean)){ for(var i = 0; i < ents.length; i++) l = l.concat(await lireEntree(ents[i])); }
+  else l = Array.from(e.dataTransfer.files);
+  ajouter(l);
+};
+document.getElementById('go').onclick = construire;
+document.getElementById('relire').onclick = lireSources;
+var tQ; document.getElementById('q').oninput = function(){ clearTimeout(tQ); tQ = setTimeout(afficher, 200); };
+['fst','fsec','fmq'].forEach(function(id){ document.getElementById(id).oninput = afficher; });
+
+(async function(){
+  var bl = function(t, m){ document.getElementById('chargement').hidden = true; document.getElementById('bloque').hidden = false; document.getElementById('bloqueT').textContent = t; document.getElementById('bloqueM').textContent = m; };
+  if(!API) return bl('config.js introuvable', 'La page doit être publiée à côté de config.js dans GDS.');
+  if(!JETON) return bl('Connexion requise', 'Ouvre cette page depuis le sommaire GDS.');
+  if(!PEUT) return bl('Accès réservé', 'La base articles est gérée par Patrick et Maxime. La fiche article reste consultable par tous.');
+  try {
+    etatSynchro();
+    var ok = await chargerBase();
+    await chargerSaisies();
+    await chargerSecurite();
+    document.getElementById('chargement').hidden = true;
+    document.getElementById('page').hidden = false;
+    if(ok){ preparerTableau(); vue('T'); }
+    else { vue('M'); dire('Aucune base dans BASE_ARTICLES : lance la première construction.'); }
+  } catch(e){ bl(e instanceof Refus ? 'Accès refusé par le serveur' : 'GDS injoignable', e.message); }
+})();
+</script>
+</body>
+</html>

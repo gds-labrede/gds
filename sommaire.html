@@ -452,6 +452,10 @@ var FAMILLES = [
     { nom:'Dashboard Inventaire 2026', f:'dashboard_inventaire_2026.html', ico:'tableau' },
     { nom:'Couverture Inventaire',     f:'couverture_inventaire.html',     ico:'check' }
   ]},
+  { id:'articles', nom:'Articles', ico:'boite', c:'#1f6f8b', desc:'Fiche article et base articles', admin:false, outils:[
+    { nom:'Fiche article', f:'FICHE_ARTICLE_2026.html', ico:'loupe' },
+    { nom:'Base articles', f:'ARTICLES_2026.html',      ico:'boite', roles:['admin','admin_restreint'] }
+  ]},
   { id:'implantation', nom:'Implantation', ico:'plan', c:'#1d7a5f', desc:'Optimisation des emplacements', admin:false, outils:[
     { nom:"Taux d'occupation",     f:'Taux_occupation_FINAL_COMPLET.html', ico:'tableau' },
     { nom:'Emplacements Vides',    f:'emplacements-vides-v2.html',         ico:'vide' },
@@ -706,7 +710,9 @@ var dossier = null;   /* dossier ouvert dans la liste, ex. 'FDS' */
 var PREFIXES = [
   'StockStatus_FR_STOREDEPOT_',
   'StorageGroupMappings_FR_STOREDEPOT_',
-  'M_DEPOT report_Emplacement de stk_Table'
+  'M_DEPOT report_Emplacement de stk_Table',
+  'data - ',
+  'PRIX_ARTICLES_'
 ];
 
 var charges = { courant:false, archive:false };
