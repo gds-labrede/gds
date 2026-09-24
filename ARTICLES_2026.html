@@ -78,6 +78,13 @@ td.m a{color:var(--navy);text-decoration:none;border-bottom:1px dotted var(--nav
 .toast button{background:none;color:var(--or2);padding:0;font-weight:700}
 .diff .kpi{cursor:default}
 .load{width:40px;height:40px;border-radius:50%;border:4px solid #dde3ee;border-top-color:var(--or);margin:30px auto;animation:t 1s linear infinite}@keyframes t{to{transform:rotate(360deg)}}
+/* colonnes MGB et libellé figées pendant le défilement horizontal */
+#vT th:nth-child(1),#vT td:nth-child(1){position:sticky;left:0;z-index:2;min-width:118px;width:118px}
+#vT th:nth-child(2),#vT td:nth-child(2){position:sticky;left:118px;z-index:2;min-width:260px;max-width:260px;box-shadow:6px 0 8px -6px rgba(20,37,74,.25)}
+#vT th:nth-child(1),#vT th:nth-child(2){z-index:3}
+#vT td:nth-child(1),#vT td:nth-child(2){background:#fff}
+#vT tr:nth-child(even) td:nth-child(1),#vT tr:nth-child(even) td:nth-child(2){background:#fafbfd}
+#vT td:nth-child(2){overflow:hidden;text-overflow:ellipsis}
 </style>
 </head>
 <body>
@@ -85,7 +92,7 @@ td.m a{color:var(--navy);text-decoration:none;border-bottom:1px dotted var(--nav
   <div class="logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M3 14h18M9 4v16"/></svg></div>
   <div><h1>Base articles</h1><div class="sub">Dossier BASE_ARTICLES · toutes les références du dépôt</div></div>
   <span class="etat" id="etat"></span>
-  <div class="ver">v7</div>
+  <div class="ver">v10</div>
 </header>
 <main>
   <div class="card" id="bloque" hidden><h2 id="bloqueT"></h2><div class="msg" id="bloqueM"></div></div>
@@ -106,10 +113,11 @@ td.m a{color:var(--navy);text-decoration:none;border-bottom:1px dotted var(--nav
           <input type="search" id="q" placeholder="MGB, subsys, EAN, libellé, fournisseur…">
           <select id="fst"><option value="">Tous les statuts</option><option value="nouveau">Nouveau</option><option value="completer">À compléter</option><option value="actif">Actif</option><option value="inactif">Inactif</option></select>
           <select id="fsec"><option value="">Tous les secteurs</option></select>
-          <select id="fmq"><option value="">Toutes les fiches</option><option value="ean">Sans EAN</option><option value="emballage">Sans emballage</option><option value="poidsColis">Sans poids colis</option><option value="prix">Sans prix</option><option value="corr">Corrigées à la main</option></select>
+          <select id="fmq"><option value="">Toutes les fiches</option><option value="ean">Sans EAN</option><option value="emballage">Sans emballage</option><option value="poidsColis">Sans poids colis</option><option value="prix">Sans prix</option><option value="corr">Corrigées à la main</option><option value="avecicpe">Avec ICPE</option></select>
           <span style="margin-left:auto"></span>
           <button class="lt" id="bUndo" disabled>Annuler</button>
         </div>
+        <div class="hint" id="infoIcpe"></div>
         <div class="hint">Clique sur une cellule pour la modifier : c'est enregistré dans GDS aussitôt. Un point orange = valeur corrigée à la main. Clique sur un MGB pour ouvrir sa fiche.</div>
         <div class="tw"><table><thead><tr id="th"></tr></thead><tbody id="tb"></tbody></table></div>
         <div class="msg" id="cnt" style="margin-top:8px"></div>
@@ -217,7 +225,7 @@ async function lire(k){ var d = await idb(); if(!d) return null; return new Prom
 async function ecrire(k, v){ var d = await idb(); if(!d) return false; return new Promise(function(ok){ var t = d.transaction('k','readwrite'); t.objectStore('k').put(v, k); t.oncomplete = function(){ ok(true); }; t.onerror = function(){ ok(false); }; }); }
 
 /* ----- chargement base + saisies + ICPE ----- */
-var BASE = null, SAISIES = {version:1, champs:{}, historique:[]}, ICPE = {}, FDSL = {}, ATTENTE = [], PILE = [];
+var BASE = null, SAISIES = {version:1, champs:{}, historique:[]}, ICPE = {}, REFS = {}, REFS6 = {}, ICPE_INFO = {}, FDSL = {}, ATTENTE = [], PILE = [];
 async function chargerBase(){
   var L = await listeArchive(DOSSIER);
   var fb = L.filter(function(f){ return f.nom === F_BASE; })[0];
@@ -242,15 +250,53 @@ async function chargerSaisies(){
   ATTENTE.forEach(function(x){ appliquerSaisie(SAISIES, x); });
   if(ATTENTE.length) pousser();
 }
+function lireCSVIcpe(texte){
+  var fin = texte.indexOf('\n'), tete = texte.slice(0, fin < 0 ? 200 : fin);
+  var sep = (tete.split(';').length > tete.split(',').length) ? ';' : (tete.indexOf('\t') >= 0 ? '\t' : ',');
+  var lignes = [], champ = '', ligne = [], g = false;
+  for(var i = 0; i < texte.length; i++){
+    var c = texte[i];
+    if(g){ if(c === '"'){ if(texte[i+1] === '"'){ champ += '"'; i++; } else g = false; } else champ += c; }
+    else if(c === '"') g = true;
+    else if(c === sep){ ligne.push(champ); champ = ''; }
+    else if(c === '\n' || c === '\r'){ if(c === '\r' && texte[i+1] === '\n') i++; ligne.push(champ); champ = ''; if(ligne.length > 1 || ligne[0] !== '') lignes.push(ligne); ligne = []; }
+    else champ += c;
+  }
+  if(champ !== '' || ligne.length){ ligne.push(champ); lignes.push(ligne); }
+  return lignes;
+}
 async function chargerSecurite(){
+  /* 1. référentiel ICPE de GDS (celui de « Contrôle ICPE ») : systeme/icpe_refs.csv, MGB;CODE */
+  ICPE_INFO = {ref:'absent', lignes:0, codes:0, fds:0};
   try {
-    var L = await listeArchive('FDS/'); FDSL = {};
-    L.forEach(function(f){ var m = f.nom.slice(4).match(/^(\d{8,14})[_\-\s]/); if(m && /\.pdf$/i.test(f.nom)) FDSL[mgb12(m[1])] = f.nom; });
-    var fi = L.filter(function(f){ return f.nom === 'FDS/fds_icpe.json'; })[0], j = null, c = await lire('icpe');
+    var r = await gds('/fichier/' + encodeURIComponent('systeme/icpe_refs.csv'));
+    if(r.ok){
+      var buf = await r.arrayBuffer(), t = new TextDecoder('utf-8').decode(buf);
+      if(t.indexOf('�') !== -1) t = new TextDecoder('windows-1252').decode(buf);
+      var L = lireCSVIcpe(t.replace(/^﻿/, ''));
+      REFS = {}; REFS6 = {};
+      L.forEach(function(c, i){
+        if(i === 0 && !/\d{5,}/.test(c[0] || '')) return;                 // en-tête
+        var m = String(c[0] || '').replace(/\D/g, '').replace(/^0+(?=\d{12}$)/, ''), code = String(c[1] || '').trim();
+        ICPE_INFO.lignes++;
+        if(!m || !code || code === '?') return;
+        ICPE_INFO.codes++;
+        if(m.length <= 6) REFS6[m.padStart(6, '0')] = code;
+        else { var k = mgb12(m); REFS[k] = code; if(!REFS6[k.slice(0,6)]) REFS6[k.slice(0,6)] = code; }
+      });
+      ICPE_INFO.ref = 'ok';
+    } else ICPE_INFO.ref = r.status === 404 ? 'absent' : 'erreur ' + r.status;
+  } catch(e){ ICPE_INFO.ref = 'erreur : ' + (e.message || e); }
+  /* 2. FDS de l'archive : fichiers PDF et fds_icpe.json (rubrique, mentions, pictogrammes) */
+  try {
+    var L2 = await listeArchive('FDS/'); FDSL = {};
+    L2.forEach(function(f){ var m = f.nom.slice(4).match(/^(\d{8,14})[_\-\s]/); if(m && /\.pdf$/i.test(f.nom)) FDSL[mgb12(m[1])] = f.nom; });
+    var fi = L2.filter(function(f){ return f.nom === 'FDS/fds_icpe.json'; })[0], j = null, c = await lire('icpe');
     if(fi && c && c.date === fi.date) j = c.json;
     else if(fi){ var b = await lireArchive('FDS/fds_icpe.json'); j = JSON.parse(new TextDecoder().decode(b)); await ecrire('icpe', {date:fi.date, json:j}); }
     ICPE = {};
     if(j && j.fiches) Object.keys(j.fiches).forEach(function(m){ ICPE[mgb12(m)] = j.fiches[m]; });
+    ICPE_INFO.fds = Object.keys(ICPE).length;
   } catch(e){}
 }
 
@@ -263,8 +309,10 @@ function egal(a, b){
 function fusion(m){
   var b = BASE.articles[m] || {mgb:m}, a = Object.assign({}, b), C = SAISIES.champs[m] || {}, i = ICPE[m];
   a._corr = {}; a._src = {};
+  var ref = REFS[m] || REFS6[String(m).slice(0,6)];
+  if(ref){ a.icpe = ref; a._src.icpe = 'réf. ICPE'; }
   if(i){
-    if(i.rubrique && i.rubrique !== '?'){ a.icpe = i.rubrique; a._src.icpe = 'FDS'; }
+    if(!ref && i.rubrique && i.rubrique !== '?'){ a.icpe = i.rubrique; a._src.icpe = 'FDS'; }
     var p = String(i.pictos || '').match(/SGH0?\d/gi);
     if(p && p.length){ a.pictos = p.map(function(x){ return 'SGH0' + x.slice(-1); }); a._src.pictos = 'FDS'; }
     if(i.mentions) a.mentions = i.mentions;
@@ -639,7 +687,12 @@ function preparerTableau(){
   Object.values(BASE.articles).forEach(function(a){ if(a.secteur) secs[a.secteur] = 1; });
   document.getElementById('fsec').innerHTML = '<option value="">Tous les secteurs</option>' + Object.keys(secs).sort().map(function(s){ return '<option>' + esc(s) + '</option>'; }).join('');
   document.getElementById('th').innerHTML = COLS.map(function(k){ return '<th>' + CH[k][0] + '</th>'; }).join('');
-  kpis(); afficher();
+  kpis(); afficher(); infoIcpe();
+}
+function infoIcpe(){
+  var i = ICPE_INFO, t = i.ref === 'ok' ? 'Référentiel ICPE (systeme/icpe_refs.csv) : ' + nb(i.lignes) + ' lignes lues, ' + nb(i.codes) + ' avec une rubrique'
+        : 'Référentiel ICPE systeme/icpe_refs.csv : ' + i.ref;
+  document.getElementById('infoIcpe').innerHTML = '<b style="color:' + (i.ref === 'ok' && i.codes ? 'var(--ok)' : 'var(--err)') + '">' + esc(t) + '</b> · FDS analysées : ' + nb(i.fds || 0);
 }
 function toutes(){ return Object.keys(BASE.articles).map(fusion); }
 function kpis(){
@@ -648,7 +701,8 @@ function kpis(){
     ['Références', nb(L.length), '', ''], ['Nouvelles', c(function(a){ return a.statut === 'nouveau'; }), 'g', 'st:nouveau'],
     ['À compléter', c(function(a){ return a.statut === 'completer'; }), 'w', 'st:completer'],
     ['Sans EAN', c(function(a){ return vide(a.ean); }), 'e', 'mq:ean'], ['Sans emballage', c(function(a){ return vide(a.emballage); }), 'e', 'mq:emballage'],
-    ['Sans prix', c(function(a){ return a.prix == null; }), 'e', 'mq:prix'], ['Corrigées à la main', nb(Object.keys(SAISIES.champs).length), '', 'mq:corr']
+    ['Sans prix', c(function(a){ return a.prix == null; }), 'e', 'mq:prix'],
+    ['Avec ICPE', c(function(a){ return !vide(a.icpe); }), '', 'mq:avecicpe'], ['Corrigées à la main', nb(Object.keys(SAISIES.champs).length), '', 'mq:corr']
   ].map(function(k){ return '<div class="kpi ' + k[2] + '" data-f="' + k[3] + '"><div class="v">' + k[1] + '</div><div class="l">' + k[0] + '</div></div>'; }).join('');
   document.querySelectorAll('#kpis .kpi').forEach(function(e){ e.onclick = function(){
     var f = e.dataset.f; document.getElementById('fst').value = f.indexOf('st:') === 0 ? f.slice(3) : ''; document.getElementById('fmq').value = f.indexOf('mq:') === 0 ? f.slice(3) : ''; afficher(); }; });
@@ -660,6 +714,7 @@ function filtres(){
     if(st && a.statut !== st) return false;
     if(sec && a.secteur !== sec) return false;
     if(mq === 'corr'){ if(!SAISIES.champs[a.mgb]) return false; }
+    else if(mq === 'avecicpe'){ if(vide(a.icpe)) return false; }
     else if(mq && !vide(a[mq])) return false;
     if(q && (a.mgb + ' ' + (a.subsys || '') + ' ' + (a.ean || '') + ' ' + norm(a.libelle) + ' ' + norm(a.fournisseur)).indexOf(q) < 0) return false;
     return true;

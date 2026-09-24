@@ -313,7 +313,7 @@ async function lire(k){ var d = await idb(); if(!d) return null; return new Prom
 async function ecrire(k, v){ var d = await idb(); if(!d) return false; return new Promise(function(ok){ var t = d.transaction('k','readwrite'); t.objectStore('k').put(v, k); t.oncomplete = function(){ ok(true); }; t.onerror = function(){ ok(false); }; }); }
 
 /* ----- chargement base + saisies + ICPE ----- */
-var BASE = null, SAISIES = {version:1, champs:{}, historique:[]}, ICPE = {}, REFS = {}, REFS6 = {}, FDSL = {}, ATTENTE = [], PILE = [];
+var BASE = null, SAISIES = {version:1, champs:{}, historique:[]}, ICPE = {}, REFS = {}, REFS6 = {}, ICPE_INFO = {}, FDSL = {}, ATTENTE = [], PILE = [];
 async function chargerBase(){
   var L = await listeArchive(DOSSIER);
   var fb = L.filter(function(f){ return f.nom === F_BASE; })[0];
@@ -338,22 +338,43 @@ async function chargerSaisies(){
   ATTENTE.forEach(function(x){ appliquerSaisie(SAISIES, x); });
   if(ATTENTE.length) pousser();
 }
+function lireCSVIcpe(texte){
+  var fin = texte.indexOf('\n'), tete = texte.slice(0, fin < 0 ? 200 : fin);
+  var sep = (tete.split(';').length > tete.split(',').length) ? ';' : (tete.indexOf('\t') >= 0 ? '\t' : ',');
+  var lignes = [], champ = '', ligne = [], g = false;
+  for(var i = 0; i < texte.length; i++){
+    var c = texte[i];
+    if(g){ if(c === '"'){ if(texte[i+1] === '"'){ champ += '"'; i++; } else g = false; } else champ += c; }
+    else if(c === '"') g = true;
+    else if(c === sep){ ligne.push(champ); champ = ''; }
+    else if(c === '\n' || c === '\r'){ if(c === '\r' && texte[i+1] === '\n') i++; ligne.push(champ); champ = ''; if(ligne.length > 1 || ligne[0] !== '') lignes.push(ligne); ligne = []; }
+    else champ += c;
+  }
+  if(champ !== '' || ligne.length){ ligne.push(champ); lignes.push(ligne); }
+  return lignes;
+}
 async function chargerSecurite(){
   /* 1. référentiel ICPE de GDS (celui de « Contrôle ICPE ») : systeme/icpe_refs.csv, MGB;CODE */
+  ICPE_INFO = {ref:'absent', lignes:0, codes:0, fds:0};
   try {
     var r = await gds('/fichier/' + encodeURIComponent('systeme/icpe_refs.csv'));
     if(r.ok){
-      var t = new TextDecoder('utf-8').decode(await r.arrayBuffer()).replace(/^﻿/, '');
-      var L = t.split(/\r?\n/), sep = (L[0].split(';').length > L[0].split(',').length) ? ';' : ',';
+      var buf = await r.arrayBuffer(), t = new TextDecoder('utf-8').decode(buf);
+      if(t.indexOf('�') !== -1) t = new TextDecoder('windows-1252').decode(buf);
+      var L = lireCSVIcpe(t.replace(/^﻿/, ''));
       REFS = {}; REFS6 = {};
-      L.forEach(function(l, i){
-        var c = l.split(sep), m = String(c[0] || '').trim().replace(/^'/, '').replace(/\D/g, '').replace(/^0+(?=\d{12}$)/, ''), code = String(c[1] || '').trim().replace(/^"|"$/g, '');
-        if(!m || !code || code === '?' || /^code/i.test(code)) return;
+      L.forEach(function(c, i){
+        if(i === 0 && !/\d{5,}/.test(c[0] || '')) return;                 // en-tête
+        var m = String(c[0] || '').replace(/\D/g, '').replace(/^0+(?=\d{12}$)/, ''), code = String(c[1] || '').trim();
+        ICPE_INFO.lignes++;
+        if(!m || !code || code === '?') return;
+        ICPE_INFO.codes++;
         if(m.length <= 6) REFS6[m.padStart(6, '0')] = code;
         else { var k = mgb12(m); REFS[k] = code; if(!REFS6[k.slice(0,6)]) REFS6[k.slice(0,6)] = code; }
       });
-    }
-  } catch(e){}
+      ICPE_INFO.ref = 'ok';
+    } else ICPE_INFO.ref = r.status === 404 ? 'absent' : 'erreur ' + r.status;
+  } catch(e){ ICPE_INFO.ref = 'erreur : ' + (e.message || e); }
   /* 2. FDS de l'archive : fichiers PDF et fds_icpe.json (rubrique, mentions, pictogrammes) */
   try {
     var L2 = await listeArchive('FDS/'); FDSL = {};
@@ -363,6 +384,7 @@ async function chargerSecurite(){
     else if(fi){ var b = await lireArchive('FDS/fds_icpe.json'); j = JSON.parse(new TextDecoder().decode(b)); await ecrire('icpe', {date:fi.date, json:j}); }
     ICPE = {};
     if(j && j.fiches) Object.keys(j.fiches).forEach(function(m){ ICPE[mgb12(m)] = j.fiches[m]; });
+    ICPE_INFO.fds = Object.keys(ICPE).length;
   } catch(e){}
 }
 
