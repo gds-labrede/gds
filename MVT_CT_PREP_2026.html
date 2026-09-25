@@ -106,7 +106,7 @@ td input.cmt{width:100%;min-width:140px;font-size:12px;padding:4px 6px}
   </div>
   <div class="actions">
     <a class="retour" href="sommaire.html">Retour au tableau de bord</a>
-    <label class="btn alt" style="text-transform:none;letter-spacing:0;font-size:14px;display:inline-block">Charger un CSV
+    <label class="btn alt" style="text-transform:none;letter-spacing:0;font-size:14px;display:inline-block">Importer
       <input type="file" id="fileInput" accept=".csv,text/csv" hidden>
     </label>
   </div>
@@ -152,7 +152,7 @@ td input.cmt{width:100%;min-width:140px;font-size:12px;padding:4px 6px}
       <button id="btnAllDone">Marquer la liste traitée</button>
       <button id="btnReset">Réinitialiser filtres</button>
     </div>
-    <div class="drop" id="drop" style="margin-top:12px">Glisser ici le fichier <b>M_DEPOT_report_Mvt_stock_Table…csv</b> (ou bouton « Charger un CSV »)</div>
+    <div class="drop" id="drop" style="margin-top:12px">Importer l'export <b>M_DEPOT report_Mvt stock_Table…csv</b> : il est archivé dans MVTS puis ouvert (glisser ici ou bouton « Importer »)</div>
   </div>
 
   <div class="bandeau" id="bandeau" hidden></div>
@@ -226,7 +226,9 @@ const COLS=[
 let sortK='stk_mvt_datetime', sortAsc=false;
 
 function load(text,name){
-  DATA=parseCSV(text).map(r=>{
+  const auj=iso(new Date());
+  const tout=parseCSV(text);
+  DATA=tout.filter(r=>r.day_id&&r.day_id<auj).map(r=>{
     r.stk_chg_desc=r.stk_chg_desc.replace(/\s+/g,' ').trim();
     r.user=(r.emp_email||'').split('@')[0].replace(/\./g,' ').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase());
     r.SA=nul(r.SA).replace(/^\d+\s*-\s*/,'');
@@ -235,7 +237,8 @@ function load(text,name){
     return r;
   });
   srcName=name;
-  document.getElementById('srcName').textContent=name+' — '+DATA.length+' mouvements';
+  const exclus=tout.length-DATA.length;
+  document.getElementById('srcName').textContent=name+' — '+DATA.length+' mouvements'+(exclus?' ('+exclus+' du jour ignorés, journée pas terminée)':'');
   appliquerPrix();
   buildSelects();
   datesParDefaut();
@@ -291,7 +294,7 @@ function render(){
   const rows=filtered();
   document.querySelectorAll('#thead th[data-col]').forEach(h=>{const on=h.dataset.col===sortK;h.classList.toggle('sorted',on);h.classList.toggle('asc',on&&sortAsc);});
   const tb=document.getElementById('tbody');
-  if(!rows.length){tb.innerHTML=`<tr><td colspan="${COLS.length+2}" class="empty">${DATA.length?'Aucun mouvement pour ces filtres.':'Aucun fichier chargé — charge le fichier M_DEPOT_report_Mvt_stock_Table….csv'}</td></tr>`;}
+  if(!rows.length){tb.innerHTML=`<tr><td colspan="${COLS.length+2}" class="empty">${DATA.length?'Aucun mouvement pour ces filtres.':'Aucun fichier chargé — importe l’export M_DEPOT report_Mvt stock_Table….csv'}</td></tr>`;}
   else tb.innerHTML=rows.map(r=>{
     const s=SUIVI[r._key]||{};
     return `<tr class="${s.done?'done':''}" data-key="${esc(r._key)}"><td class="col-chk"><input type="checkbox" class="chk" aria-label="Traité" ${s.done?'checked':''}></td>`+
@@ -401,19 +404,13 @@ async function ouvrirArchive(nom){
   load(new TextDecoder('utf-8').decode(await r.arrayBuffer()),nom.slice(MVTS.length));
   remplirArch(nom);
 }
-async function archiver(file){
-  const {API,jeton,h}=gdsCtx();
-  if(!API||!jeton) return;
-  const jours=[...new Set(DATA.map(r=>r.day_id))].sort();
-  if(!jours.length) return;
-  const nom=nomArchive(jours[jours.length-1]);
-  try{
-    const r=await fetch(API+'/archive/'+encodeURIComponent(nom),{method:'POST',headers:Object.assign({'Content-Type':'text/csv'},h),body:file});
-    if(r.status===401||r.status===403){toast('Archivage refusé par le serveur',true);return;}
-    if(!r.ok) throw new Error();
-    toast('Archivé dans MVTS : '+nom.slice(MVTS.length));
-    ARCH=await listerMvts();remplirArch(nom);
-  }catch(e){toast('Archivage dans MVTS impossible',true);}
+async function archiver(file,dernierJour){
+  const {API,h}=gdsCtx();
+  const nom=nomArchive(dernierJour);
+  const r=await fetch(API+'/archive/'+encodeURIComponent(nom),{method:'POST',headers:Object.assign({'Content-Type':'text/csv'},h),body:file});
+  if(r.status===401||r.status===403) throw new Error('Archivage refusé par le serveur');
+  if(!r.ok) throw new Error('Archivage dans MVTS impossible');
+  return nom;
 }
 async function demarrerMvts(){
   const {API,jeton}=gdsCtx(); if(!API||!jeton){document.getElementById('fArch').disabled=true;return;}
@@ -498,8 +495,36 @@ function readFile(file){
   if(!/^M_DEPOT[ _]?report_Mvt[ _]?stock_Table.*\.csv$/i.test(file.name)){
     d.classList.add('err');d.textContent='Fichier refusé : « '+file.name+' ». Le nom doit commencer par M_DEPOT_report_Mvt_stock_Table et finir par .csv';
     fileInput.value='';return;}
+  fileInput.value='';
+  const {API,jeton}=gdsCtx();
+  const refus=m=>{d.classList.add('err');d.textContent=m;};
+  if(!API||!jeton){refus('Import impossible : ouvre l\'outil depuis le sommaire GDS (le fichier doit être archivé dans MVTS).');return;}
   d.classList.remove('err');d.innerHTML=DROP_TXT;
-  const fr=new FileReader();fr.onload=()=>{load(fr.result,file.name);fileInput.value='';archiver(file);};fr.readAsText(file,'utf-8');}
+  const fr=new FileReader();
+  fr.onload=async()=>{
+    const texte=fr.result, jours=[...new Set((texte.match(/^[^,;\n]*[,;](\d{4}-\d{2}-\d{2})[,;]/gm)||[]).map(l=>l.match(/\d{4}-\d{2}-\d{2}/)[0]))].sort();
+    if(!jours.length){refus('Fichier refusé : aucune date de mouvement trouvée dedans.');return;}
+    const dernier=jours[jours.length-1], c=jourCible();
+    try{
+      ARCH=await listerMvts();
+      if(ARCH.some(x=>x.jour===dernier)){                     // une seule fois par journée
+        const b=document.getElementById('bandeau');
+        await ouvrirArchive(nomArchive(dernier));
+        b.className='bandeau warn';b.hidden=false;
+        b.innerHTML='Déjà importé : le fichier des mouvements jusqu\'au <b>'+frJour(dernier)+'</b> est déjà dans MVTS. C\'est la version archivée qui est ouverte.';
+        toast('Déjà importé pour le '+dernier.split('-').reverse().join('/'),true);
+        return;
+      }
+      toast('Archivage dans MVTS…');
+      const nom=await archiver(file,dernier);
+      ARCH=await listerMvts();remplirArch(nom);
+      load(texte,nom.slice(MVTS.length));
+      if(dernier<c){const b=document.getElementById('bandeau');b.className='bandeau warn';b.hidden=false;
+        b.innerHTML='Fichier trop ancien : mouvements jusqu\'au <b>'+frJour(dernier)+'</b>, il faut au moins le <b>'+frJour(c)+'</b>. Il est archivé, mais refais l\'export du jour.';}
+      toast('Archivé dans MVTS : '+nom.slice(MVTS.length));
+    }catch(e){refus(e.message+' — fichier non chargé, réessaie.');toast(e.message,true);}
+  };
+  fr.readAsText(file,'utf-8');}
 fileInput.addEventListener('change',e=>{if(e.target.files[0])readFile(e.target.files[0]);});
 const drop=document.getElementById('drop');
 drop.addEventListener('click',()=>fileInput.click());
