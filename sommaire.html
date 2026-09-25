@@ -286,11 +286,10 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
   font-family:'DM Sans',sans-serif;font-size:12.5px;font-weight:600;color:var(--text-low)}
 .ck-ongl button.on{background:var(--navy);color:#fff}
 .ck-cadre{flex:1;overflow:auto;background:#fff;border:1px solid var(--border);border-radius:12px}
-.ck-cadre table{border-collapse:collapse;font-size:12.5px;min-width:100%}
-.ck-cadre td{border:1px solid var(--border);padding:7px 10px;vertical-align:top;white-space:pre-wrap;max-width:360px}
-.ck-cadre tr.tete td{position:sticky;top:0;background:var(--navy);color:#fff;font-family:'DM Mono',monospace;
-  font-size:10px;letter-spacing:1.2px;text-transform:uppercase;border-color:#2a4576}
-.ck-cadre tr.titre td{font-weight:700;color:var(--navy)}
+.ck-feuille{position:relative;margin:14px;background:#fff;transform-origin:0 0}
+.ck-feuille table{border-collapse:collapse;table-layout:fixed;font-family:Calibri,Carlito,Arial,sans-serif;color:#000}
+.ck-feuille td{padding:1px 3px;overflow:hidden;white-space:nowrap;vertical-align:bottom;font-size:11pt}
+.ck-feuille img{position:absolute;pointer-events:none}
 .ck-info{padding:34px;text-align:center;color:var(--text-low);font-size:13px}
 .ck-l{display:grid;grid-template-columns:80px 160px 1fr 1.3fr 180px;gap:12px;align-items:center;
   padding:10px 14px;border-top:1px solid var(--border);font-size:13px}
@@ -1313,11 +1312,11 @@ function ckSuiv(maj){ if(!ckHist.length) return '1.0';
 
 /* Bibliothèque Excel chargée à la première ouverture seulement */
 function ckLib(){
-  if(window.XLSX) return Promise.resolve();
+  if(window.ExcelJS) return Promise.resolve();
   function charger(src){ return new Promise(function(ok, ko){
     var s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = ko; document.head.appendChild(s); }); }
-  return charger('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js')
-    .catch(function(){ return charger('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'); });
+  return charger('https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js')
+    .catch(function(){ return charger('https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js'); });
 }
 
 async function ckOuvrir(){
@@ -1377,32 +1376,190 @@ async function ckAfficher(v){
     var r = await fetch(API + '/archive/' + encodeURIComponent(v.fichier), { headers: auth() });
     if(ckRefus(r)){ cadre.innerHTML = '<div class="ck-info">Accès refusé.</div>'; return; }
     if(!r.ok) throw new Error('lecture');
-    ckClasseur = XLSX.read(await r.arrayBuffer(), { type:'array', cellDates:true });
+    ckClasseur = new ExcelJS.Workbook();
+    await ckClasseur.xlsx.load(await r.arrayBuffer());
     var z = document.getElementById('ck-ongl');
-    ckClasseur.SheetNames.forEach(function(n, i){
+    ckClasseur.worksheets.filter(function(w){ return w.state !== 'hidden' && w.state !== 'veryHidden'; })
+      .map(function(w){ return w.name; }).forEach(function(n, i){
       var b = document.createElement('button');
       b.textContent = n; if(i === 0) b.className = 'on';
       b.onclick = function(){ z.querySelectorAll('button').forEach(function(x){ x.className = ''; }); b.className = 'on'; ckFeuille(n); };
       z.appendChild(b);
     });
-    ckFeuille(ckClasseur.SheetNames[0]);
+    ckFeuille(z.querySelector('button').textContent);
   } catch(e){ cadre.innerHTML = '<div class="ck-info">Impossible d\'ouvrir ce fichier.</div>'; }
 }
 
-function ckFeuille(n){
-  var cadre = document.getElementById('ck-cadre');
-  cadre.innerHTML = XLSX.utils.sheet_to_html(ckClasseur.Sheets[n], { editable:false, header:'', footer:'' });
-  var t = cadre.querySelector('table');
-  if(!t){ cadre.innerHTML = '<div class="ck-info">Feuille vide.</div>'; return; }
-  var tete = false;
-  t.querySelectorAll('tr').forEach(function(tr){
-    var tx = Array.prototype.map.call(tr.querySelectorAll('td'), function(c){ return c.textContent.trim(); });
-    if(!tx.filter(Boolean).length){ tr.remove(); return; }
-    if(!tete && tx[0] === 'N°'){ tr.className = 'tete'; tete = true; }
-    else if(!tete) tr.className = 'titre';
-  });
-  cadre.scrollTop = 0;
+/* ── Rendu fidèle d'une feuille : largeurs, hauteurs, fusions, polices,
+      couleurs, bordures, alignements, logos. Dates au format français. ── */
+var CK_MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+var CK_JOURS = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+
+function ckCouleur(c){
+  if(!c) return '';
+  if(c.argb && c.argb.length === 8) return '#' + c.argb.slice(2);
+  if(c.argb && c.argb.length === 6) return '#' + c.argb;
+  if(c.indexed === 64) return '';
+  return '';
 }
+function ckDateTexte(d, fmt){
+  /* Excel stocke une date sans fuseau : on lit ses composantes UTC */
+  var j = d.getUTCDate(), m = d.getUTCMonth(), a = d.getUTCFullYear();
+  var f = (fmt || '').replace(/\[[^\]]*\]/g, '').replace(/;.*$/, '').toLowerCase();
+  if(f.indexOf('mmmm') !== -1)
+    return (f.indexOf('dddd') !== -1 ? CK_JOURS[d.getUTCDay()] + ' ' : '') + j + ' ' + CK_MOIS[m] + ' ' + a;
+  if(f.indexOf('mmm') !== -1) return j + ' ' + CK_MOIS[m].slice(0, 4).replace(/\.$/, '') + '. ' + a;
+  var t = ck2(j) + '/' + ck2(m + 1) + '/' + a;
+  if(/h/.test(f)) t += ' ' + ck2(d.getUTCHours()) + ':' + ck2(d.getUTCMinutes());
+  return t;
+}
+function ckTexte(c){
+  var v = c.value;
+  if(v && typeof v === 'object' && !(v instanceof Date)){
+    if('result' in v) v = v.result;
+    else if(v.richText) v = v.richText.map(function(x){ return x.text; }).join('');
+    else if('text' in v) v = v.text;
+    else if(v.error) v = v.error;
+    else v = '';
+    if(v && typeof v === 'object' && v.error) v = v.error;
+  }
+  if(v == null) return '';
+  if(v instanceof Date) return ckDateTexte(v, c.numFmt);
+  if(typeof v === 'number'){
+    if(/%/.test(c.numFmt || '')) return (v * 100).toLocaleString('fr-FR') + ' %';
+    return v.toLocaleString('fr-FR', { maximumFractionDigits: 10, useGrouping: false });
+  }
+  if(typeof v === 'boolean') return v ? 'VRAI' : 'FAUX';
+  return String(v);
+}
+function ckBord(b){
+  if(!b || !b.style) return '';
+  var ep = { thin:'1px solid', hair:'1px solid', medium:'2px solid', thick:'3px solid', double:'3px double',
+             dashed:'1px dashed', dotted:'1px dotted', mediumDashed:'2px dashed', dashDot:'1px dashed',
+             mediumDashDot:'2px dashed', dashDotDot:'1px dotted', slantDashDot:'2px dashed' }[b.style] || '1px solid';
+  return ep + ' ' + (ckCouleur(b.color) || '#000');
+}
+function ckStyle(c){
+  var st = [], f = c.font || {}, a = c.alignment || {}, b = c.border || {}, fl = c.fill;
+  if(f.name) st.push("font-family:'" + f.name + "'," + (/calibri/i.test(f.name) ? 'Carlito,' : '') + 'Arial,sans-serif');
+  if(f.size) st.push('font-size:' + f.size + 'pt');
+  if(f.bold) st.push('font-weight:700');
+  if(f.italic) st.push('font-style:italic');
+  if(f.underline) st.push('text-decoration:underline');
+  if(f.strike) st.push('text-decoration:line-through');
+  var col = ckCouleur(f.color); if(col) st.push('color:' + col);
+  if(fl && fl.type === 'pattern' && fl.pattern === 'solid'){
+    var bg = ckCouleur(fl.fgColor); if(bg) st.push('background:' + bg);
+  }
+  var h = a.horizontal;
+  if(h === 'center' || h === 'centerContinuous') st.push('text-align:center');
+  else if(h === 'right') st.push('text-align:right');
+  else if(h === 'justify' || h === 'distributed') st.push('text-align:justify');
+  else if(!h && typeof ckValeur(c) === 'number') st.push('text-align:right');
+  if(a.vertical === 'middle') st.push('vertical-align:middle');
+  else if(a.vertical === 'top') st.push('vertical-align:top');
+  if(a.wrapText) st.push('white-space:normal;word-wrap:break-word');
+  if(a.indent) st.push('padding-left:' + (3 + a.indent * 9) + 'px');
+  ['top','right','bottom','left'].forEach(function(k){ var x = ckBord(b[k]); if(x) st.push('border-' + k + ':' + x); });
+  return st.join(';');
+}
+function ckValeur(c){ var v = c.value; return (v && typeof v === 'object' && 'result' in v) ? v.result : v; }
+
+function ckFeuille(n){
+  var ws = ckClasseur.getWorksheet(n);
+  var cadre = document.getElementById('ck-cadre');
+  if(!ws){ cadre.innerHTML = '<div class="ck-info">Feuille vide.</div>'; return; }
+
+  /* fusions */
+  var fus = {}, cache = {};
+  ((ws.model && ws.model.merges) || []).forEach(function(rg){
+    var p = rg.split(':'); var d = ws.getCell(p[0]), f = ws.getCell(p[1] || p[0]);
+    var r1 = d.row, c1 = d.col, r2 = f.row, c2 = f.col;
+    fus[r1 + ':' + c1] = { rs: r2 - r1 + 1, cs: c2 - c1 + 1 };
+    for(var r = r1; r <= r2; r++) for(var c = c1; c <= c2; c++) if(r !== r1 || c !== c1) cache[r + ':' + c] = 1;
+  });
+
+  /* étendue : dernière ligne / colonne qui porte un contenu ou une bordure */
+  var derL = 0, derC = 0;
+  ws.eachRow({ includeEmpty:false }, function(row, r){
+    row.eachCell({ includeEmpty:false }, function(c, k){
+      var b = c.border || {};
+      if(ckTexte(c) !== '' || b.top || b.bottom || b.left || b.right || (c.fill && c.fill.pattern === 'solid')){
+        if(r > derL) derL = r; if(k > derC) derC = k;
+      }
+    });
+  });
+  var images = ws.getImages();
+  images.forEach(function(im){ var br = im.range.br;
+    if(br){ derL = Math.max(derL, Math.ceil(br.nativeRow) + 1); derC = Math.max(derC, Math.ceil(br.nativeCol) + 1); } });
+  Object.keys(fus).forEach(function(k){ var p = k.split(':').map(Number);
+    derL = Math.max(derL, p[0] + fus[k].rs - 1); derC = Math.max(derC, p[1] + fus[k].cs - 1); });
+  if(!derL){ cadre.innerHTML = '<div class="ck-info">Feuille vide.</div>'; return; }
+
+  /* largeurs (caractères → px) et hauteurs (points → px) */
+  var larg = [], x = [0], haut = [], y = [0];
+  var defL = (ws.properties && ws.properties.defaultColWidth) || 8.43;
+  var defH = (ws.properties && ws.properties.defaultRowHeight) || 15;
+  for(var c = 1; c <= derC; c++){
+    var co = ws.getColumn(c);
+    var w = co.hidden ? 0 : Math.round((co.width || defL) * 7 + 5);
+    larg.push(w); x.push(x[c - 1] + w);
+  }
+  for(var r = 1; r <= derL; r++){
+    var ro = ws.getRow(r);
+    var h = ro.hidden ? 0 : Math.round((ro.height || defH) * 96 / 72);
+    haut.push(h); y.push(y[r - 1] + h);
+  }
+
+  var html = '<table style="width:' + x[derC] + 'px"><colgroup>' +
+    larg.map(function(w){ return '<col style="width:' + w + 'px">'; }).join('') + '</colgroup>';
+  for(var r = 1; r <= derL; r++){
+    html += '<tr style="height:' + haut[r - 1] + 'px' + (haut[r - 1] ? '' : ';display:none') + '">';
+    for(var c = 1; c <= derC; c++){
+      var k = r + ':' + c;
+      if(cache[k]) continue;
+      var cel = ws.getCell(r, c), m = fus[k], tx = ckTexte(cel), sty = ckStyle(cel);
+      /* comme Excel : un texte déborde sur la case voisine si elle est vide */
+      if(tx && !m && !(cel.alignment && cel.alignment.wrapText) && c < derC && !cache[r + ':' + (c + 1)] &&
+         ckTexte(ws.getCell(r, c + 1)) === '') sty += ';overflow:visible';
+      html += '<td' + (m ? (m.rs > 1 ? ' rowspan="' + m.rs + '"' : '') + (m.cs > 1 ? ' colspan="' + m.cs + '"' : '') : '') +
+              ' style="' + sty + '">' + ckEsc(tx) + '</td>';
+    }
+    html += '</tr>';
+  }
+  html += '</table>';
+
+  /* logos, placés comme dans Excel (EMU → px) */
+  images.forEach(function(im){
+    var med = ckClasseur.getImage(im.imageId); if(!med || !med.buffer) return;
+    var tl = im.range.tl, br = im.range.br, px = function(e){ return (e || 0) / 9525; };
+    var cl = Math.floor(tl.nativeCol), rl = Math.floor(tl.nativeRow);
+    var gauche = (x[cl] || 0) + px(tl.nativeColOff), dessus = (y[rl] || 0) + px(tl.nativeRowOff);
+    var l, h;
+    if(br){
+      l = (x[Math.floor(br.nativeCol)] || 0) + px(br.nativeColOff) - gauche;
+      h = (y[Math.floor(br.nativeRow)] || 0) + px(br.nativeRowOff) - dessus;
+    } else if(im.range.ext){ l = im.range.ext.width; h = im.range.ext.height; }
+    if(!(l > 0 && h > 0)) return;
+    var url = URL.createObjectURL(new Blob([med.buffer], { type:'image/' + (med.extension === 'jpg' ? 'jpeg' : med.extension) }));
+    html += '<img src="' + url + '" style="left:' + gauche + 'px;top:' + dessus + 'px;width:' + l + 'px;height:' + h + 'px" alt="">';
+  });
+
+  cadre.innerHTML = '<div class="ck-feuille" id="ck-feuille">' + html + '</div>';
+  ckAjuster();
+  cadre.scrollTop = 0; cadre.scrollLeft = 0;
+}
+
+/* Ajuste la feuille à la largeur de la fenêtre, comme un aperçu Excel */
+function ckAjuster(){
+  var f = document.getElementById('ck-feuille'); if(!f) return;
+  var t = f.querySelector('table'); if(!t) return;
+  f.style.zoom = 1;
+  var dispo = document.getElementById('ck-cadre').clientWidth - 30;
+  var z = Math.min(1, dispo / t.offsetWidth);
+  f.style.zoom = z > 0.35 ? z : 0.35;
+}
+window.addEventListener('resize', function(){ if(document.getElementById('ck').classList.contains('on')) ckAjuster(); });
 
 function ckVue(feuille){
   document.getElementById('ck-z-f').style.display = feuille ? 'flex' : 'none';
@@ -1468,7 +1625,7 @@ async function ckDeposer(){
   var b = document.getElementById('ck-d-ok'); b.disabled = true; b.textContent = 'Enregistrement…';
   try {
     var buf = await ckFichier.arrayBuffer();
-    XLSX.read(buf, { type:'array' });   /* refuse un fichier illisible */
+    await new ExcelJS.Workbook().xlsx.load(buf.slice(0));   /* refuse un fichier illisible */
     var t = new Date(), ver = ckSuiv(document.getElementById('ck-d-maj').checked);
     var ext = (ckFichier.name.match(/\.(xlsx|xlsm|xls)$/i) || ['', 'xlsx'])[1].toLowerCase();
     var chemin = CK_DOS + CK_NOM + '_v' + ver + '_' + t.getFullYear() + '-' + ck2(t.getMonth()+1) + '-' + ck2(t.getDate()) +
