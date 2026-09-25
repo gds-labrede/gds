@@ -861,6 +861,7 @@ function choisirEspace(e){
 }
 
 /* ── Lecture ── */
+var DOSSIERS_A_PART = ['MVTS/'];
 async function lister(e){
   var cfg = ESPACES[e];
   var r = await fetch(API + cfg.route, {
@@ -874,7 +875,19 @@ async function lister(e){
   /* Les deux services ne nomment pas leurs champs pareil :
      on les ramène à une forme commune. */
   if(e === 'archive'){
-    return (d.files || []).map(function(f){
+    var tous = d.files || [];
+    /* La liste de l'archive est plafonnée : avec les nombreuses FDS,
+       les dossiers classés après (MVTS…) sont coupés. On les demande à part. */
+    var vus = {};
+    tous.forEach(function(f){ vus[f.fileName] = 1; });
+    for(var i = 0; i < DOSSIERS_A_PART.length; i++){
+      try {
+        var r2 = await fetch(API + cfg.route, { method:'POST', headers: auth({ 'Content-Type':'application/json' }),
+                                                 body: JSON.stringify({ prefix: DOSSIERS_A_PART[i] }) });
+        if(r2.ok) ((await r2.json()).files || []).forEach(function(f){ if(!vus[f.fileName]){ vus[f.fileName] = 1; tous.push(f); } });
+      } catch(x){}
+    }
+    return tous.map(function(f){
       return { nom:f.fileName, taille:f.contentLength || 0, date:f.uploadTimestamp || null };
     });
   }
