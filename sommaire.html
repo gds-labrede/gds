@@ -584,7 +584,8 @@ var FAMILLES = [
   ]},
   { id:'planning', nom:'Planning & Événements', ico:'agenda', c:'#6d5bab', desc:"Calendrier et événements de l'équipe", admin:false, outils:[] },
   { id:'preparation', nom:'Préparation', ico:'camion', c:'#14706b', desc:'Réappros anticipés et préparation entrepôt', admin:false, outils:[
-    { nom:'Réappros Anticipés', f:'reappros_anticipes.html', ico:'camion' }
+    { nom:'Réappros Anticipés', f:'reappros_anticipes.html', ico:'camion' },
+    { nom:'Mouvements CT PREP', f:'MVT_CT_PREP_2026.html',  ico:'tableau' }
   ]},
   { id:'dlc', nom:'DLC', ico:'horloge', c:'#a8452f', desc:'Dates limites de consommation', admin:false, outils:[
     { nom:'DLC v2.0',                f:'dlc_v_2_0.html',               ico:'horloge' },
@@ -1117,8 +1118,41 @@ function avance(pct, texte){
   document.getElementById('je-msg').textContent = texte;
 }
 
+/* Export des mouvements de stock : toujours archivé dans MVTS/,
+   un fichier par journée (dernière date du fichier), jamais supprimé. */
+var RX_MVTS = /^M_DEPOT[ _]?report_Mvt[ _]?stock_Table.*\.csv$/i;
+async function envoyerMvts(f){
+  try {
+    avance(20, 'Lecture de « ' + f.name + ' »…');
+    var texte = await f.text(), jours = texte.match(/^[^,;\n]*[,;](\d{4}-\d{2}-\d{2})[,;]/gm) || [], max = '';
+    jours.forEach(function(l){ var j = l.match(/\d{4}-\d{2}-\d{2}/)[0]; if(j > max) max = j; });
+    if(!max) throw new Error('dates');
+    var nom = 'MVTS/M_DEPOT report_Mvt stock_Table_' + max + '.csv';
+    avance(60, 'Archivage dans MVTS…');
+    var r = await fetch(API + '/archive/' + encodeURIComponent(nom), {
+      method:'POST', headers: auth({ 'Content-Type':'text/csv' }), body: f
+    });
+    if(!r.ok) throw new Error();
+    avance(100, 'Fichier archivé.');
+    dire('Mouvements archivés dans MVTS (jusqu\'au ' + max.split('-').reverse().join('/') + ')', 'ok');
+    setTimeout(function(){
+      document.getElementById('jauge-envoi').classList.remove('on');
+      document.getElementById('je-barre').style.width = '0%';
+    }, 1800);
+    charges.archive = false;
+    if(espace === 'archive') await chargerListe();
+    rafraichirJauges();
+  } catch(e){
+    avance(0, "Échec de l'archivage.");
+    dire(e.message === 'dates' ? 'Fichier mouvements illisible : aucune date trouvée' : 'Archivage impossible', 'err');
+    setTimeout(function(){ document.getElementById('jauge-envoi').classList.remove('on'); }, 2500);
+  }
+  choix.value = '';
+}
+
 async function envoyer(f){
   if(!f) return;
+  if(RX_MVTS.test(f.name)) return envoyerMvts(f);
   var cible = espace;
   try {
     avance(10, 'Vérification de « ' + f.name + ' »…');

@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GDS · Mouvements CT PREP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#1B2A4A; --navy-2:#27395f; --orange:#F28C28; --orange-soft:#fde8d2;
+  --bg:#f3f5f9; --panel:#ffffff; --ink:#1B2A4A; --muted:#66728a; --line:#dde2eb;
+  --accent:#1d7a5f; --accent-soft:#e3f2ec; --warn:#c2701c; --warn-soft:#fde8d2; --neg:#b91c1c;
+  --sans:'DM Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:'DM Mono',ui-monospace,Consolas,monospace;
+  font-family:var(--sans); font-size:14px; color:var(--ink);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg)}
+header.top{background:var(--navy);color:#fff;padding:14px 20px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+header.top h1{margin:0;font-size:20px;font-weight:700}
+header.top h1 span{color:var(--orange)}
+.retour{color:#fff;text-decoration:none;font-size:13.5px;border:1px solid rgba(255,255,255,.35);border-radius:8px;padding:7px 12px}
+.retour:hover{border-color:var(--orange)}
+header.top .src{font-size:12px;opacity:.75}
+.wrap{padding:16px 20px;display:grid;gap:14px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.filters{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px 12px;align-items:end}
+label{display:grid;gap:4px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:600}
+select,input[type=text],input[type=date]{font-family:var(--sans);font-size:14px;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);text-transform:none;letter-spacing:0;font-weight:400}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+button,.btn{font-family:var(--sans);font-size:14px;padding:8px 14px;border-radius:8px;border:0;background:var(--navy);color:#fff;cursor:pointer;font-weight:500}
+button.primary,.btn.alt{background:var(--orange);color:var(--navy);font-weight:700}
+button:hover{filter:brightness(.96)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--orange);outline-offset:1px}
+.kpis{display:flex;flex-wrap:wrap;gap:10px}
+.kpi{padding:8px 14px;border:1px solid var(--line);border-radius:10px;background:var(--panel);min-width:120px}
+.kpi b{display:block;font-family:var(--mono);font-weight:500;font-size:22px;font-variant-numeric:tabular-nums}
+.kpi span{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+.kpi.todo b{color:var(--warn)} .kpi.done b{color:var(--accent)}
+.tablebox{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{background:var(--navy-2);position:sticky;top:0;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:#fff;font-weight:500;white-space:nowrap;user-select:none}
+th.sorted .lbl::after{content:" ▾";color:var(--orange)} th.sorted.asc .lbl::after{content:" ▴"}
+td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+td.neg{color:var(--neg)}
+td.mono{font-family:var(--mono);font-size:14px;white-space:nowrap}
+tr.done td{background:var(--accent-soft)}
+.pill{display:inline-block;padding:1px 7px;border-radius:10px;font-size:13px;font-weight:600;background:#eef2f0;white-space:nowrap}
+.pill.Frais{background:#e0efff;color:#1d4f91}.pill.Ambiant{background:#f4ecdc;color:#7a5410}.pill.F\&L{background:#e4f4df;color:#2f6b1f}.pill.Surgelé,.pill.Surgele{background:#e6e3fb;color:#43389a}
+th select.hsel{display:block;margin-top:4px;font-family:var(--sans);font-size:12px;padding:3px 4px;max-width:140px;text-transform:none;letter-spacing:0;color:var(--navy);font-weight:700;border:2px solid var(--orange);border-radius:6px}
+th span.lbl{cursor:pointer}
+td input.cmt{width:100%;min-width:140px;font-size:12px;padding:4px 6px}
+.empty{padding:30px;text-align:center;color:var(--muted)}
+.drop{border:2px dashed #b7c1d3;border-radius:12px;padding:14px;cursor:pointer;text-align:center;color:var(--muted);font-size:13px}
+.drop.err{border-color:var(--neg);color:var(--neg);font-weight:600}
+.drop.over,.drop:hover{border-color:var(--orange);background:#fffaf4}
+.print-head,.print-foot{display:none}
+.toast{position:fixed;right:20px;bottom:20px;z-index:50;background:var(--navy);color:#fff;border-left:5px solid var(--orange);border-radius:10px;padding:11px 16px;font-size:13.5px;box-shadow:0 6px 20px rgba(27,42,74,.25);opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;pointer-events:none;max-width:380px}
+.toast.on{opacity:1;transform:none}.toast.err{border-left-color:#ef4444}
+@media print{.toast{display:none}}
+.bandeau{display:block;line-height:1.9;padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:var(--panel);font-size:14px}
+.bandeau b{font-weight:700}
+.bandeau.warn{border-color:var(--orange);background:#fffaf4;color:#8a4a0b}
+.bandeau button{padding:5px 12px;font-size:13px;margin-left:8px}
+.etatbase{font-size:12px;opacity:.85;margin-top:2px}
+.etatbase.ko{color:#ffc58a}
+@media (max-width:600px){.wrap{padding:12px 16px}header.top{padding:12px 16px}}
+
+@media print{
+  @page{size:A4 landscape;margin:8mm}
+  body{background:#fff;font-size:12px}
+  header.top,.bandeau,.no-print,.filters-panel,td.col-chk,th.col-chk{display:none!important}
+  .wrap{padding:0;gap:6px}
+  .print-head{display:block;border-bottom:2px solid #000;padding-bottom:4px;margin-bottom:4px}
+  .print-head h2{margin:0;font-size:18px}
+  .print-head div{font-size:12px}
+  .kpi{padding:3px 8px;min-width:0}.kpi b{font-size:16px}.kpi span{font-size:10px}
+  .tablebox{border:none;overflow:visible}
+  table{font-size:12px}
+  th{font-size:10.5px!important}
+  .pill{font-size:11px;padding:0 5px}
+  th[data-col=stk_chg_desc],td.c-motif{display:none}
+  th{position:static;background:#1B2A4A!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;color:#fff!important}
+  th,td{padding:4px 5px;border-bottom:1px solid #999}
+  tr{page-break-inside:avoid}
+  tr.done td{background:#e8f3ee!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  td input.cmt{border:none;padding:0;font-size:12px}
+  th select.hsel{display:none}
+  td input.cmt::placeholder{color:transparent}
+  td.mono{font-size:11.5px}
+  .print-foot{display:flex;gap:40px;margin-top:14px;font-size:10px}
+  .print-foot div{flex:1;border-top:1px solid #000;padding-top:4px;height:40px}
+}
+</style>
+<script src="config.js"></script>
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1>GDS · <span>Mouvements CT PREP</span></h1>
+    <div class="src" id="srcName"></div>
+    <div class="etatbase" id="etatBase"></div>
+  </div>
+  <div class="actions">
+    <a class="retour" href="sommaire.html">Retour au tableau de bord</a>
+    <label class="btn alt" style="text-transform:none;letter-spacing:0;font-size:14px;display:inline-block">Charger un CSV
+      <input type="file" id="fileInput" accept=".csv,text/csv" hidden>
+    </label>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="print-head">
+    <h2 id="printTitle">Mouvements CT PREP</h2>
+    <div id="printSub"></div>
+  </div>
+
+  <div class="panel filters-panel no-print">
+    <div class="filters">
+      <label>Fichier archivé (MVTS)
+        <select id="fArch"><option value="">—</option></select>
+      </label>
+      <label>Date du
+        <select id="fFrom"></select>
+      </label>
+      <label>au
+        <select id="fTo"></select>
+      </label>
+      <label>Cellule
+        <select id="fCellule"></select>
+      </label>
+      <label>Opérateur
+        <select id="fUser"></select>
+      </label>
+      <label>Statut
+        <select id="fStatut">
+          <option value="">Tous</option>
+          <option value="todo">À traiter</option>
+          <option value="done">Traités</option>
+        </select>
+      </label>
+      <label>Recherche
+        <input type="text" id="fSearch" placeholder="Article, code, SSCC, emplacement">
+      </label>
+    </div>
+    <div class="actions" style="margin-top:12px">
+      <button class="primary" id="btnPrint">Imprimer / PDF</button>
+      <button id="btnCsv">Exporter CSV</button>
+      <button id="btnAllDone">Marquer la liste traitée</button>
+      <button id="btnReset">Réinitialiser filtres</button>
+    </div>
+    <div class="drop" id="drop" style="margin-top:12px">Glisser ici le fichier <b>M_DEPOT_report_Mvt_stock_Table…csv</b> (ou bouton « Charger un CSV »)</div>
+  </div>
+
+  <div class="bandeau" id="bandeau" hidden></div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="tablebox">
+    <table>
+      <thead><tr id="thead"></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <div hidden id="holder"><select id="fMotif" class="hsel" aria-label="Filtre motif"></select><select id="fType" class="hsel" aria-label="Filtre type"></select></div>
+
+  <div class="print-foot">
+    <div>Visa préparateur</div>
+    <div>Visa chef d'équipe</div>
+    <div>Date</div>
+  </div>
+</div>
+
+<script>
+
+/* ---------- CSV ---------- */
+function parseCSV(text){
+  if(text.charCodeAt(0)===0xFEFF) text=text.slice(1);
+  const first=text.split(/\r?\n/,1)[0];
+  const sep=(first.split(';').length>first.split(',').length)?';':',';
+  const rows=[];let row=[],f='',q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){f+='"';i++;} else q=false; } else f+=c; }
+    else if(c==='"') q=true;
+    else if(c===sep){row.push(f);f='';}
+    else if(c==='\n'){row.push(f);rows.push(row);row=[];f='';}
+    else if(c!=='\r') f+=c;
+  }
+  if(f!==''||row.length){row.push(f);rows.push(row);}
+  const h=rows.shift().map(s=>s.trim());
+  return rows.filter(r=>r.length>1).map(r=>{const o={};h.forEach((k,i)=>o[k]=(r[i]??'').trim());return o;});
+}
+const nul=v=>(v===undefined||v==='null')?'':v;
+const num=v=>{const n=parseFloat(String(v).replace(',','.'));return isNaN(n)?0:n;};
+const fmt=n=>(Math.round(n*100)/100).toLocaleString('fr-FR');
+
+/* ---------- state ---------- */
+let DATA=[], srcName='';
+const store={
+  get(){try{return JSON.parse(localStorage.getItem('ctprep_suivi')||'{}')}catch(e){return {}}},
+  set(v){try{localStorage.setItem('ctprep_suivi',JSON.stringify(v))}catch(e){}}
+};
+let SUIVI=store.get();
+const keyOf=r=>[r.stk_mvt_datetime,r.sscc,r.art_mgb12,r.qty].join('|');
+
+const COLS=[
+  {k:'stk_mvt_datetime',t:'Date',cls:'mono',dt:true},
+  {k:'stk_mvt_type',t:'Type'},
+  {k:'stk_chg_desc',t:'Motif'},
+  {k:'user',t:'Opérateur'},
+  {k:'cellule',t:'Cellule',pill:true},
+  {k:'SA',t:'Rayon'},
+  {k:'MGB',t:'MGB',cls:'mono'},
+  {k:'art_name',t:'Désignation'},
+  {k:'empl',t:'Emplacement',cls:'mono'},
+  {k:'sscc',t:'SSCC',cls:'mono'},
+  {k:'qty',t:'Qté',num:true,raw:true},
+  {k:'valeur',t:'Valeur €',num:true,euro:true},
+];
+let sortK='stk_mvt_datetime', sortAsc=false;
+
+function load(text,name){
+  DATA=parseCSV(text).map(r=>{
+    r.stk_chg_desc=r.stk_chg_desc.replace(/\s+/g,' ').trim();
+    r.user=(r.emp_email||'').split('@')[0].replace(/\./g,' ').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase());
+    r.SA=nul(r.SA).replace(/^\d+\s*-\s*/,'');
+    r.empl=nul(r.location_nr).replace(/^[A-Za-z_]+-/,'');
+    r._key=keyOf(r);
+    return r;
+  });
+  srcName=name;
+  document.getElementById('srcName').textContent=name+' — '+DATA.length+' mouvements';
+  appliquerPrix();
+  buildSelects();
+  datesParDefaut();
+  render();
+}
+
+function opts(sel,values,allLabel,keep){
+  const el=document.getElementById(sel);
+  const cur=keep??el.value;
+  el.innerHTML=`<option value="">${allLabel}</option>`+values.map(v=>`<option>${esc(v)}</option>`).join('');
+  if(values.includes(cur)) el.value=cur;
+}
+function uniq(k){return [...new Set(DATA.map(r=>r[k]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fr'));}
+function buildSelects(){
+  const motifs=uniq('stk_chg_desc');
+  const m=document.getElementById('fMotif');
+  opts('fMotif',motifs,'Tous les motifs', m.value || (motifs.includes('CT PREP')?'CT PREP':''));
+  opts('fCellule',uniq('cellule'),'Toutes');
+  opts('fUser',uniq('user'),'Tous');
+  opts('fType',uniq('stk_mvt_type'),'Tous les types');
+  const days=uniq('day_id').reverse(); // plus récent en premier
+  const lab=d=>new Date(d+'T12:00').toLocaleDateString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'});
+  ['fFrom','fTo'].forEach(id=>{const el=document.getElementById(id),cur=el.value;
+    el.innerHTML='<option value="">Toutes</option>'+days.map(d=>`<option value="${d}">${lab(d)}</option>`).join('');
+    if(days.includes(cur)) el.value=cur;});
+  sortK='stk_mvt_datetime'; sortAsc=false;
+  buildHead();
+}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+function filtered(){
+  const f={m:fMotif.value,c:fCellule.value,u:fUser.value,t:fType.value,s:fStatut.value,a:fFrom.value,b:fTo.value,q:fSearch.value.trim().toLowerCase()};
+  let lo=f.a,hi=f.b; if(lo&&hi&&lo>hi){[lo,hi]=[hi,lo];}
+  let out=DATA.filter(r=>
+    (!f.m||r.stk_chg_desc===f.m)&&(!f.c||r.cellule===f.c)&&(!f.u||r.user===f.u)&&(!f.t||r.stk_mvt_type===f.t)&&
+    (!lo||r.day_id>=lo)&&(!hi||r.day_id<=hi)&&
+    (!f.s||(f.s==='done')===!!SUIVI[r._key]?.done)&&
+    (!f.q||[r.art_name,r.MGB,r.art_mgb12,r.CCVM,r.CCAF,r.sscc,r.location_nr].join(' ').toLowerCase().includes(f.q)));
+  const col=COLS.find(c=>c.k===sortK);
+  const byDate=(x,y)=>String(y.stk_mvt_datetime).localeCompare(x.stk_mvt_datetime);
+  out.sort((x,y)=>{let a=x[sortK],b=y[sortK],r;if(col?.num){a=num(a);b=num(b);r=sortAsc?a-b:b-a;}else r=sortAsc?String(a).localeCompare(b,'fr'):String(b).localeCompare(a,'fr');return r||byDate(x,y);});
+  return out;
+}
+
+function buildHead(){
+  const th=document.getElementById('thead');
+  const hold=document.getElementById('holder');hold.appendChild(fMotif);hold.appendChild(fType);
+  th.innerHTML='<th class="col-chk" title="Traité">✓</th>'+COLS.map(c=>`<th data-col="${c.k}"><span class="lbl" data-k="${c.k}">${c.t}</span></th>`).join('')+'<th>Commentaire</th>';
+  th.querySelector('[data-col="stk_chg_desc"]').appendChild(fMotif);
+  th.querySelector('[data-col="stk_mvt_type"]').appendChild(fType);
+}
+function render(){
+  const rows=filtered();
+  document.querySelectorAll('#thead th[data-col]').forEach(h=>{const on=h.dataset.col===sortK;h.classList.toggle('sorted',on);h.classList.toggle('asc',on&&sortAsc);});
+  const tb=document.getElementById('tbody');
+  if(!rows.length){tb.innerHTML=`<tr><td colspan="${COLS.length+2}" class="empty">${DATA.length?'Aucun mouvement pour ces filtres.':'Aucun fichier chargé — charge le fichier M_DEPOT_report_Mvt_stock_Table….csv'}</td></tr>`;}
+  else tb.innerHTML=rows.map(r=>{
+    const s=SUIVI[r._key]||{};
+    return `<tr class="${s.done?'done':''}" data-key="${esc(r._key)}"><td class="col-chk"><input type="checkbox" class="chk" aria-label="Traité" ${s.done?'checked':''}></td>`+
+      COLS.map(c=>{
+        let v=nul(r[c.k]);
+        if(c.euro){if(r.valeur==null)return `<td class="num" title="Prix absent de la base articles">—</td>`;return `<td class="num ${r.valeur<0?'neg':''}">${euro(r.valeur)}</td>`;}
+        if(c.num){const n=num(v);return `<td class="num ${n<0?'neg':''}">${c.raw?String(n).replace('.',','):fmt(n)}</td>`;}
+        if(c.dt){const m=v.match(/^\d{4}-(\d{2})-(\d{2})[ T](\d{2}:\d{2})/);return `<td class="mono">${m?m[2]+'/'+m[1]+' '+m[3]:esc(v)}</td>`;}
+        if(c.pill&&v) return `<td><span class="pill ${esc(v)}">${esc(v)}</span></td>`;
+        return `<td class="${c.cls||''} c-${c.k==='stk_chg_desc'?'motif':c.k}">${esc(v)}</td>`;
+      }).join('')+
+      `<td><input type="text" class="cmt" value="${esc(s.cmt||'')}" placeholder="…"></td></tr>`;
+  }).join('');
+
+  const tq=rows.reduce((a,r)=>a+num(r.qty),0);
+  const tv=Math.round(rows.reduce((a,r)=>a+(r.valeur||0),0)*100)/100, sp=rows.filter(r=>r.valeur==null).length;
+  const done=rows.filter(r=>SUIVI[r._key]?.done).length;
+  const byCell={};rows.forEach(r=>byCell[r.cellule]=(byCell[r.cellule]||0)+1);
+  document.getElementById('kpis').innerHTML=
+    `<div class="kpi"><b>${rows.length}</b><span>Mouvements</span></div>`+
+    `<div class="kpi"><b>${fmt(tq)}</b><span>Qté totale</span></div>`+
+    (PRIX?`<div class="kpi"><b>${euro(tv)}</b><span>Valeur totale</span></div>`+(sp?`<div class="kpi todo"><b>${sp}</b><span>Sans prix</span></div>`:''):'')+
+    `<div class="kpi todo"><b>${rows.length-done}</b><span>À traiter</span></div>`+
+    `<div class="kpi done"><b>${done}</b><span>Traités</span></div>`+
+    Object.entries(byCell).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="kpi"><b>${v}</b><span>${esc(k||'—')}</span></div>`).join('');
+
+  const parts=[];
+  const fr=d=>d.split('-').reverse().join('/');
+  {const d=[...new Set(rows.map(r=>r.day_id))].sort().reverse(); if(d.length) parts.push('Période : du '+fr(d[d.length-1])+' au '+fr(d[0])+' (du plus récent au plus ancien)');}
+  if(fCellule.value) parts.push('Cellule : '+fCellule.value);
+  if(fUser.value) parts.push('Opérateur : '+fUser.value);
+  if(fType.value) parts.push('Type : '+fType.value);
+  if(fStatut.value) parts.push('Statut : '+(fStatut.value==='done'?'Traités':'À traiter'));
+  if(fSearch.value) parts.push('Recherche : '+fSearch.value);
+  document.getElementById('printTitle').textContent='Mouvements de stock — '+(fMotif.value||'Tous motifs')+' — La Brède (171)';
+  document.getElementById('printSub').textContent=parts.join('  |  ')+'  |  Édité le '+new Date().toLocaleString('fr-FR')+'  |  Source : '+srcName;
+}
+
+/* ---------- journée à traiter : J-1, le lundi J-2 (samedi) ---------- */
+const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const frJour=s=>new Date(s+'T12:00').toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'2-digit'});
+function jourCible(){const d=new Date();d.setDate(d.getDate()-1);if(d.getDay()===0)d.setDate(d.getDate()-1);return iso(d);}
+function dimanche(){const d=new Date();if(d.getDay()!==1)return null;d.setDate(d.getDate()-1);return iso(d);}
+function datesParDefaut(){
+  const b=document.getElementById('bandeau');
+  if(!DATA.length){b.hidden=true;return;}
+  const jours=new Set(DATA.map(r=>r.day_id)), c=jourCible(), dim=dimanche();
+  let html='';
+  b.className='bandeau';
+  if(jours.has(c)){
+    fFrom.value=c;fTo.value=c;
+    html='Journée traitée : <b>'+frJour(c)+'</b>'+(dim?' (lundi : on traite le samedi)':' (J-1)');
+  } else {
+    fFrom.value='';fTo.value='';b.className='bandeau warn';
+    html='Le fichier ne contient pas le <b>'+frJour(c)+'</b> : vérifie que c\'est bien le dernier export. Toutes les dates sont affichées.';
+  }
+  if(dim&&jours.has(dim)) html+=' — Des mouvements existent le <b>'+frJour(dim)+'</b> <button type="button" id="btnDim">Inclure le dimanche</button>';
+  b.innerHTML=html;b.hidden=false;
+  const bd=document.getElementById('btnDim');
+  if(bd) bd.onclick=()=>{if(!fFrom.value||fFrom.value>dim)fFrom.value=jours.has(c)?c:dim;fTo.value=dim;bd.remove();render();};
+}
+
+/* ---------- valeur : prix de la base articles GDS ---------- */
+let PRIX=null;
+const euro=n=>n.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+const mgb12=v=>{const s=String(v||'').replace(/\D/g,'');return s&&s.length<=12?s.padStart(12,'0'):'';};
+function appliquerPrix(){
+  DATA.forEach(r=>{const p=PRIX&&PRIX[mgb12(r.art_mgb12)];r.valeur=p!=null?Math.round(num(r.qty)*p*100)/100:null;});
+}
+function etatBase(txt,ko){const e=document.getElementById('etatBase');e.textContent=txt;e.className='etatbase'+(ko?' ko':'');}
+function idb(){return new Promise(ok=>{try{const r=indexedDB.open('gds-base-articles',1);r.onupgradeneeded=()=>r.result.createObjectStore('k');r.onsuccess=()=>ok(r.result);r.onerror=()=>ok(null);}catch(e){ok(null);}});}
+async function idbLire(k){const d=await idb();if(!d)return null;return new Promise(ok=>{try{const t=d.transaction('k').objectStore('k').get(k);t.onsuccess=()=>ok(t.result||null);t.onerror=()=>ok(null);}catch(e){ok(null);}});}
+async function idbEcrire(k,v){const d=await idb();if(!d)return;return new Promise(ok=>{try{const t=d.transaction('k','readwrite');t.objectStore('k').put(v,k);t.oncomplete=()=>ok();t.onerror=()=>ok();}catch(e){ok();}});}
+async function decompresser(buf){
+  const u=new Uint8Array(buf);
+  if(u[0]===0x1f&&u[1]===0x8b) return await new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+  return new TextDecoder().decode(buf);
+}
+function gdsCtx(){
+  const API=(window.GDS&&GDS.API)||'', CLE=(window.GDS&&GDS.CLE_PUBLIQUE)||'';
+  let jeton=null;try{jeton=sessionStorage.getItem('gds_jeton')||localStorage.getItem('gds_jeton');}catch(e){}
+  return {API,CLE,jeton,h:{'Authorization':'Bearer '+CLE,'apikey':CLE,'X-GDS-Session':jeton}};
+}
+let toastT;
+function toast(m,err){const t=document.getElementById('toast');t.textContent=m;t.className='toast on'+(err?' err':'');clearTimeout(toastT);toastT=setTimeout(()=>t.className='toast',4500);}
+
+/* ---------- dossier MVTS de l'archive : un fichier par journée ---------- */
+const MVTS='MVTS/', RX_MVTS=/^MVTS\/M_DEPOT report_Mvt stock_Table_(\d{4}-\d{2}-\d{2})\.csv$/;
+const nomArchive=jour=>MVTS+'M_DEPOT report_Mvt stock_Table_'+jour+'.csv';
+let ARCH=[];
+async function listerMvts(){
+  const {API,jeton,h}=gdsCtx(); if(!API||!jeton) return [];
+  const r=await fetch(API+'/archive',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},h),body:JSON.stringify({prefix:MVTS})});
+  if(!r.ok) return [];
+  return ((await r.json()).files||[]).map(f=>{const m=RX_MVTS.exec(f.fileName);return m?{nom:f.fileName,jour:m[1]}:null;}).filter(Boolean).sort((a,b)=>b.jour.localeCompare(a.jour));
+}
+function remplirArch(sel){
+  const el=document.getElementById('fArch');
+  el.innerHTML='<option value="">'+(ARCH.length?'Choisir…':'Aucun fichier archivé')+'</option>'+ARCH.map(f=>`<option value="${esc(f.nom)}">jusqu'au ${frJour(f.jour)}</option>`).join('');
+  if(sel) el.value=sel;
+}
+async function ouvrirArchive(nom){
+  const {API,h}=gdsCtx();
+  toast('Chargement du fichier archivé…');
+  const r=await fetch(API+'/archive/'+encodeURIComponent(nom),{headers:h});
+  if(!r.ok){toast('Lecture du fichier archivé impossible',true);return;}
+  load(new TextDecoder('utf-8').decode(await r.arrayBuffer()),nom.slice(MVTS.length));
+  remplirArch(nom);
+}
+async function archiver(file){
+  const {API,jeton,h}=gdsCtx();
+  if(!API||!jeton) return;
+  const jours=[...new Set(DATA.map(r=>r.day_id))].sort();
+  if(!jours.length) return;
+  const nom=nomArchive(jours[jours.length-1]);
+  try{
+    const r=await fetch(API+'/archive/'+encodeURIComponent(nom),{method:'POST',headers:Object.assign({'Content-Type':'text/csv'},h),body:file});
+    if(r.status===401||r.status===403){toast('Archivage refusé par le serveur',true);return;}
+    if(!r.ok) throw new Error();
+    toast('Archivé dans MVTS : '+nom.slice(MVTS.length));
+    ARCH=await listerMvts();remplirArch(nom);
+  }catch(e){toast('Archivage dans MVTS impossible',true);}
+}
+async function demarrerMvts(){
+  const {API,jeton}=gdsCtx(); if(!API||!jeton){document.getElementById('fArch').disabled=true;return;}
+  try{ARCH=await listerMvts();}catch(e){ARCH=[];}
+  remplirArch();
+  if(!ARCH.length) return;
+  const c=jourCible();                                      // fichier contenant la journée à traiter
+  const f=ARCH.filter(x=>x.jour>=c).sort((a,b)=>a.jour.localeCompare(b.jour))[0]||ARCH[0];
+  await ouvrirArchive(f.nom);
+}
+
+async function chargerBase(){
+  const {API,jeton}=gdsCtx();
+  if(!API||!jeton){etatBase('Valeur € indisponible : ouvrir l\'outil depuis le sommaire GDS',true);return;}
+  const {h}=gdsCtx();
+  const F='BASE_ARTICLES/base_articles.json.gz';
+  etatBase('Base articles : chargement…');
+  try{
+    const r=await fetch(API+'/archive',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},h),body:JSON.stringify({prefix:'BASE_ARTICLES/'})});
+    if(r.status===401||r.status===403){etatBase('Base articles : accès refusé par le serveur',true);return;}
+    if(!r.ok) throw new Error();
+    const fb=((await r.json()).files||[]).find(f=>f.fileName===F);
+    if(!fb){etatBase('Base articles introuvable dans GDS',true);return;}
+    const date=String(fb.uploadTimestamp||'');
+    let base=null;const c=await idbLire('base');
+    if(c&&c.date===date&&c.json) base=c.json;
+    else{
+      const rb=await fetch(API+'/archive/'+encodeURIComponent(F),{headers:h});
+      if(!rb.ok) throw new Error();
+      base=JSON.parse(await decompresser(await rb.arrayBuffer()));
+      await idbEcrire('base',{date:date,json:base});
+    }
+    let S=null;
+    try{const rs=await fetch(API+'/archive/'+encodeURIComponent('BASE_ARTICLES/saisies.json'),{headers:h});if(rs.ok)S=JSON.parse(new TextDecoder().decode(await rs.arrayBuffer()));}catch(e){}
+    const P={};
+    Object.keys(base.articles||{}).forEach(m=>{
+      const a=base.articles[m];let p=a.prix;
+      const s=S&&S.champs&&S.champs[m]&&S.champs[m].prix;       // prix corrigé à la main, sauf si le data est plus récent
+      if(s&&!(a.prixDate&&s.le<a.prixDate)) p=s.v;
+      p=num(p); if(p>0) P[mgb12(m)]=p;
+    });
+    PRIX=P;
+    etatBase('Base articles : '+Object.keys(P).length+' prix chargés');
+    appliquerPrix();render();
+  }catch(e){etatBase('Base articles injoignable : valeur € indisponible',true);}
+}
+
+/* ---------- events ---------- */
+['fMotif','fCellule','fUser','fType','fStatut','fFrom','fTo'].forEach(id=>document.getElementById(id).addEventListener('change',render));
+fSearch.addEventListener('input',render);
+document.getElementById('thead').addEventListener('click',e=>{
+  const k=e.target.dataset.k;if(!k)return;
+  if(sortK===k) sortAsc=!sortAsc; else {sortK=k;sortAsc=(k!=='stk_mvt_datetime');}
+  render();
+});
+tbody.addEventListener('change',e=>{
+  const tr=e.target.closest('tr');if(!tr)return;const k=tr.dataset.key;
+  SUIVI[k]=SUIVI[k]||{};
+  if(e.target.classList.contains('chk')){SUIVI[k].done=e.target.checked;store.set(SUIVI);render();}
+});
+tbody.addEventListener('input',e=>{
+  if(!e.target.classList.contains('cmt'))return;
+  const k=e.target.closest('tr').dataset.key;SUIVI[k]=SUIVI[k]||{};SUIVI[k].cmt=e.target.value;store.set(SUIVI);
+});
+btnPrint.onclick=()=>window.print();
+btnReset.onclick=()=>{sortK='stk_mvt_datetime';sortAsc=false;['fCellule','fUser','fType','fStatut','fSearch'].forEach(id=>document.getElementById(id).value='');datesParDefaut();render();};
+btnAllDone.onclick=()=>{filtered().forEach(r=>{SUIVI[r._key]=SUIVI[r._key]||{};SUIVI[r._key].done=true;});store.set(SUIVI);render();};
+btnCsv.onclick=()=>{
+  const rows=filtered();
+  const head=[...COLS.map(c=>c.t),'Traité','Commentaire'];
+  const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
+  const lines=[head.map(q).join(';')].concat(rows.map(r=>{const s=SUIVI[r._key]||{};
+    return [...COLS.map(c=>c.euro?(r.valeur==null?'':String(r.valeur).replace('.',',')):c.num?String(num(r[c.k])).replace('.',','):nul(r[c.k])),s.done?'Oui':'Non',s.cmt||''].map(q).join(';');}));
+  const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='mouvements_'+(fMotif.value||'tous').replace(/\W+/g,'_')+'_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+};
+const DROP_TXT=document.getElementById('drop').innerHTML;
+function readFile(file){
+  const d=document.getElementById('drop');
+  if(!/^M_DEPOT[ _]?report_Mvt[ _]?stock_Table.*\.csv$/i.test(file.name)){
+    d.classList.add('err');d.textContent='Fichier refusé : « '+file.name+' ». Le nom doit commencer par M_DEPOT_report_Mvt_stock_Table et finir par .csv';
+    fileInput.value='';return;}
+  d.classList.remove('err');d.innerHTML=DROP_TXT;
+  const fr=new FileReader();fr.onload=()=>{load(fr.result,file.name);fileInput.value='';archiver(file);};fr.readAsText(file,'utf-8');}
+fileInput.addEventListener('change',e=>{if(e.target.files[0])readFile(e.target.files[0]);});
+const drop=document.getElementById('drop');
+drop.addEventListener('click',()=>fileInput.click());
+['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over');}));
+drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)readFile(f);});
+
+document.getElementById('srcName').textContent='Aucun fichier chargé';
+buildSelects();render();
+chargerBase();
+demarrerMvts();
+document.getElementById('fArch').addEventListener('change',e=>{if(e.target.value)ouvrirArchive(e.target.value);});
+</script>
+</body>
+</html>
