@@ -459,7 +459,8 @@ var FAMILLES = [
   { id:'implantation', nom:'Implantation', ico:'plan', c:'#1d7a5f', desc:'Optimisation des emplacements', admin:false, outils:[
     { nom:"Taux d'occupation",     f:'Taux_occupation_FINAL_COMPLET.html', ico:'tableau' },
     { nom:'Emplacements Vides',    f:'emplacements-vides-v2.html',         ico:'vide' },
-    { nom:'Diagonale de Stockage', f:'diagonale-stockage.html',            ico:'regle' }
+    { nom:'Diagonale de Stockage', f:'diagonale-stockage.html',            ico:'regle' },
+    { nom:'Seuil max stockage',    f:'SEUIL_MAX_2026.html',                ico:'courbe', roles:['admin','admin_restreint'] }
   ]},
   { id:'optimisations', nom:'Optimisations', ico:'eclair', c:'#c2701c', desc:'Analyse et amélioration des flux', admin:false, outils:[
     { nom:'Opti BBD 2026',           f:'OPTI_BBD_2026.html',           ico:'agenda' },
@@ -1176,5 +1177,6 @@ function tic(){
 }
 tic(); setInterval(tic, 1000);
 </script>
+<script src="gds_stockstatus.js"></script>
 </body>
 </html>

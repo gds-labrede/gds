@@ -1,0 +1,1662 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GDS · Seuil max stockage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#14254a; --navy2:#1f3868; --navy3:#2c4a82;
+  --orange:#f07c1e; --orange2:#ffa14f; --orange-bg:#fff4ea;
+  --bg:#eef2f8; --card:#ffffff; --line:#dbe2ee; --line2:#eef1f6;
+  --ink:#16213a; --ink2:#51607c; --ink3:#8793a9;
+  --red:#c6363a; --red-bg:#fdecec; --green:#1f8a4c;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#4a3aa7;
+  --mono:'DM Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+button,select,input{font-family:inherit;font-size:13px}
+
+/* ---------- Bandeau ---------- */
+header{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 60%,var(--navy3) 100%);color:#fff;padding:14px 22px;display:flex;align-items:center;gap:16px;position:relative;overflow:hidden}
+header::after{content:"";position:absolute;inset:0 0 50% 0;background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,0));pointer-events:none}
+header .logo{width:42px;height:42px;border-radius:11px;background:linear-gradient(145deg,var(--orange2),var(--orange));display:grid;place-items:center;box-shadow:0 4px 14px rgba(240,124,30,.45),inset 0 1px 0 rgba(255,255,255,.5)}
+header h1{margin:0;font-size:19px;font-weight:700;letter-spacing:.2px}
+header .sub{font-size:12px;opacity:.75}
+header .ver{font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.12);padding:2px 8px;border-radius:20px;margin-left:6px}
+header .sp{flex:1}
+.btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:8px 14px;border-radius:9px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;font-weight:600;transition:.15s}
+.btn:hover{border-color:var(--navy3)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.pri{background:linear-gradient(180deg,var(--orange2),var(--orange));border-color:var(--orange);color:#fff;box-shadow:0 2px 8px rgba(240,124,30,.35)}
+.btn.nav{background:linear-gradient(180deg,var(--navy3),var(--navy));border-color:var(--navy);color:#fff}
+.btn.ghost{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.25);color:#fff}
+.btn svg{width:16px;height:16px}
+
+main{max-width:1500px;margin:0 auto;padding:18px 20px 40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 3px rgba(20,37,74,.05);padding:16px 18px;margin-bottom:16px}
+.card h2{margin:0 0 12px;font-size:15px;display:flex;align-items:center;gap:8px}
+.card h2 .dot{width:8px;height:8px;border-radius:50%;background:var(--orange)}
+
+/* ---------- Chargement ---------- */
+.load{display:grid;grid-template-columns:1.3fr 1fr;gap:16px}
+.drop{border:2px dashed #b9c5da;border-radius:12px;padding:22px;text-align:center;background:linear-gradient(180deg,#fafcff,#f3f6fb);transition:.15s}
+.drop.over{border-color:var(--orange);background:var(--orange-bg)}
+.drop p{margin:6px 0;color:var(--ink2)}
+.drop .row{display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+.srcs{display:flex;flex-direction:column;gap:8px}
+.src{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+.src .ic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:#eef2f8;flex:none}
+.src .ic svg{width:17px;height:17px}
+.src.ok .ic{background:#e5f4ec}
+.src b{font-size:13px}
+.src .st{font-size:12px;color:var(--ink2)}
+.src .opt{font-size:11px;color:var(--ink3)}
+.prog{height:6px;background:var(--line2);border-radius:6px;overflow:hidden;margin-top:12px;display:none}
+.prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--orange2),var(--orange));transition:width .1s}
+.msg{font-size:12px;color:var(--ink2);margin-top:6px;min-height:16px}
+details.ctrl{margin-top:12px;border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:#fbfcfe}
+details.ctrl summary{cursor:pointer;font-weight:600;font-size:13px}
+details.ctrl table{margin-top:8px}
+
+/* ---------- Filtres ---------- */
+.filters{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.f{display:flex;flex-direction:column;gap:4px}
+.f label{font-size:11px;color:var(--ink2);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.f select,.f input{border:1px solid var(--line);border-radius:8px;padding:7px 10px;background:#fff;min-width:150px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{border:0;background:#fff;padding:7px 14px;cursor:pointer;font-weight:600;color:var(--ink2)}
+.seg button.on{background:var(--navy);color:#fff}
+.filters .sp{flex:1}
+
+/* ---------- KPI ---------- */
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px}
+.gauge{height:12px;background:var(--line2);border-radius:8px;overflow:hidden;margin-top:8px;position:relative}
+.gauge i{display:block;height:100%;background:linear-gradient(90deg,#1f8a4c,#eda100 70%,#c6363a);border-radius:8px}
+.alcgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.reg{display:inline-block;font-weight:700;padding:3px 10px;border-radius:12px;font-size:13px}
+.reg.nc{background:#e5f4ec;color:#1f8a4c}.reg.dc{background:#fff1dc;color:#b86e00}.reg.a{background:var(--red-bg);color:var(--red)}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;position:relative;overflow:hidden}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--navy3)}
+.kpi.hot::before{background:var(--orange)}
+.kpi.red::before{background:var(--red)}
+.kpi .l{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--ink2);font-weight:600}
+.kpi .v{font-size:24px;font-weight:700;margin:4px 0 2px;font-variant-numeric:tabular-nums}
+.kpi .v small{font-size:13px;font-weight:600;color:var(--ink2);margin-left:4px}
+.kpi .d{font-size:12px;color:var(--ink2)}
+
+/* ---------- Onglets ---------- */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:14px;flex-wrap:wrap}
+.tabs button{border:0;background:none;padding:10px 14px;cursor:pointer;font-weight:600;color:var(--ink2);border-bottom:3px solid transparent;margin-bottom:-1px}
+.tabs button.on{color:var(--navy);border-bottom-color:var(--orange)}
+.tabs button .n{font-family:var(--mono);font-size:11px;background:var(--line2);border-radius:10px;padding:1px 7px;margin-left:5px}
+.view{display:none}
+.view.on{display:block}
+.chartbox{position:relative;height:380px}
+.chartbox.sm{height:300px}
+.grid2{display:grid;grid-template-columns:3fr 2fr;gap:16px}
+.note{font-size:12px;color:var(--ink2);margin:8px 0 0}
+
+/* ---------- Tableaux ---------- */
+.tw{max-height:560px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th{position:sticky;top:0;background:var(--navy);color:#fff;text-align:left;padding:8px 10px;font-weight:600;white-space:nowrap;cursor:pointer;z-index:1}
+th.num,td.num{text-align:right}
+td{padding:7px 10px;border-bottom:1px solid var(--line2);white-space:nowrap}
+td.lib{white-space:normal;min-width:240px}
+tr:nth-child(even) td{background:#fafbfd}
+tr:hover td{background:#fff6ee}
+td.mono{font-family:var(--mono);font-size:12px}
+tfoot td{font-weight:700;background:#eef2f8!important;position:sticky;bottom:0}
+.tag{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--line2);color:var(--ink2)}
+.tag.dg{background:var(--red-bg);color:var(--red)}
+.tag.u{font-family:var(--mono)}
+.sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.pk{font-weight:700;color:var(--navy)}
+.empty{padding:40px;text-align:center;color:var(--ink3)}
+.hidden{display:none!important}
+
+@media (max-width:1000px){.kpis{grid-template-columns:repeat(2,1fr)}.load,.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18"/><rect x="5" y="11" width="3" height="7" rx=".6" fill="rgba(255,255,255,.35)"/><rect x="10.5" y="6" width="3" height="12" rx=".6" fill="#fff"/><rect x="16" y="9" width="3" height="9" rx=".6" fill="rgba(255,255,255,.35)"/><path d="M4 4h16" stroke-dasharray="2 2"/></svg></div>
+  <div>
+    <h1>Seuil max stockage <span class="ver">v5</span></h1>
+    <div class="sub">Pics de stock par référence, secteur, famille et produits dangereux · Dépôt 171 La Brède</div>
+  </div>
+  <div class="sp"></div>
+  <a class="btn ghost" href="sommaire.html" style="text-decoration:none">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Retour au tableau de bord</a>
+</header>
+
+<main>
+  <!-- Chargement -->
+  <section class="card">
+    <h2><span class="dot"></span>Fichiers</h2>
+    <div class="load">
+      <div class="drop" id="drop">
+        <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="#2c4a82" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/><path d="M12 4v11"/><path d="M7.5 8.5 12 4l4.5 4.5" stroke="#f07c1e"/></svg>
+        <p><b id="dropT">Glisse ici tous les StockStatus, le data et, si tu l'as, le référentiel ICPE</b></p>
+        <p style="font-size:12px">Un seul StockStatus est gardé par jour. Les positions INSPECTION (litige) sont exclues.</p>
+        <div class="row">
+          <button class="btn nav" id="bFiles"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></svg>Choisir des fichiers</button>
+          <button class="btn" id="bDir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg>Choisir un dossier</button>
+          <button class="btn" id="bReset"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>Tout vider</button>
+        </div>
+        <input type="file" id="inFiles" multiple accept=".csv,.xlsx,.xls" class="hidden">
+        <input type="file" id="inDir" webkitdirectory directory multiple class="hidden">
+        <div class="row hidden" id="upRow"><button class="btn pri" id="bUp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg><span id="bUpT">Envoyer dans l'historique GDS</span></button></div>
+        <div class="prog" id="prog"><i></i></div>
+        <div class="msg" id="msg"></div>
+      </div>
+      <div class="srcs">
+        <div class="src" id="srcSS"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#2c4a82" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11"/></svg></div><div><b>StockStatus</b><div class="st">Aucun fichier</div></div></div>
+        <div class="src" id="srcData"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#2c4a82" stroke-width="2"><path d="M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3z"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></div><div><b>Data articles</b><div class="st">Aucun fichier · donne famille, groupe et unité</div></div></div>
+        <div class="src" id="srcIcpe"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#c6363a" stroke-width="2"><path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17v.5"/></svg></div><div><b>Référentiel ICPE</b> <span class="opt">facultatif</span><div class="st">Sans lui, les produits dangereux sont repérés par leur famille</div></div></div>
+      </div>
+    </div>
+    <details class="ctrl" id="ctrl" style="display:none"><summary id="ctrlSum">Contrôle des fichiers</summary><div id="ctrlBody"></div></details>
+  </section>
+
+  <div id="app" class="hidden">
+    <!-- Filtres -->
+    <section class="card">
+      <div class="filters">
+        <div class="f"><label>Secteur</label><select id="fSec"></select></div>
+        <div class="f"><label>Famille</label><select id="fSa"></select></div>
+        <div class="f"><label>Groupe</label><select id="fGa"></select></div>
+        <div class="f"><label>Produits</label><select id="fDg"><option value="">Tous</option><option value="1">Dangereux uniquement</option><option value="0">Non dangereux</option></select></div>
+        <div class="f"><label>Du</label><select id="fD1"></select></div>
+        <div class="f"><label>Au</label><select id="fD2"></select></div>
+        <div class="f"><label>Mesure</label><div class="seg" id="fU"><button data-u="C" class="on">Unités</button><button data-u="K">Kg</button><button data-u="P">Palettes</button><button data-u="L">dm³</button></div></div>
+        <div class="sp"></div>
+        <button class="btn pri" id="bPdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 14h6M9 17h4"/></svg>Présentation PDF</button>
+        <button class="btn nav" id="bXls"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>Excel TCD + graphiques</button>
+      </div>
+    </section>
+
+    <div class="card hidden" id="warnData" style="border-color:#c6363a;background:#fdecec;color:#8f1d20;font-weight:600"></div>
+    <div class="kpis" id="kpis"></div>
+
+    <section class="card">
+      <div class="tabs" id="tabs">
+        <button data-v="evo" class="on">Évolution</button>
+        <button data-v="sec">Pics par secteur</button>
+        <button data-v="fam">Pics par famille</button>
+        <button data-v="dg">Produits dangereux <span class="n" id="nDg">0</span></button>
+        <button data-v="alc">ICPE 4755 · alcools &gt; 40 %</button>
+        <button data-v="ref">Seuil max par référence <span class="n" id="nRef">0</span></button>
+      </div>
+      <div class="view on" id="v-evo">
+        <div class="chartbox"><canvas id="cEvo"></canvas></div>
+        <p class="note" id="evoNote"></p>
+      </div>
+      <div class="view" id="v-sec">
+        <div class="grid2">
+          <div class="tw" id="tSec"></div>
+          <div class="chartbox sm"><canvas id="cSec"></canvas></div>
+        </div>
+      </div>
+      <div class="view" id="v-fam">
+        <div class="grid2">
+          <div class="tw" id="tFam"></div>
+          <div class="chartbox" style="height:520px"><canvas id="cFam"></canvas></div>
+        </div>
+      </div>
+      <div class="view" id="v-dg">
+        <p class="note" id="dgSrc" style="margin:0 0 10px"></p>
+        <div class="grid2">
+          <div class="tw" id="tDgCat"></div>
+          <div class="chartbox sm"><canvas id="cDg"></canvas></div>
+        </div>
+        <h3 style="font-size:14px;margin:18px 0 8px">Références dangereuses · seuil max</h3>
+        <div class="tw" id="tDgRef"></div>
+      </div>
+      <div class="view" id="v-alc">
+        <div class="alcgrid" id="alcKpi"></div>
+        <div class="chartbox sm"><canvas id="cAlc"></canvas></div>
+        <p class="note" id="alcNote"></p>
+        <h3 style="font-size:14px;margin:18px 0 8px">Alcools &gt; 40 % vol · comptés dans la 4755</h3>
+        <div class="tw" id="tAlc" style="max-height:420px"></div>
+        <h3 style="font-size:14px;margin:18px 0 8px">Spiritueux sans degré lisible dans le libellé · à vérifier</h3>
+        <div class="tw" id="tAlcChk" style="max-height:320px"></div>
+      </div>
+      <div class="view" id="v-ref">
+        <div class="filters" style="margin-bottom:10px"><div class="f"><label>Recherche</label><input id="fQ" placeholder="MGB ou libellé" style="min-width:260px"></div></div>
+        <div class="tw" id="tRef"></div>
+        <p class="note" id="refNote"></p>
+      </div>
+    </section>
+  </div>
+</main>
+
+<!-- Librairies (cdnjs, secours jsdelivr) -->
+<script src="config.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>window.XLSX||document.write('<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"><\/script>')</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>window.Chart||document.write('<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"><\/script>')</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>window.jspdf||document.write('<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"><\/script>')</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script>(window.jspdf&&window.jspdf.jsPDF&&window.jspdf.jsPDF.API.autoTable)||document.write('<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"><\/script>')</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>window.JSZip||document.write('<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"><\/script>')</script>
+
+<script>
+/* =====================================================================
+   SEUIL MAX STOCKAGE · GDS
+   - un StockStatus retenu par jour (date lue dans le nom du fichier)
+   - quantité du jour = somme de toutes les positions, INSPECTION exclue
+   - seuil max = plus haut total journalier observé
+   - la quantité du StockStatus est en unités (bouteilles, plaquettes…), pas en colis
+   - Unités et Kg ne sont jamais additionnés ; palettes = unités / (Palette_CCVM × CCVM) du data
+   - litres = unités × contenance lue dans le libellé ; 4755 = alcools de bouche > 40 % vol
+   ===================================================================== */
+const VERSION = 'v5';
+const SECTEURS = [
+  {k:'AMB', n:'Ambiant',          min:1,  max:18, c:'#2a78d6'},
+  {k:'FRA', n:'Frais',            min:19, max:29, c:'#eb6834'},
+  {k:'FL',  n:'Fruits & légumes', min:30, max:37, c:'#1baf7a'},
+  {k:'SUR', n:'Surgelé',          min:38, max:49, c:'#eda100'},
+  {k:'MAR', n:'La Marée',         min:50, max:59, c:'#e87ba4'},
+];
+const SEC_NC = {k:'NC', n:'Non classé', c:'#8793a9'};
+const SEC_BY_K = Object.fromEntries([...SECTEURS, SEC_NC].map(s => [s.k, s]));
+const TOTAL_COLOR = '#14254a';
+// Quai / cross-docking : secteur déduit de la famille (SA) si l'article n'a jamais été vu en allée
+const SA_SECTEUR = {60:'FRA', 62:'FRA', 63:'FRA', 66:'FRA', 61:'MAR', 64:'SUR', 65:'FL'};
+
+// Rubriques ICPE (libellés courts)
+const ICPE_LIB = {
+  '1436':'Liquides combustibles', '1450':'Solides inflammables', '1510':'Entrepôt couvert',
+  '1630':'Soude / potasse caustique', '4320':'Aérosols inflammables', '4321':'Aérosols inflammables',
+  '4330':'Liquides inflammables cat. 1', '4331':'Liquides inflammables cat. 2-3', '4440':'Solides comburants',
+  '4441':'Liquides comburants', '4510':'Dangereux milieu aquatique aigu', '4511':'Dangereux milieu aquatique chronique',
+  '4718':'Gaz inflammables liquéfiés', '4734':'Produits pétroliers', '4741':'Javel', '4755':'Alcools de bouche > 40 %',
+  '4802':'Gaz à effet de serre fluorés'
+};
+
+/* ---------- État ---------- */
+const S = {
+  files: [],            // {file, name, date, stamp}
+  data: null,           // Map mgbNorm -> article
+  data6: null,          // Map mgb6 -> article
+  dataName: '',
+  icpe: null,           // Map mgbNorm -> code ; icpe6 idem MGB6
+  icpe6: null,
+  icpeName: '',
+  // résultat de la lecture
+  days: [],             // [{iso, label, file, lines}]
+  refs: [],             // [{mgb, lib, dec:boolean, aisleQty:{sec:q}}]
+  refIdx: new Map(),
+  keys: [],             // [{r, sec}]  sec = code secteur ou 'Q' (quai)
+  keyIdx: new Map(),
+  dayK: [], dayQ: [],   // par jour : Int32Array des clés, Float64Array des quantités
+  dups: [], ignored: [], skipped: [],
+  dayMap: new Map(),    // iso -> {iso, label, file, lines, K, Q, src:'archive'|'poste'}
+  done: new Set(), keepFile: new Map(),   // jours du poste déjà lus / fichier retenu par jour
+  unit: 'C',
+};
+
+/* ---------- Outils ---------- */
+const $ = id => document.getElementById(id);
+const MS = ['C','K','P','L','A','B','W'];   // W = poids net (kg) lu dans le libellé, pour les solides   // unités, kg, palettes, litres, litres alcool > 40 %, litres alcool <= 40 %
+const U_LAB = {C:'Unités', K:'Kg', P:'Palettes', L:'dm³', A:'dm³', B:'dm³', M:'m³', W:'Kg net'};
+const fmt = (v, u) => v == null ? '' : ((u === 'K' || u === 'P' || u === 'M' || u === 'W')
+  ? v.toLocaleString('fr-FR', {minimumFractionDigits:1, maximumFractionDigits:1})
+  : Math.round(v).toLocaleString('fr-FR'));
+const uLab = u => U_LAB[u] || u;
+const toL = (n, u) => { n = parseFloat(String(n).replace(',', '.')); u = u.toLowerCase(); return u === 'cl' ? n / 100 : u === 'ml' ? n / 1000 : n; };
+// contenance en litres par unité, lue dans le libellé (0 si absente)
+function parseCont(t){
+  let m = t.match(/soit\s*(\d+(?:[.,]\d+)?)\s*(cl|ml|l|litres?)\b/i); if (m) return toL(m[1], m[2].slice(0, 2) === 'li' ? 'l' : m[2]);
+  m = t.match(/\b(\d+)\s*x\s*(\d+(?:[.,]\d+)?)\s*(cl|ml|l)\b/i); if (m) return +m[1] * toL(m[2], m[3]);
+  m = t.match(/(\d+(?:[.,]\d+)?)\s*(cl|ml|l)\s*x\s*(\d+)\b/i); if (m) return +m[3] * toL(m[1], m[2]);
+  m = t.match(/(\d+(?:[.,]\d+)?)\s*(cl|ml|l|litres?)\b/i); if (m) return toL(m[1], /^li/i.test(m[2]) ? 'l' : m[2]);
+  return 0;
+}
+// poids net en kg par unité, lu dans le libellé (0 si absent)
+function parseWt(t){
+  const k = (n, u) => parseFloat(String(n).replace(',', '.')) * (u.toLowerCase() === 'g' ? .001 : 1);
+  let m = t.match(/\b(\d+)\s*x\s*(\d+(?:[.,]\d+)?)\s*(kg|g)\b/i); if (m) return +m[1] * k(m[2], m[3]);
+  m = t.match(/(\d+(?:[.,]\d+)?)\s*(kg|g)\s*x\s*(\d+)\b/i); if (m) return +m[3] * k(m[1], m[2]);
+  m = t.match(/(\d+(?:[.,]\d+)?)\s*(kg|g)\b/i); if (m) return k(m[1], m[2]);
+  return 0;
+}
+// degré d'alcool (null si illisible)
+function parseDeg(t, alc){
+  let m = t.match(/(\d{1,2}(?:[.,]\d{1,2})?)\s?%\s?vol/i); if (m) return parseFloat(m[1].replace(',', '.'));
+  if (!alc) return null;
+  if (/sans alcool|\b0[.,]0\s?%|\b0\s?%/i.test(t)) return 0;
+  m = t.match(/(\d{1,2}(?:[.,]\d{1,2})?)\s?°/) || t.match(/(\d{1,2}(?:[.,]\d{1,2})?)\s?%/) || t.match(/\b(\d{1,2}(?:[.,]\d)?)\s?D\b/);
+  return m ? parseFloat(m[1].replace(',', '.')) : null;
+}
+const ALC_WORDS = /\b(rhum|rum|whisk(e)?y|bourbon|gin|vodka|pastis|anis[ée]?|liqueur|cognac|armagnac|calvados|tequila|mezcal|eau[- ]de[- ]vie|brandy|porto|vermouth|ap[ée]ritif|grappa|absinthe|schnaps|kirsch|marc|spiritueux|cr[èe]me de|triple sec|amaretto|limoncello|sak[ée]|soju|cacha[çc]a|pisco|vin|champagne|cr[ée]mant|cidre|bi[èe]re|ricard|chartreuse|get 27|suze|lillet|martini|campari|aperol|bitter)\b/i;
+const SEUIL_DC = 50, SEUIL_A = 500; // m³ d'alcools > 40 % (rubrique 4755-2)
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const normMgb = s => String(s ?? '').trim().replace(/\.0+$/, '').replace(/^0+/, '');
+const mgb6 = n => n.length > 6 ? n.slice(0, -6) : n;
+const pct = (a, b) => b ? Math.round((a / b - 1) * 100) : 0;
+function setMsg(t){ $('msg').textContent = t; }
+function setProg(p){ const b = $('prog'); b.style.display = p == null ? 'none' : 'block'; b.firstElementChild.style.width = ((p||0)*100) + '%'; }
+const tick = () => new Promise(r => setTimeout(r, 0));
+
+function secOfAisle(a){
+  for (const s of SECTEURS) if (a >= s.min && a <= s.max) return s.k;
+  return 'NC';
+}
+
+// Découpe d'une ligne CSV (gère les guillemets)
+function splitCSV(line){
+  if (line.indexOf('"') < 0) return line.split(',');
+  const out = []; let cur = '', q = false;
+  for (let i = 0; i < line.length; i++){
+    const c = line[i];
+    if (q){
+      if (c === '"'){ if (line[i+1] === '"'){ cur += '"'; i++; } else q = false; }
+      else cur += c;
+    } else if (c === '"') q = true;
+    else if (c === ','){ out.push(cur); cur = ''; }
+    else cur += c;
+  }
+  out.push(cur);
+  return out;
+}
+function fnv(str){ let h = 0x811c9dc5; for (let i = 0; i < str.length; i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); } return (h >>> 0).toString(16) + ':' + str.length; }
+
+/* ---------- Réception des fichiers ---------- */
+function classify(list){
+  let nSS = 0;
+  for (const f of list){
+    const n = f.name;
+    if (/\.csv$/i.test(n) && /stockstatus/i.test(n)){
+      const m = n.match(/(\d{2})-(\d{2})-(\d{4})/);
+      if (!m){ S.ignored.push(n + ' (pas de date dans le nom)'); continue; }
+      const st = n.match(/_(\d{8})_(\d{6})/);
+      if (S.files.some(x => x.name === n && x.file.size === f.size)) continue;
+      S.files.push({file:f, name:n, iso:`${m[3]}-${m[2]}-${m[1]}`, stamp: st ? st[1] + st[2] : ''});
+      nSS++;
+    } else if (/\.xlsx?$/i.test(n) && /icpe/i.test(n)){
+      loadIcpe(f);
+    } else if (/\.xlsx?$/i.test(n)){
+      loadData(f);
+    } else if (!/^\./.test(n)) {
+      S.ignored.push(n);
+    }
+  }
+  updateSrc();
+  if (nSS) scheduleRead();
+}
+let readTimer = null;
+function scheduleRead(){ clearTimeout(readTimer); readTimer = setTimeout(readAll, 250); }
+
+function updateSrc(){
+  const dates = new Set(S.files.map(f => f.iso));
+  const s1 = $('srcSS');
+  const nA = [...S.dayMap.values()].filter(d => d.src === 'archive').length;
+  const Ls = [...S.dayMap.keys()].sort();
+  s1.classList.toggle('ok', S.dayMap.size > 0 || S.files.length > 0);
+  s1.querySelector('.st').textContent = [
+    G.on ? `Historique GDS : ${nA} jour(s)` + (nA ? ` (du ${dayLabel(Ls[0])} au ${dayLabel(Ls[Ls.length - 1])})` : '') : '',
+    S.files.length ? `Poste : ${S.files.length} fichier(s) · ${dates.size} jour(s)` : (G.on ? '' : 'Aucun fichier')
+  ].filter(Boolean).join(' · ') || 'Aucun fichier';
+  const s2 = $('srcData');
+  s2.classList.toggle('ok', !!S.data);
+  if (S.data) s2.querySelector('.st').textContent = `${S.dataName} · ${S.data.size.toLocaleString('fr-FR')} articles` + (A && A.rate != null ? ` · ${Math.round(A.rate * 100)} % du stock reconnu` : '');
+  else s2.querySelector('.st').textContent = 'Non chargé · indispensable pour famille, palettes et 4755';
+  const s3 = $('srcIcpe');
+  s3.classList.toggle('ok', !!S.icpe);
+  if (S.icpe) s3.querySelector('.st').textContent = `${S.icpeName} · ${S.icpe.size.toLocaleString('fr-FR')} références`;
+}
+
+/* ---------- Data articles (xlsx) ---------- */
+async function readSheetRows(f){
+  const buf = await f.arrayBuffer();
+  const wb = XLSX.read(buf, {type:'array', cellDates:false, cellText:false, cellHTML:false, cellStyles:false});
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  return XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:''});
+}
+async function loadData(f){
+  setMsg('Lecture du data ' + f.name + '…');
+  await tick();
+  try{
+    const rows = await readSheetRows(f);
+    const hi = rows.findIndex(r => r.includes('MGB12') || r.includes('MGB6'));
+    if (hi < 0){ S.ignored.push(f.name + ' (colonnes MGB12 introuvables)'); setMsg(''); updateSrc(); return; }
+    const h = rows[hi]; const c = k => h.indexOf(k);
+    const iM = c('MGB12'), iMA = c('MGB12Achat'), i6 = c('MGB6'), iLib = c('Libelle'),
+          iSA = c('Numero SA'), iSAn = c('sa_name'), iGA = c('GA'), iSGA = c('SGA'), iU = c('Conditionnement_CCAF'),
+          iCV = c('CCVM'), iPal = c('Palette_CCVM');
+    const map = new Map(), map6 = new Map();
+    for (let r = hi + 1; r < rows.length; r++){
+      const x = rows[r]; if (!x || x.length < 5) continue;
+      const a = {
+        lib: String(x[iLib] ?? ''), sa: x[iSA] === '' ? '' : Number(x[iSA]), saName: String(x[iSAn] ?? ''),
+        ga: String(x[iGA] ?? ''), sga: String(x[iSGA] ?? ''), unit: String(x[iU] ?? '').toUpperCase(),
+        fac: (Number(x[iPal]) || 0) * (Number(x[iCV]) || 0)   // unités par palette
+      };
+      const m = normMgb(x[iM]); if (m) map.set(m, a);
+      const ma = normMgb(x[iMA]); if (ma && !map.has(ma)) map.set(ma, a);
+      const m6 = normMgb(x[i6]); if (m6 && !map6.has(m6)) map6.set(m6, a);
+    }
+    S.data = map; S.data6 = map6; S.dataName = f.name;
+    setMsg('');
+    updateSrc();
+    if (S.days.length) analyse();
+  }catch(e){ console.error(e); setMsg('Data illisible : ' + e.message); }
+}
+
+/* ---------- Référentiel ICPE (xlsx, facultatif) ---------- */
+async function loadIcpe(f){
+  setMsg('Lecture du référentiel ICPE…'); await tick();
+  try{
+    const rows = await readSheetRows(f);
+    let hi = -1, iM = -1, iR = -1;
+    for (let r = 0; r < Math.min(rows.length, 15) && hi < 0; r++){
+      const h = rows[r].map(v => String(v).toLowerCase());
+      const m = h.findIndex(v => /mgb/.test(v) && /12/.test(v)); const m2 = h.findIndex(v => /mgb/.test(v));
+      const rb = h.findIndex(v => /icpe|rubrique/.test(v));
+      if ((m >= 0 || m2 >= 0) && rb >= 0){ hi = r; iM = m >= 0 ? m : m2; iR = rb; }
+    }
+    if (hi < 0){ S.ignored.push(f.name + ' (colonnes MGB / ICPE introuvables)'); setMsg(''); updateSrc(); return; }
+    const map = new Map(), map6 = new Map();
+    for (let r = hi + 1; r < rows.length; r++){
+      const x = rows[r]; const code = String(x[iR] ?? '').trim().replace(/\.0+$/, '');
+      const m = normMgb(x[iM]); if (!m || !code || code === '0' || /^non|^-$/i.test(code)) continue;
+      map.set(m, code); if (!map6.has(mgb6(m))) map6.set(mgb6(m), code);
+    }
+    S.icpe = map; S.icpe6 = map6; S.icpeName = f.name;
+    setMsg(''); updateSrc();
+    if (S.days.length) analyse();
+  }catch(e){ console.error(e); setMsg('Référentiel ICPE illisible : ' + e.message); }
+}
+
+/* ---------- Lecture des StockStatus ---------- */
+const dayLabel = iso => iso.slice(8,10) + '/' + iso.slice(5,7) + '/' + iso.slice(2,4);
+function rebuildDays(){
+  const L = [...S.dayMap.values()].sort((a, b) => a.iso.localeCompare(b.iso));
+  S.days = L.map(d => ({iso:d.iso, label:d.label, file:d.file, lines:d.lines, src:d.src}));
+  S.dayK = L.map(d => d.K); S.dayQ = L.map(d => d.Q);
+}
+function addDay(iso, text, file, src){
+  const r = parseDay(text);
+  S.dayMap.set(iso, {iso, label: dayLabel(iso), file, lines: r.n, K: r.K, Q: r.Q, src});
+}
+let reading = false;
+async function readAll(){
+  if (reading){ scheduleRead(); return; }
+  if (G.loading){ setTimeout(readAll, 500); return; }
+  reading = true;
+  const byDay = new Map();
+  for (const f of S.files){ if (!byDay.has(f.iso)) byDay.set(f.iso, []); byDay.get(f.iso).push(f); }
+  const isos = [...byDay.keys()].sort().filter(iso => !S.done.has(iso));
+  setProg(0);
+  const t0 = performance.now(); let nNew = 0;
+  for (let d = 0; d < isos.length; d++){
+    const iso = isos[d];
+    S.done.add(iso);
+    // le fichier d'origine (sans horodatage) d'abord, puis le plus tôt
+    const cand = byDay.get(iso).sort((a, b) => (a.stamp || '0').localeCompare(b.stamp || '0'));
+    const keep = cand[0];
+    S.keepFile.set(iso, keep);
+    const text = await keep.file.text();
+    if (cand.length > 1){
+      const h0 = fnv(text); const others = [];
+      for (const o of cand.slice(1)){ const t = await o.file.text(); others.push({name:o.name, same: fnv(t) === h0}); }
+      S.dups.push({iso, keep:keep.name, others});
+    }
+    if (S.dayMap.has(iso) && S.dayMap.get(iso).src === 'archive'){ S.skipped.push(iso); }
+    else { addDay(iso, text, keep.name, 'poste'); nNew++; }
+    setProg((d + 1) / isos.length);
+    setMsg(`Lecture ${d + 1} / ${isos.length} · ${dayLabel(iso)}`);
+    if (d % 3 === 2) await tick();
+  }
+  setProg(null);
+  setMsg(isos.length ? `${nNew} jour(s) ajouté(s) depuis le poste en ${((performance.now() - t0) / 1000).toFixed(1)} s` : '');
+  reading = false;
+  rebuildDays(); renderCtrl(); updateUp(); analyse();
+}
+
+function parseDay(text){
+  const lines = text.split(/\r?\n/);
+  const h = splitCSV(lines[0].replace(/^﻿/, ''));
+  const iPos = h.indexOf('Position'), iLoc = h.indexOf('Location Code'), iM = h.indexOf('MGB'),
+        iQ = h.indexOf('Quantity'), iD = h.indexOf('Description');
+  const acc = new Map(); let n = 0;
+  for (let l = 1; l < lines.length; l++){
+    const line = lines[l]; if (!line) continue;
+    const x = splitCSV(line);
+    const pos = x[iPos] || '';
+    if (/^INSPECTION/i.test(pos) || /INSPECTION/i.test(x[iLoc] || '')) continue; // litige : hors stock
+    const mgb = normMgb(x[iM]); if (!mgb) continue;
+    const qs = x[iQ] || '0'; const q = parseFloat(qs); if (!q) continue;
+    let r = S.refIdx.get(mgb);
+    if (r === undefined){ r = S.refs.length; S.refIdx.set(mgb, r); S.refs.push({mgb, raw:x[iM], lib:(x[iD] || '').trim(), dec:false, aisle:{}}); }
+    const ref = S.refs[r];
+    if (!ref.dec && /\.\d*[1-9]/.test(qs)) ref.dec = true;
+    const m = pos.match(/^(\d+)-/);
+    let sec = 'Q';
+    if (m){ sec = secOfAisle(+m[1]); ref.aisle[sec] = (ref.aisle[sec] || 0) + 1; }
+    const key = r + '|' + sec;
+    let k = S.keyIdx.get(key);
+    if (k === undefined){ k = S.keys.length; S.keyIdx.set(key, k); S.keys.push({r, sec}); }
+    acc.set(k, (acc.get(k) || 0) + q);
+    n++;
+  }
+  const K = new Int32Array(acc.size), Q = new Float64Array(acc.size); let i = 0;
+  for (const [k, q] of acc){ K[i] = k; Q[i] = q; i++; }
+  return {K, Q, n};
+}
+
+/* =====================================================================
+   GDS : historique dans l'Archive
+   - Archive/StockStatus/      un StockStatus par jour (déposé par le sommaire)
+   - Archive/SEUIL_MAX/historique.json.gz   résumé compact de tous les jours
+     (l'outil ne relit donc pas 1 Go à chaque ouverture : il ne télécharge
+      que les jours absents du résumé, puis met le résumé à jour)
+   ===================================================================== */
+const G = {on:false, jeton:'', role:'', peut:false, loading:false, arch:new Map(), archSize:new Map()};
+const D_SS = 'StockStatus/', D_SM = 'SEUIL_MAX/', F_HIST = D_SM + 'historique.json.gz';
+function lireS(c){ try { return sessionStorage.getItem(c) || localStorage.getItem(c); } catch(e){ return null; } }
+if (window.GDS && GDS.API){
+  G.jeton = lireS('gds_jeton') || ''; G.role = lireS('gds_role') || '';
+  G.on = !!G.jeton; G.peut = G.role === 'admin' || G.role === 'admin_restreint';
+}
+function authG(sup){ return Object.assign({'Authorization':'Bearer ' + GDS.CLE_PUBLIQUE, 'apikey':GDS.CLE_PUBLIQUE, 'X-GDS-Session':G.jeton}, sup || {}); }
+async function gds(chemin, opt){
+  const r = await fetch(GDS.API + chemin, Object.assign({headers:authG()}, opt || {}));
+  if (r.status === 401 || r.status === 403) throw new Error('accès refusé par le serveur');
+  return r;
+}
+async function listeArchive(prefixe){
+  const r = await gds('/archive', {method:'POST', headers:authG({'Content-Type':'application/json'}), body:JSON.stringify({prefix:prefixe})});
+  if (!r.ok) throw new Error("liste de l'archive indisponible");
+  const d = await r.json();
+  return (d.files || []).map(f => ({nom:f.fileName, date:String(f.uploadTimestamp || ''), taille:f.contentLength || 0}));
+}
+async function lireArchive(chemin){
+  const r = await gds('/archive/' + encodeURIComponent(chemin));
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error('lecture de ' + chemin + ' impossible');
+  return await r.arrayBuffer();
+}
+async function ecrireArchive(chemin, corps, type){
+  const r = await gds('/archive/' + encodeURIComponent(chemin), {method:'POST', headers:authG({'Content-Type':type}), body:corps});
+  if (!r.ok) throw new Error('écriture de ' + chemin + ' impossible');
+}
+async function listeCourant(){
+  const r = await gds('/fichiers', {method:'POST', headers:authG({'Content-Type':'application/json'}), body:JSON.stringify({prefix:''})});
+  if (!r.ok) throw new Error("liste de l'espace courant indisponible");
+  const d = await r.json();
+  return (Array.isArray(d) ? d : []).filter(f => f.name).map(f => ({nom:f.name, date:f.updated_at || f.created_at || ''}));
+}
+async function lireCourant(nom){
+  const r = await gds('/fichier/' + encodeURIComponent(nom));
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error('lecture de ' + nom + ' impossible');
+  return await r.arrayBuffer();
+}
+async function compresser(texte){
+  if (!window.CompressionStream) return new Blob([texte], {type:'application/json'});
+  return await new Response(new Blob([texte]).stream().pipeThrough(new CompressionStream('gzip'))).blob();
+}
+async function decompresser(buf){
+  const u = new Uint8Array(buf);
+  if (u[0] === 0x1f && u[1] === 0x8b) return await new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+  return new TextDecoder().decode(buf);
+}
+function decoder(buf){ let t = new TextDecoder('utf-8').decode(buf); if (t.indexOf('�') !== -1) t = new TextDecoder('windows-1252').decode(buf); return t.replace(/^﻿/, ''); }
+// cache local (IndexedDB) : les gros fichiers ne sont retéléchargés que s'ils ont changé
+let DB = null;
+function idb(){ return new Promise(ok => {
+  if (DB) return ok(DB);
+  try { const r = indexedDB.open('gds-seuil-max', 1); r.onupgradeneeded = () => r.result.createObjectStore('k');
+        r.onsuccess = () => { DB = r.result; ok(DB); }; r.onerror = () => ok(null); } catch(e){ ok(null); }
+}); }
+async function idbGet(k){ const d = await idb(); if (!d) return null; return new Promise(ok => { try { const t = d.transaction('k').objectStore('k').get(k); t.onsuccess = () => ok(t.result || null); t.onerror = () => ok(null); } catch(e){ ok(null); } }); }
+async function idbPut(k, v){ const d = await idb(); if (!d) return false; return new Promise(ok => { try { const t = d.transaction('k', 'readwrite'); t.objectStore('k').put(v, k); t.oncomplete = () => ok(true); t.onerror = () => ok(false); } catch(e){ ok(false); } }); }
+
+const MOTIF_SS = /StockStatus_FR_STOREDEPOT_(\d+)_(\d{2})-(\d{2})-(\d{4})/i;
+const nomArchive = n => { const m = MOTIF_SS.exec(n || ''); return m ? `${D_SS}StockStatus_FR_STOREDEPOT_${m[1]}_${m[2]}-${m[3]}-${m[4]}.csv` : null; };
+const isoDe = n => { const m = MOTIF_SS.exec(n || ''); return m ? `${m[4]}-${m[3]}-${m[2]}` : null; };
+
+function exportHist(){
+  const flat = []; for (const k of S.keys) flat.push(k.r, k.sec);
+  return {v:1, maj:new Date().toISOString(),
+    refs: S.refs.map(r => [r.mgb, r.raw, r.lib, r.dec ? 1 : 0, r.aisle]),
+    keys: flat,
+    days: [...S.dayMap.values()].filter(d => d.src === 'archive').sort((a, b) => a.iso.localeCompare(b.iso))
+          .map(d => ({iso:d.iso, file:d.file, lines:d.lines, k:Array.from(d.K), q:Array.from(d.Q, v => Math.round(v * 1000) / 1000)}))};
+}
+function importHist(h){
+  if (!h || h.v !== 1) return;
+  S.refs = h.refs.map(r => ({mgb:r[0], raw:r[1], lib:r[2], dec:!!r[3], aisle:r[4] || {}}));
+  S.refIdx = new Map(S.refs.map((r, i) => [r.mgb, i]));
+  S.keys = []; S.keyIdx = new Map();
+  for (let i = 0; i < h.keys.length; i += 2){ const k = {r:h.keys[i], sec:h.keys[i + 1]}; S.keyIdx.set(k.r + '|' + k.sec, S.keys.length); S.keys.push(k); }
+  S.dayMap = new Map();
+  for (const d of h.days) S.dayMap.set(d.iso, {iso:d.iso, label:dayLabel(d.iso), file:d.file, lines:d.lines, K:Int32Array.from(d.k), Q:Float64Array.from(d.q), src:'archive'});
+}
+async function saveHist(){
+  if (!G.peut) return;
+  const blob = await compresser(JSON.stringify(exportHist()));
+  await ecrireArchive(F_HIST, blob, 'application/gzip');
+  const f = (await listeArchive(D_SM)).find(x => x.nom === F_HIST);
+  if (f) await idbPut('hist', {date:f.date, json:exportHist()});
+}
+
+async function chargerBase(){
+  const L = await listeArchive('BASE_ARTICLES/');
+  const fb = L.find(f => f.nom === 'BASE_ARTICLES/base_articles.json.gz');
+  if (!fb) return false;
+  let base; const c = await idbGet('base');
+  if (c && c.date === fb.date && c.json) base = c.json;
+  else { base = JSON.parse(await decompresser(await lireArchive(fb.nom))); await idbPut('base', {date:fb.date, json:base}); }
+  const map = new Map(), map6 = new Map();
+  for (const [m, a] of Object.entries(base.articles || {})){
+    const art = {lib:String(a.libelle || ''), sa: a.saNum ? Number(a.saNum) : '', saName:String(a.secteur || ''), ga:String(a.ga || ''), sga:String(a.sga || ''),
+                 unit:String(a.unite || '').toUpperCase(), fac:(Number(a.colisPalette) || 0) * (Number(a.ccvm) || 0)};
+    const n = normMgb(m); if (!n) continue;
+    map.set(n, art); if (!map6.has(mgb6(n))) map6.set(mgb6(n), art);
+  }
+  S.data = map; S.data6 = map6; S.dataName = 'Base articles GDS';
+  return true;
+}
+async function chargerIcpe(){
+  const map = new Map(), map6 = new Map();
+  const put = (m, code) => {
+    m = String(m || '').replace(/\D/g, ''); code = String(code || '').trim();
+    if (!m || !code || code === '?' || code === '0') return;
+    const n = normMgb(m); if (!n) return;
+    if (m.length <= 6){ if (!map6.has(n)) map6.set(n, code); }
+    else { if (!map.has(n)) map.set(n, code); if (!map6.has(mgb6(n))) map6.set(mgb6(n), code); }
+  };
+  const b = await lireCourant('systeme/icpe_refs.csv');
+  if (b) decoder(b).split(/\r?\n/).forEach(l => { const c = l.split(/[;,]/); if (/\d{5,}/.test(c[0] || '')) put(c[0], c[1]); });
+  // rubriques relevées dans les FDS, en complément du référentiel
+  try {
+    const L = await listeArchive('FDS/'); const fi = L.find(f => f.nom === 'FDS/fds_icpe.json');
+    if (fi){
+      let j; const c = await idbGet('fds'); if (c && c.date === fi.date) j = c.json;
+      else { j = JSON.parse(decoder(await lireArchive(fi.nom))); await idbPut('fds', {date:fi.date, json:j}); }
+      for (const [m, f] of Object.entries((j && j.fiches) || {})) if (f && f.rubrique) put(m, f.rubrique);
+    }
+  } catch(e){ console.warn(e); }
+  if (!map.size && !map6.size) return false;
+  S.icpe = map; S.icpe6 = map6; S.icpeName = 'Référentiel ICPE GDS';
+  return true;
+}
+
+async function startGDS(){
+  G.loading = true;
+  $('dropT').textContent = "L'historique GDS se charge tout seul. Glisse ici d'anciens StockStatus pour les ajouter à l'historique.";
+  setMsg('Connexion à GDS…'); setProg(.05);
+  try {
+    const [okB, okI] = await Promise.all([chargerBase().catch(e => (console.warn(e), false)), chargerIcpe().catch(e => (console.warn(e), false))]);
+    updateSrc();
+    // 1. inventaire de l'archive
+    G.arch = new Map(); G.archSize = new Map();
+    for (const f of await listeArchive(D_SS)){ const iso = isoDe(f.nom); if (iso && !G.arch.has(iso)){ G.arch.set(iso, f.nom); G.archSize.set(iso, f.taille); } }
+    // 2. résumé
+    const fh = (await listeArchive(D_SM)).find(f => f.nom === F_HIST);
+    if (fh){
+      setMsg("Lecture de l'historique…");
+      let h; const c = await idbGet('hist');
+      if (c && c.date === fh.date && c.json) h = c.json;
+      else { h = JSON.parse(await decompresser(await lireArchive(F_HIST))); await idbPut('hist', {date:fh.date, json:h}); }
+      importHist(h);
+    }
+    let changed = false;
+    // 3. StockStatus de l'espace courant absent de l'archive : on l'y copie
+    try {
+      const cur = (await listeCourant()).filter(f => MOTIF_SS.test(f.nom));
+      for (const f of cur){
+        const iso = isoDe(f.nom);
+        if (!iso || G.arch.has(iso)) continue;
+        const buf = await lireCourant(f.nom); if (!buf) continue;
+        const text = decoder(buf);
+        if (G.peut){ await ecrireArchive(nomArchive(f.nom), new Blob([text], {type:'text/csv'}), 'text/csv'); G.arch.set(iso, nomArchive(f.nom)); }
+        if (!S.dayMap.has(iso)){ addDay(iso, text, f.nom, G.peut ? 'archive' : 'poste'); changed = G.peut; }
+      }
+    } catch(e){ console.warn(e); }
+    // 4. jours de l'archive absents du résumé
+    const manque = [...G.arch.keys()].filter(iso => !S.dayMap.has(iso)).sort();
+    const mo = manque.reduce((t, iso) => t + (G.archSize.get(iso) || 0), 0) / 1048576;
+    if (manque.length && (mo < 300 || confirm(`${manque.length} StockStatus de l'archive ne sont pas encore dans l'historique (${Math.round(mo)} Mo à télécharger).\n\nLes télécharger maintenant ?`))){
+      for (let i = 0; i < manque.length; i++){
+        const iso = manque[i];
+        setMsg(`Ajout à l'historique ${i + 1} / ${manque.length} · ${dayLabel(iso)}`); setProg((i + 1) / manque.length);
+        const buf = await lireArchive(G.arch.get(iso)); if (!buf) continue;
+        addDay(iso, decoder(buf), G.arch.get(iso).slice(D_SS.length), 'archive'); changed = true;
+        if (i % 3 === 2) await tick();
+      }
+    }
+    if (changed && G.peut){ setMsg("Mise à jour de l'historique…"); await saveHist(); }
+    setProg(null);
+    setMsg(S.dayMap.size ? `Historique GDS : ${S.dayMap.size} jour(s)` : "Historique GDS vide : glisse tes anciens StockStatus pour le remplir.");
+  } catch(e){
+    console.error(e); setProg(null);
+    setMsg('GDS indisponible : ' + e.message + ' · les fichiers du poste restent utilisables.');
+  }
+  G.loading = false;
+  rebuildDays(); updateSrc(); renderCtrl(); updateUp();
+  if (S.days.length) analyse();
+}
+
+// jours lus sur le poste et absents de l'archive : envoi dans l'historique GDS
+function pendingUp(){ return G.on && G.peut ? [...S.keepFile.keys()].filter(iso => !G.arch.has(iso)).sort() : []; }
+function updateUp(){
+  const n = pendingUp().length;
+  $('upRow').classList.toggle('hidden', !n);
+  $('bUpT').textContent = `Envoyer ${n} jour(s) dans l'historique GDS`;
+}
+async function uploadLocal(){
+  const L = pendingUp(); if (!L.length) return;
+  const b = $('bUp'); b.disabled = true;
+  try {
+    for (let i = 0; i < L.length; i++){
+      const iso = L[i], f = S.keepFile.get(iso), nom = nomArchive(f.name);
+      setMsg(`Envoi ${i + 1} / ${L.length} · ${dayLabel(iso)}`); setProg((i + 1) / L.length);
+      await ecrireArchive(nom, f.file, 'text/csv');
+      G.arch.set(iso, nom);
+      const d = S.dayMap.get(iso); if (d){ d.src = 'archive'; d.file = nom.slice(D_SS.length); }
+    }
+    setMsg("Mise à jour de l'historique…");
+    await saveHist();
+    setMsg(`${L.length} jour(s) ajouté(s) à l'historique GDS`);
+  } catch(e){ console.error(e); setMsg('Envoi interrompu : ' + e.message + ' · relance, les jours déjà envoyés ne sont pas renvoyés.'); }
+  setProg(null); b.disabled = false; rebuildDays(); updateSrc(); renderCtrl(); updateUp();
+}
+
+function renderCtrl(){
+  const box = $('ctrl'); box.style.display = S.days.length || S.dups.length || S.ignored.length ? '' : 'none';
+  const nId = S.dups.filter(x => x.others.every(o => o.same)).length;
+  const nDiff = S.dups.length - nId;
+  $('ctrlSum').innerHTML = `Contrôle des fichiers · ${S.days.length} jour(s) retenu(s) · ${S.dups.length} jour(s) en double` +
+    (S.dups.length ? ` (${nId} identiques, <span style="color:${nDiff ? 'var(--red)' : 'inherit'}">${nDiff} différents</span>)` : '') +
+    (S.skipped.length ? ` · ${S.skipped.length} jour(s) du poste déjà dans l'historique` : '') +
+    (S.ignored.length ? ` · ${S.ignored.length} ignoré(s)` : '');
+  let h = '';
+  if (S.dups.length){
+    h += '<table><thead><tr><th>Jour</th><th>Fichier retenu</th><th>Doublon écarté</th><th>Contenu</th></tr></thead><tbody>';
+    for (const d of S.dups) for (const o of d.others)
+      h += `<tr><td class="mono">${d.iso.split('-').reverse().join('/')}</td><td class="mono">${esc(d.keep)}</td><td class="mono">${esc(o.name)}</td><td>${o.same ? '<span class="tag">identique</span>' : '<span class="tag dg">différent · premier gardé</span>'}</td></tr>`;
+    h += '</tbody></table>';
+  }
+  if (S.ignored.length) h += `<p class="note">Ignorés : ${S.ignored.map(esc).join(' · ')}</p>`;
+  $('ctrlBody').innerHTML = h || '<p class="note">Aucun doublon.</p>';
+}
+
+/* =====================================================================
+   ANALYSE
+   ===================================================================== */
+const DG_FAM = [ // repérage par famille quand il n'y a pas de référentiel ICPE
+  {t:/A[EÉ]ROSOL/i, x:/CR[EÈÊ]ME|CHANTILLY/i,                  c:'Aérosols'},
+  {t:/JAVEL|HYPOCHLOR|CHLORE/i,                                  c:'Javel / chlorés'},
+  {t:/ALCOOL (A|À) BR[UÛ]LER|ALCOOL MENAGER|ALCOOL MÉNAGER|WHITE SPIRIT|ACETONE|ACÉTONE/i, c:'Liquides inflammables'},
+  {t:/CARTOUCHE (DE |À |A )?GAZ|CAMPING ?GAZ|BUTANE|PROPANE|CHALUMEAU/i, c:'Gaz'},
+];
+function dangerOf(ref, art){
+  if (S.icpe){
+    const code = S.icpe.get(ref.mgb) || S.icpe6.get(mgb6(ref.mgb));
+    // 1510 = rubrique générique entrepôt : aucun risque particulier (même règle que Contrôle ICPE)
+    return code && code !== '1510' ? (code + (ICPE_LIB[code] ? ' · ' + ICPE_LIB[code] : '')) : '';
+  }
+  const lib = (art && art.lib ? art.lib + ' ' : '') + ref.lib;
+  for (const d of DG_FAM) if (d.t.test(lib) && !(d.x && d.x.test(lib))) return d.c;
+  if (!art) return '';
+  const ga = parseInt(art.ga, 10);
+  if (ga === 413) return 'Briquets / allumettes';
+  if (ga === 560) return 'Allume-feu / barbecue';
+  if (ga === 490) return 'Aérosols';
+  if (ga === 491) return 'Insecticides';
+  if ([488, 493, 494, 621, 622].includes(ga)) return 'Nettoyants / corrosifs';
+  if (art.sa === 53 && ga !== 429) return 'Alcools (spiritueux)';
+  return '';
+}
+
+let A = null; // attributs résolus
+function analyse(){
+  if (!S.days.length) return;
+  // attributs par référence
+  const R = S.refs.map(ref => {
+    const art = S.data ? (S.data.get(ref.mgb) || S.data6.get(mgb6(ref.mgb))) : null;
+    const unit = ref.dec || (art && art.unit === 'KG') ? 'K' : 'C';
+    // secteur principal = allée la plus fréquente
+    let main = '', best = 0;
+    for (const [s, n] of Object.entries(ref.aisle)) if (s !== 'NC' && n > best){ best = n; main = s; }
+    if (!main && art && art.sa !== '') main = SA_SECTEUR[art.sa] || 'AMB';
+    if (!main) main = 'NC';
+    const sa = art ? (art.sa !== '' ? String(art.sa).padStart(2, '0') + ' ' + art.saName : 'Sans famille') : 'Sans famille';
+    const txt = ref.lib + ' | ' + (art ? art.lib : '');
+    const alc = art ? [53, 54, 55].includes(art.sa) : ALC_WORDS.test(ref.lib);   // sans data : repérage par le libellé
+    const cont = unit === 'C' ? (parseCont(ref.lib) || (art ? parseCont(art.lib) : 0)) : 0;
+    const deg = parseDeg(ref.lib, alc) ?? (art ? parseDeg(art.lib, alc) : null);
+    const fac = unit === 'C' && art && art.fac > 0 ? art.fac : 0;
+    const co = {C: unit === 'C' ? 1 : 0, K: unit === 'K' ? 1 : 0, P: fac ? 1 / fac : 0, L: cont,
+                A: deg != null && deg > 40 ? cont : 0, B: alc && deg != null && deg > 0 && deg <= 40 ? cont : 0,
+                W: unit === 'K' ? 1 : (!cont ? (parseWt(ref.lib) || (art ? parseWt(art.lib) : 0)) : 0)};
+    return {unit, main, sa, ga: art ? (art.ga || 'Sans groupe') : 'Sans groupe', dg: dangerOf(ref, art), known: !!art,
+            co, cont, deg, alc, fac, chk: !!art && alc && art.sa === 53 && deg == null && !/^429/.test(art.ga) && !/sans alcool/i.test(txt)};
+  });
+  const KS = S.keys.map(k => k.sec === 'Q' ? R[k.r].main : k.sec);
+  const nKnown = R.filter(r => r.known).length;
+  const rate = R.length ? nKnown / R.length : 0;
+  A = {R, KS, rate, warn: !S.data
+    ? 'Data articles non chargé : familles, groupes, palettes et une partie des kg manquent ; alcools repérés par le libellé seulement. Glisse le fichier data pour des résultats complets.'
+    : rate < .9 ? `Seulement ${Math.round(rate * 100)} % des références du stock sont trouvées dans le data (${esc(S.dataName)}) : prends un data plus récent ou plus complet.` : ''};
+  updateSrc();
+  $('warnData').textContent = A.warn; $('warnData').classList.toggle('hidden', !A.warn);
+  fillFilters();
+  render();
+  $('app').classList.remove('hidden');
+}
+
+function fillFilters(){
+  const keepV = id => $(id).value;
+  const secs = [...SECTEURS]; if (A.KS.includes('NC')) secs.push(SEC_NC);
+  const v1 = keepV('fSec');
+  $('fSec').innerHTML = '<option value="">Tous les secteurs</option>' + secs.map(s => `<option value="${s.k}">${s.n}</option>`).join('');
+  $('fSec').value = v1;
+  const sas = [...new Set(A.R.map(r => r.sa))].sort();
+  const v2 = keepV('fSa');
+  $('fSa').innerHTML = '<option value="">Toutes les familles</option>' + sas.map(s => `<option>${esc(s)}</option>`).join('');
+  $('fSa').value = sas.includes(v2) ? v2 : '';
+  fillGa();
+  const o = S.days.map((d, i) => `<option value="${i}">${d.label}</option>`).join('');
+  // nouveaux jours chargés : la période repart sur l'ensemble
+  $('fD1').innerHTML = o; $('fD2').innerHTML = o;
+  $('fD1').value = 0; $('fD2').value = S.days.length - 1;
+}
+function fillGa(){
+  const sa = $('fSa').value; const v = $('fGa').value;
+  const gas = [...new Set(A.R.filter(r => !sa || r.sa === sa).map(r => r.ga))].sort();
+  $('fGa').innerHTML = '<option value="">Tous les groupes</option>' + gas.map(s => `<option>${esc(s)}</option>`).join('');
+  $('fGa').value = gas.includes(v) ? v : '';
+}
+
+function currentFilter(){
+  return {sec: $('fSec').value, sa: $('fSa').value, ga: $('fGa').value, dg: $('fDg').value,
+          d1: Math.min(+$('fD1').value, +$('fD2').value), d2: Math.max(+$('fD1').value, +$('fD2').value)};
+}
+function filterLabel(F){
+  const p = [];
+  p.push(F.sec ? SEC_BY_K[F.sec].n : 'Tous secteurs');
+  if (F.sa) p.push(F.sa);
+  if (F.ga) p.push(F.ga);
+  if (F.dg === '1') p.push('Produits dangereux');
+  if (F.dg === '0') p.push('Hors produits dangereux');
+  return p.join(' · ');
+}
+
+/* Calcul complet selon les filtres.
+   Retourne : jours, séries par secteur (C/K), stats par référence, groupes famille / danger */
+function compute(F){
+  const {R, KS} = A;
+  const refOk = R.map(r => (!F.sa || r.sa === F.sa) && (!F.ga || r.ga === F.ga) &&
+                          (F.dg === '' || (F.dg === '1' ? !!r.dg : !r.dg)));
+  const days = S.days.slice(F.d1, F.d2 + 1);
+  const nD = days.length, nR = R.length;
+  const secList = [...SECTEURS, SEC_NC].map(s => s.k);
+  const newM = () => Object.fromEntries(MS.map(m => [m, new Float64Array(nD)]));
+  const ser = Object.fromEntries(MS.map(m => [m, Object.fromEntries(secList.map(s => [s, new Float64Array(nD)]))]));
+  const mat = new Float32Array(nR * nD);             // quantité (unités ou kg) par référence et par jour
+  for (let di = 0; di < nD; di++){
+    const K = S.dayK[F.d1 + di], Q = S.dayQ[F.d1 + di];
+    for (let i = 0; i < K.length; i++){
+      const k = K[i], key = S.keys[k], sec = KS[k];
+      if (!refOk[key.r]) continue;
+      if (F.sec && sec !== F.sec) continue;
+      const q = Q[i], co = R[key.r].co;
+      for (const m of MS) if (co[m]) ser[m][sec][di] += q * co[m];
+      mat[key.r * nD + di] += q;
+    }
+  }
+  const tot = newM();
+  for (const m of MS) for (const s of secList) for (let d = 0; d < nD; d++) tot[m][d] += ser[m][s][d];
+
+  // stats par référence
+  const refs = [];
+  for (let r = 0; r < nR; r++){
+    if (!refOk[r]) continue;
+    let mx = 0, di = -1, sum = 0, pres = 0;
+    const base = r * nD;
+    for (let d = 0; d < nD; d++){ const q = mat[base + d]; if (q > 0){ pres++; sum += q; if (q > mx){ mx = q; di = d; } } }
+    if (!pres) continue;
+    const a = R[r];
+    refs.push({r, mgb: S.refs[r].raw || S.refs[r].mgb, lib: S.refs[r].lib, sec: a.main, sa: a.sa, ga: a.ga, dg: a.dg,
+               unit: a.unit, max: mx, dmax: di, avg: sum / nD, last: mat[base + nD - 1], pres,
+               pal: a.co.P ? mx * a.co.P : null, lit: a.cont ? mx * a.cont : null, wt: a.co.W ? mx * a.co.W : null, cont: a.cont, deg: a.deg, chk: a.chk});
+  }
+  refs.sort((a, b) => a.unit === b.unit ? b.max - a.max : (a.unit === 'C' ? -1 : 1));
+
+  // groupes (famille / groupe / catégorie danger) : série journalière par mesure
+  const grp = (keyFn) => {
+    const g = new Map();
+    for (const x of refs){
+      const k = keyFn(x); if (!k) continue;
+      if (!g.has(k)) g.set(k, Object.assign({k, nC:0, nK:0}, newM()));
+      const o = g.get(k); o['n' + x.unit]++;
+      const co = R[x.r].co, base = x.r * nD;
+      for (const m of MS){ const c = co[m]; if (!c) continue; const arr = o[m]; for (let d = 0; d < nD; d++) arr[d] += mat[base + d] * c; }
+    }
+    return [...g.values()].map(o => { for (const m of MS) o['p' + m] = peak(o[m]); return o; });
+  };
+  const famKey = F.sa ? (x => x.ga) : (x => x.sa);
+  const fam = grp(famKey).sort((a, b) => b.pC.max - a.pC.max || b.pK.max - a.pK.max);
+  const dgc = grp(x => x.dg).sort((a, b) => b.pC.max - a.pC.max || b.pK.max - a.pK.max);
+  const secs = secList.map(s => { const o = {k: s}; for (const m of MS){ o[m] = ser[m][s]; o['p' + m] = peak(ser[m][s]); } return o; })
+                      .filter(s => s.pC.max > 0 || s.pK.max > 0);
+  const pT = Object.fromEntries(MS.map(m => [m, peak(tot[m])]));
+  return {F, days, ser, tot, pT, refs, fam, famBy: F.sa ? 'Groupe' : 'Famille', dgc, secs};
+}
+function peak(arr){
+  let max = 0, d = -1, sum = 0, min = Infinity;
+  for (let i = 0; i < arr.length; i++){ const v = arr[i]; sum += v; if (v > max){ max = v; d = i; } if (v < min) min = v; }
+  return {max, d, avg: arr.length ? sum / arr.length : 0, min: arr.length ? min : 0};
+}
+
+/* =====================================================================
+   AFFICHAGE
+   ===================================================================== */
+let C = null; const charts = {};
+function render(){
+  C = compute(currentFilter());
+  const u = S.unit, D = C.days;
+  const dl = i => i >= 0 ? D[i].label : '-';
+  const nDg = C.refs.filter(x => x.dg).length;
+  $('nDg').textContent = nDg.toLocaleString('fr-FR');
+  $('nRef').textContent = C.refs.length.toLocaleString('fr-FR');
+
+  // KPI
+  const kp = (m, cls, lab) => { const p = C.pT[m]; return `<div class="kpi ${cls}"><div class="l">${lab}</div><div class="v">${fmt(p.max, m)}<small>${uLab(m).toLowerCase()}</small></div><div class="d">le ${dl(p.d)} · moyenne ${fmt(p.avg, m)} (${pct(p.max, p.avg) >= 0 ? '+' : ''}${pct(p.max, p.avg)} %)</div></div>`; };
+  const dgT = new Float64Array(D.length);
+  for (const g of C.dgc) for (let d = 0; d < D.length; d++) dgT[d] += g[u][d];
+  const pDg = peak(dgT);
+  const nPal = C.refs.filter(x => x.unit === 'C' && x.pal == null).length;
+  $('kpis').innerHTML = `
+    <div class="kpi"><div class="l">Période analysée</div><div class="v">${D.length}<small>jour(s)</small></div><div class="d">du ${D[0].label} au ${D[D.length-1].label} · ${C.refs.length.toLocaleString('fr-FR')} réf.</div></div>
+    ${kp('C', 'hot', 'Pic du stock · unités')}
+    ${kp('K', 'hot', 'Pic du stock · kg')}
+    ${kp('P', 'hot', 'Pic · palettes équivalentes')}
+    <div class="kpi red"><div class="l">Pic produits dangereux · ${uLab(u).toLowerCase()}</div><div class="v">${fmt(pDg.max,u)}<small>${uLab(u).toLowerCase()}</small></div><div class="d">le ${dl(pDg.d)} · ${nDg.toLocaleString('fr-FR')} référence(s)</div></div>
+    <div class="kpi red"><div class="l">4755 · alcools &gt; 40 %</div><div class="v">${fmt(C.pT.A.max / 1000, 'M')}<small>m³</small></div><div class="d">pic le ${dl(C.pT.A.d)} · ${Math.round(C.pT.A.max / 10 / SEUIL_DC)} % du seuil DC</div></div>`;
+
+  renderEvo(); renderSec(); renderFam(); renderDg(); renderAlc(); renderRef();
+}
+
+function lineCfg(labels, sets, title, unit, opts = {}){
+  return {type:'line', data:{labels, datasets: sets},
+    options:{responsive: !opts.fixed, maintainAspectRatio:false, animation: opts.fixed ? false : {duration:250},
+      devicePixelRatio: opts.dpr || window.devicePixelRatio,
+      interaction:{mode:'index', intersect:false},
+      plugins:{legend:{position:'bottom', labels:{usePointStyle:true, boxWidth: opts.fs ? opts.fs * .6 : 8, padding: opts.fs ? opts.fs : 12, font:{family:'DM Sans', size: opts.fs || 12}}},
+        title:{display:!!title, text:title, font:{family:'DM Sans', size:(opts.fs||12)+2, weight:'600'}, color:'#16213a'},
+        tooltip:{callbacks:{label: c => ` ${c.dataset.label} : ${fmt(c.parsed.y, unit)} ${uLab(unit).toLowerCase()}`}}},
+      scales:{x:{grid:{display:false}, ticks:{font:{family:'DM Mono', size: opts.fs ? opts.fs - 1 : 11}, maxRotation:0, autoSkip:true, maxTicksLimit:14}},
+              y:{beginAtZero:true, grid:{color:'#eef1f6'}, border:{display:false}, ticks:{font:{family:'DM Mono', size: opts.fs ? opts.fs - 1 : 11}, callback: v => fmt(v, unit)},
+                 title:{display:true, text:uLab(unit), font:{family:'DM Sans', size: opts.fs || 12}}}}}};
+}
+function evoSets(u, withTotal = true, big = false){
+  const sets = C.secs.filter(s => s['p' + u].max > 0).map(s => ({label: SEC_BY_K[s.k].n, data: [...s[u]], borderColor: SEC_BY_K[s.k].c,
+    backgroundColor: SEC_BY_K[s.k].c, borderWidth: big ? 3 : 2, pointRadius: C.days.length > 40 ? 0 : (big ? 5 : 3), tension:.25}));
+  if (withTotal && sets.length > 1){
+    const p = C.pT[u];
+    sets.push({label:'Total', data:[...C.tot[u]], borderColor:TOTAL_COLOR, backgroundColor:TOTAL_COLOR, borderWidth: big ? 3.5 : 2.5, borderDash:[6,4], tension:.25,
+      pointRadius: C.tot[u].map((_, i) => i === p.d ? (big ? 9 : 6) : 0), pointBackgroundColor: c => c.dataIndex === p.d ? '#f07c1e' : TOTAL_COLOR, pointBorderColor:'#fff', pointBorderWidth:2});
+  }
+  return sets;
+}
+function draw(id, cfg){ if (charts[id]) charts[id].destroy(); charts[id] = new Chart($(id), cfg); }
+
+function renderEvo(){
+  const u = S.unit;
+  draw('cEvo', lineCfg(C.days.map(d => d.label), evoSets(u), `Stock journalier par secteur · ${uLab(u).toLowerCase()}`, u));
+  const p = C.pT[u];
+  $('evoNote').innerHTML = p.d >= 0
+    ? `Pic du stock filtré : <b class="pk">${fmt(p.max,u)} ${uLab(u).toLowerCase()}</b> le <b>${C.days[p.d].label}</b> (point orange). Un seul fichier par jour est pris en compte ; les jours sans fichier ne sont pas interpolés.`
+    : 'Aucun stock pour ces filtres.';
+}
+
+function peakCells(p, u, noAvg){ return `<td class="mono">${p.max && p.d >= 0 ? C.days[p.d].label : '-'}</td><td class="num pk">${p.max ? fmt(p.max,u) : '-'}</td>${noAvg ? '' : `<td class="num">${p.max ? fmt(p.avg,u) : '-'}</td>`}`; }
+const PK_HEAD = `<th>Pic unités le</th><th class="num">Pic unités</th><th class="num">Moy. unités</th><th>Pic kg le</th><th class="num">Pic kg</th><th class="num">Moy. kg</th><th>Pic pal. le</th><th class="num">Pic palettes</th>`;
+const pkRow = o => peakCells(o.pC,'C') + peakCells(o.pK,'K') + peakCells(o.pP,'P',true);
+function renderSec(){
+  let h = `<table><thead><tr><th>Secteur</th>${PK_HEAD}</tr></thead><tbody>`;
+  for (const s of C.secs) h += `<tr><td><span class="sw" style="background:${SEC_BY_K[s.k].c}"></span>${SEC_BY_K[s.k].n}</td>${pkRow(s)}</tr>`;
+  h += `</tbody><tfoot><tr><td>Total dépôt</td>${peakCells(C.pT.C,'C')}${peakCells(C.pT.K,'K')}${peakCells(C.pT.P,'P',true)}</tr></tfoot></table>`;
+  $('tSec').innerHTML = C.secs.length ? h : '<div class="empty">Aucun stock</div>';
+  draw('cSec', barCfg(C.secs.map(s => SEC_BY_K[s.k].n), C.secs.map(s => s['p' + S.unit].max), C.secs.map(s => SEC_BY_K[s.k].c),
+    `Pic par secteur · ${uLab(S.unit).toLowerCase()}`, S.unit, C.secs.map(s => s['p' + S.unit].d >= 0 ? C.days[s['p' + S.unit].d].label : '')));
+}
+function barCfg(labels, data, colors, title, unit, sub, opts = {}){
+  return {type:'bar', data:{labels, datasets:[{label:title, data, backgroundColor:colors, borderRadius:4, maxBarThickness: opts.fixed ? 150 : 46}]},
+    options:{indexAxis: opts.h ? 'y' : 'x', responsive: !opts.fixed, maintainAspectRatio:false, animation: opts.fixed ? false : {duration:250},
+      devicePixelRatio: opts.dpr || window.devicePixelRatio,
+      plugins:{legend:{display:false}, title:{display:true, text:title, font:{family:'DM Sans', size:(opts.fs||12)+2, weight:'600'}, color:'#16213a'},
+        tooltip:{callbacks:{label: c => ` ${fmt(c.raw, unit)} ${uLab(unit).toLowerCase()}${sub && sub[c.dataIndex] ? ' · le ' + sub[c.dataIndex] : ''}`}}},
+      scales:{[opts.h ? 'y' : 'x']:{grid:{display:false}, ticks:{font:{family:'DM Sans', size: opts.fs ? opts.fs - 1 : 11}, autoSkip:false}},
+              [opts.h ? 'x' : 'y']:{beginAtZero:true, grid:{color:'#eef1f6'}, border:{display:false}, ticks:{font:{family:'DM Mono', size: opts.fs ? opts.fs - 1 : 11}, callback: v => fmt(v, unit)}}}}};
+}
+function grpTable(list, label){
+  let h = `<table><thead><tr><th>${label}</th><th class="num">Réf.</th>${PK_HEAD}</tr></thead><tbody>`;
+  for (const g of list) h += `<tr><td>${esc(g.k)}</td><td class="num">${g.nC + g.nK}</td>${pkRow(g)}</tr>`;
+  return list.length ? h + '</tbody></table>' : '<div class="empty">Aucune donnée</div>';
+}
+function renderFam(){
+  $('tFam').innerHTML = grpTable(C.fam, C.famBy);
+  const u = S.unit, top = C.fam.filter(g => g['p' + u].max > 0).sort((a, b) => b['p' + u].max - a['p' + u].max).slice(0, 15);
+  draw('cFam', barCfg(top.map(g => g.k.length > 34 ? g.k.slice(0, 33) + '…' : g.k), top.map(g => g['p' + u].max), '#2a78d6',
+    `Pic par ${C.famBy.toLowerCase()} · ${uLab(u).toLowerCase()} (15 premiers)`, u, top.map(g => C.days[g['p' + u].d].label), {h:true}));
+}
+// produits dangereux : unités, volume (dm³ = litres, liquides) et poids net (kg, solides)
+function dgCover(g){ const l = C.refs.filter(x => x.dg === g.k); return {n: l.length, v: l.filter(x => x.lit != null).length, w: l.filter(x => x.lit == null && x.wt != null).length}; }
+function dgTable(list, label){
+  if (!list.length) return '<div class="empty">Aucune donnée</div>';
+  let h = `<table><thead><tr><th>${label}</th><th class="num">Réf.</th><th>Pic unités le</th><th class="num">Pic unités</th><th>Pic volume le</th><th class="num">Pic dm³</th><th>Pic poids le</th><th class="num">Pic kg net</th><th class="num">Mesurées</th></tr></thead><tbody>`;
+  const T = {C:0, L:0, W:0};
+  for (const g of list){ const cv = dgCover(g);
+    h += `<tr><td>${esc(g.k)}</td><td class="num">${cv.n}</td>${peakCells(g.pC,'C',true)}${peakCells(g.pL,'L',true)}${peakCells(g.pW,'W',true)}<td class="num" title="références avec volume ou poids lisible">${cv.v + cv.w} / ${cv.n}</td></tr>`; }
+  const sum = m => { const a = new Float64Array(C.days.length); for (const g of list) for (let d = 0; d < a.length; d++) a[d] += g[m][d]; return peak(a); };
+  h += `</tbody><tfoot><tr><td>Total dangereux</td><td></td>${peakCells(sum('C'),'C',true)}${peakCells(sum('L'),'L',true)}${peakCells(sum('W'),'W',true)}<td></td></tr></tfoot></table>`;
+  return h;
+}
+function renderDg(){
+  $('dgSrc').innerHTML = S.icpe
+    ? `Produits dangereux d'après le référentiel ICPE <b>${esc(S.icpeName)}</b> (rubrique par article).`
+    : `Pas de référentiel ICPE chargé : produits dangereux repérés <b>par leur famille</b> (spiritueux, nettoyants, aérosols, insecticides, briquets, allume-feu, gaz, javel). Glisse le référentiel ICPE pour classer par rubrique.`;
+  $('tDgCat').innerHTML = dgTable(C.dgc, S.icpe ? 'Rubrique ICPE' : 'Catégorie');
+  const u = S.unit, list = C.dgc.filter(g => g['p' + u].max > 0);
+  draw('cDg', barCfg(list.map(g => g.k.length > 30 ? g.k.slice(0, 29) + '…' : g.k), list.map(g => g['p' + u].max), '#c6363a',
+    `Pic par ${S.icpe ? 'rubrique' : 'catégorie'} · ${uLab(u).toLowerCase()}`, u, list.map(g => C.days[g['p' + u].d].label), {h:true}));
+  $('tDgRef').innerHTML = refTable(C.refs.filter(x => x.dg), 500, true);
+}
+function regime(m3){ return m3 >= SEUIL_A ? {c:'a', t:'Autorisation (≥ 500 m³)'} : m3 >= SEUIL_DC ? {c:'dc', t:'Déclaration DC (≥ 50 m³)'} : {c:'nc', t:'Non classé (< 50 m³)'}; }
+function renderAlc(){
+  const pA = C.pT.A, pB = C.pT.B, m3 = pA.max / 1000, rg = regime(m3), D = C.days;
+  const dl = i => i >= 0 ? D[i].label : '-';
+  $('alcKpi').innerHTML = `
+    <div class="kpi red"><div class="l">Pic alcools &gt; 40 % vol</div><div class="v">${fmt(m3,'M')}<small>m³</small></div><div class="d">le ${dl(pA.d)} · moyenne ${fmt(pA.avg / 1000,'M')} m³</div></div>
+    <div class="kpi"><div class="l">Part du seuil DC (50 m³)</div><div class="v">${Math.round(m3 / SEUIL_DC * 100)}<small>%</small></div><div class="gauge"><i style="width:${Math.min(100, m3 / SEUIL_DC * 100)}%"></i></div></div>
+    <div class="kpi"><div class="l">Régime 4755-2 au pic</div><div class="v" style="font-size:16px;margin-top:10px"><span class="reg ${rg.c}">${rg.t}</span></div><div class="d">autorisation à partir de 500 m³</div></div>
+    <div class="kpi"><div class="l">Alcools ≤ 40 % (non comptés)</div><div class="v">${fmt(pB.max / 1000,'M')}<small>m³</small></div><div class="d">pic le ${dl(pB.d)} · pour information</div></div>`;
+  draw('cAlc', lineCfg(D.map(d => d.label), [
+    {label:'Alcools > 40 % (4755)', data:[...C.tot.A].map(v => v / 1000), borderColor:'#c6363a', backgroundColor:'#c6363a', borderWidth:2.5, tension:.25, pointRadius: D.length > 40 ? 0 : 3},
+    {label:'Alcools ≤ 40 % (non comptés)', data:[...C.tot.B].map(v => v / 1000), borderColor:'#8793a9', backgroundColor:'#8793a9', borderWidth:2, borderDash:[5,4], tension:.25, pointRadius: D.length > 40 ? 0 : 3}],
+    'Volume d\'alcools de bouche en stock · m³', 'M'));
+  const lst = C.refs.filter(x => x.deg != null && x.deg > 40);
+  const chk = C.refs.filter(x => x.chk);
+  $('alcNote').innerHTML = `Rubrique 4755-2 : alcools de bouche d'un titre supérieur à 40 % vol · DC à partir de 50 m³, A à partir de 500 m³ (quantité susceptible d'être présente). Volume = unités × contenance, pour les seuls produits à plus de 40 %. Degré et contenance lus dans le libellé : ${lst.length} référence(s) à plus de 40 %, ${chk.length} spiritueux sans degré lisible (liste en bas, à vérifier).`;
+  const t = (list, withDeg) => list.length ? `<table><thead><tr><th>MGB</th><th>Libellé</th><th>Secteur</th><th>Groupe</th>${withDeg ? '<th class="num">Degré</th>' : ''}<th class="num">Contenance</th><th class="num">Seuil max (unités)</th><th>Le</th><th class="num">dm³ au pic</th></tr></thead><tbody>` +
+    list.map(x => `<tr><td class="mono">${esc(x.mgb)}</td><td class="lib">${esc(x.lib)}</td><td>${SEC_BY_K[x.sec].n}</td><td>${esc(x.ga)}</td>${withDeg ? `<td class="num">${String(x.deg).replace('.', ',')} %</td>` : ''}<td class="num">${x.cont ? fmt(x.cont * 100, 'C') + ' cl' : '?'}</td><td class="num pk">${fmt(x.max, 'C')}</td><td class="mono">${D[x.dmax].label}</td><td class="num">${x.lit != null ? fmt(x.lit, 'L') : '?'}</td></tr>`).join('') + '</tbody></table>'
+    : '<div class="empty">Aucune référence</div>';
+  $('tAlc').innerHTML = t([...lst].sort((a, b) => (b.lit || 0) - (a.lit || 0)), true);
+  $('tAlcChk').innerHTML = t([...chk].sort((a, b) => (b.lit || 0) - (a.lit || 0)), false);
+}
+function refTable(list, limit, showDg){
+  if (!list.length) return '<div class="empty">Aucune référence</div>';
+  let h = `<table><thead><tr><th>MGB</th><th>Libellé</th><th>Secteur</th><th>Famille</th><th>Groupe</th>${showDg ? '<th>Danger</th>' : ''}<th>Unité</th><th class="num">Seuil max</th><th>Le</th><th class="num">Palettes au pic</th><th class="num">dm³ au pic</th><th class="num">Kg net au pic</th><th class="num">Degré</th><th class="num">Moyenne</th><th class="num">Dernier jour</th><th class="num">Jours présents</th></tr></thead><tbody>`;
+  for (const x of list.slice(0, limit))
+    h += `<tr><td class="mono">${esc(x.mgb)}</td><td class="lib">${esc(x.lib)}</td><td>${SEC_BY_K[x.sec].n}</td><td>${esc(x.sa)}</td><td>${esc(x.ga)}</td>${showDg ? `<td>${x.dg ? `<span class="tag dg">${esc(x.dg)}</span>` : ''}</td>` : ''}<td><span class="tag u">${uLab(x.unit)}</span></td><td class="num pk">${fmt(x.max, x.unit)}</td><td class="mono">${C.days[x.dmax].label}</td><td class="num">${x.pal != null ? fmt(x.pal, 'P') : ''}</td><td class="num">${x.lit != null ? fmt(x.lit, 'L') : ''}</td><td class="num">${x.wt != null && x.unit === 'C' ? fmt(x.wt, 'W') : ''}</td><td class="num">${x.deg != null ? String(x.deg).replace('.', ',') + ' %' : ''}</td><td class="num">${fmt(x.avg, x.unit)}</td><td class="num">${fmt(x.last, x.unit)}</td><td class="num">${x.pres} / ${C.days.length}</td></tr>`;
+  return h + '</tbody></table>';
+}
+function renderRef(){
+  const q = $('fQ').value.trim().toLowerCase();
+  const list = q ? C.refs.filter(x => x.mgb.includes(q) || x.lib.toLowerCase().includes(q)) : C.refs;
+  $('tRef').innerHTML = refTable(list, 600, true);
+  $('refNote').textContent = list.length > 600 ? `600 premières lignes affichées sur ${list.length.toLocaleString('fr-FR')} : l'export Excel contient tout.` : `${list.length.toLocaleString('fr-FR')} référence(s). Unités d'abord, puis kg, par seuil max décroissant. Palettes = équivalent d'après le plan palette du data (articles à l'unité seulement) ; dm³ = litres (contenance lue dans le libellé) ; kg net = poids lu dans le libellé pour les produits sans contenance.`;
+}
+
+/* =====================================================================
+   PRÉSENTATION PDF
+   ===================================================================== */
+const pdfTxt = s => String(s ?? '').replace(/[\u00A0\u202F]/g, ' ').replace(/³/g, '3').replace(/≥/g, '>=').replace(/≤/g, '<=').replace(/[’‘]/g, "'").replace(/[“”«»]/g, '"').replace(/[–—]/g, '-').replace(/…/g, '...').replace(/œ/g,'oe').replace(/Œ/g,'OE').replace(/[^\x00-\xFF]/g, '');
+function offChart(cfg, w, h){
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  cv.style.cssText = `position:fixed;left:-9999px;top:0;width:${w}px;height:${h}px`;
+  document.body.appendChild(cv);
+  cfg.plugins = [{id:'fond', beforeDraw: c => { const x = c.ctx; x.save(); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.restore(); }}];
+  const ch = new Chart(cv, cfg);
+  const url = ch.toBase64Image('image/jpeg', 0.9);
+  ch.destroy(); cv.remove();
+  return url;
+}
+async function exportPdf(){
+  const btn = $('bPdf'); btn.disabled = true;
+  try{
+    const {jsPDF} = window.jspdf;
+    const doc = new jsPDF({orientation:'landscape', unit:'mm', format:'a4'});
+    const W = 297, H = 210, NAVY = [20,37,74], OR = [240,124,30], RED = [198,54,58];
+    const D = C.days, F = C.F, per = `du ${D[0].label} au ${D[D.length-1].label} · ${D.length} jour(s)`;
+    const filt = filterLabel(F);
+    const O = {fixed:true, dpr:1, fs:34};
+    const head = (t, s) => {
+      doc.setFillColor(...NAVY); doc.rect(0, 0, W, 20, 'F');
+      doc.setFillColor(...OR); doc.rect(0, 20, W, 1.2, 'F');
+      doc.setTextColor(255); doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.text(pdfTxt(t), 12, 13);
+      doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.text(pdfTxt(s || filt + ' · ' + per), W - 12, 13, {align:'right'});
+      doc.setTextColor(22,33,58);
+    };
+    const tbl = (opts) => doc.autoTable(Object.assign({theme:'grid', styles:{font:'helvetica', fontSize:8.5, cellPadding:1.6, lineColor:[219,226,238], lineWidth:.1},
+      headStyles:{fillColor:NAVY, textColor:255, fontStyle:'bold'}, alternateRowStyles:{fillColor:[247,249,252]}, margin:{left:12, right:12}}, opts));
+    const small = {font:'helvetica', fontSize:7.5, cellPadding:1.1, lineColor:[219,226,238], lineWidth:.1};
+    const pc = (p, u, noAvg) => { const r = [p.max && p.d >= 0 ? D[p.d].label : '-', p.max ? fmt(p.max, u) : '-']; if (!noAvg) r.push(p.max ? fmt(p.avg, u) : '-'); return r; };
+    const pkr = o => [...pc(o.pC,'C'), ...pc(o.pK,'K'), ...pc(o.pP,'P',true)];
+    const PKH = ['Pic unités le','Pic unités','Moy. unités','Pic kg le','Pic kg','Moy. kg','Pic pal. le','Pic palettes'];
+    const numCols = (idx) => Object.fromEntries(idx.map(i => [i, {halign:'right'}]));
+    const kpiRow = (kp, y) => {
+      const n = kp.length, bw = (W - 24 - (n - 1) * 5) / n;
+      kp.forEach((k, i) => {
+        const x = 12 + i * (bw + 5);
+        doc.setFillColor(247,249,252); doc.setDrawColor(219,226,238); doc.roundedRect(x, y, bw, 30, 2, 2, 'FD');
+        doc.setFillColor(...(k[3] || NAVY)); doc.rect(x, y, 1.5, 30, 'F');
+        doc.setFontSize(8); doc.setTextColor(81,96,124); doc.text(pdfTxt(k[0]).toUpperCase(), x + 5, y + 7);
+        doc.setFontSize(16); doc.setFont('helvetica','bold'); doc.setTextColor(22,33,58); doc.text(pdfTxt(k[1]), x + 5, y + 18);
+        doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(81,96,124); doc.text(pdfTxt(k[2]), x + 5, y + 25);
+      });
+    };
+    const le = p => p.max && p.d >= 0 ? 'le ' + D[p.d].label : '';
+
+    // 1. Couverture
+    doc.setFillColor(...NAVY); doc.rect(0, 0, W, H, 'F');
+    doc.setFillColor(...OR); doc.rect(0, 128, W, 2, 'F');
+    doc.setTextColor(255); doc.setFont('helvetica','bold'); doc.setFontSize(34);
+    doc.text('Seuil max de stockage', 20, 80);
+    doc.setFont('helvetica','normal'); doc.setFontSize(16);
+    doc.text(pdfTxt('Pics de stock de l\'année · Dépôt 171 La Brède'), 20, 95);
+    doc.setFontSize(12); doc.setTextColor(255, 200, 150);
+    doc.text(pdfTxt(filt), 20, 112); doc.text(pdfTxt(per), 20, 120);
+    doc.setTextColor(190, 200, 220); doc.setFontSize(9);
+    doc.text(pdfTxt(`Édité le ${new Date().toLocaleDateString('fr-FR')} · source : ${D.length} StockStatus (un par jour, litige exclu) · quantités en unités de vente, kg pour les articles au poids`), 20, 190);
+
+    // 2. Synthèse
+    doc.addPage(); head('Synthèse');
+    const dgU = peak(C.dgc.reduce((a, g) => a.map((v, i) => v + g.C[i]), new Array(D.length).fill(0)));
+    kpiRow([
+      ['Pic du stock (unités)', fmt(C.pT.C.max,'C'), le(C.pT.C), OR],
+      ['Pic du stock (kg)', fmt(C.pT.K.max,'K'), le(C.pT.K), OR],
+      ['Pic palettes équivalentes', fmt(C.pT.P.max,'P'), le(C.pT.P), OR],
+      ['Pic dangereux (unités)', fmt(dgU.max,'C'), le(dgU), RED],
+      ['4755 alcools > 40 %', fmt(C.pT.A.max / 1000,'M') + ' m3', le(C.pT.A) + ` · ${Math.round(C.pT.A.max / 10 / SEUIL_DC)} % du seuil DC`, RED],
+    ], 28);
+    if (A.warn){ doc.setFontSize(8.5); doc.setTextColor(...RED); doc.text(pdfTxt('ATTENTION : ' + A.warn), 12, 63, {maxWidth: W - 24}); }
+    const img1 = offChart(lineCfg(D.map(d => d.label), evoSets('C', true, true), 'Stock journalier par secteur (unités) - le point orange marque le pic', 'C', O), 2400, 1000);
+    doc.addImage(img1, 'JPEG', 12, A.warn ? 71 : 64, W - 24, (W - 24) * 1000 / 2400);
+
+    // 3. Évolution kg + palettes
+    doc.addPage(); head('Évolution au poids et en palettes');
+    const hh3 = (H - 28 - 12 - 4) / 2, ww3 = W - 24;
+    doc.addImage(offChart(lineCfg(D.map(d => d.label), evoSets('K', true, true), 'Stock journalier par secteur (kg)', 'K', O), 2400, Math.round(2400 * hh3 / ww3)), 'JPEG', 12, 28, ww3, hh3);
+    doc.addImage(offChart(lineCfg(D.map(d => d.label), evoSets('P', true, true), 'Palettes équivalentes par secteur (articles à l\'unité)', 'P', O), 2400, Math.round(2400 * hh3 / ww3)), 'JPEG', 12, 32 + hh3, ww3, hh3);
+
+    // 4. Pics par secteur
+    doc.addPage(); head('Pics par secteur');
+    tbl({startY: 28, head:[['Secteur', ...PKH]],
+      body:[...C.secs.map(s => [SEC_BY_K[s.k].n, ...pkr(s)]), ['Total dépôt', ...pc(C.pT.C,'C'), ...pc(C.pT.K,'K'), ...pc(C.pT.P,'P',true)]].map(r => r.map(pdfTxt)),
+      columnStyles: numCols([2,3,5,6,8]), didParseCell: d => { if (d.section === 'body' && d.row.index === C.secs.length) { d.cell.styles.fontStyle = 'bold'; d.cell.styles.fillColor = [238,242,248]; } }});
+    const y4 = doc.lastAutoTable.finalY + 6;
+    const hh = H - y4 - 12, ww = (W - 30) / 2;
+    if (hh > 40){
+      const lab = C.secs.map(s => SEC_BY_K[s.k].n), col = C.secs.map(s => SEC_BY_K[s.k].c);
+      doc.addImage(offChart(barCfg(lab, C.secs.map(s => s.pC.max), col, 'Pic par secteur (unités)', 'C', null, O), 1400, Math.round(1400 * hh / ww)), 'JPEG', 12, y4, ww, hh);
+      doc.addImage(offChart(barCfg(lab, C.secs.map(s => s.pP.max), col, 'Pic par secteur (palettes)', 'P', null, O), 1400, Math.round(1400 * hh / ww)), 'JPEG', 18 + ww, y4, ww, hh);
+    }
+
+    // 5. Pics par famille
+    doc.addPage(); head(`Pics par ${C.famBy.toLowerCase()}`);
+    tbl({startY: 28, head:[[C.famBy, 'Réf.', ...PKH]], styles: small,
+      body: C.fam.map(g => [g.k, g.nC + g.nK, ...pkr(g)].map(pdfTxt)), columnStyles: numCols([1,3,4,6,7,9])});
+
+    // 6. Produits dangereux
+    doc.addPage(); head('Produits dangereux');
+    doc.setFontSize(9); doc.setTextColor(81,96,124);
+    doc.text(pdfTxt(S.icpe ? `Classement par rubrique ICPE (référentiel ${S.icpeName}).` : 'Classement par famille de produit (pas de référentiel ICPE chargé).'), 12, 28);
+    if (C.dgc.length){
+      tbl({startY: 32, head:[[S.icpe ? 'Rubrique ICPE' : 'Catégorie', 'Réf.', 'Pic unités le', 'Pic unités', 'Pic volume le', 'Pic dm3', 'Pic poids le', 'Pic kg net', 'Mesurées']],
+        body: C.dgc.map(g => { const cv = dgCover(g); return [g.k, cv.n, ...pc(g.pC,'C',true), ...pc(g.pL,'L',true), ...pc(g.pW,'W',true), `${cv.v + cv.w} / ${cv.n}`].map(pdfTxt); }), columnStyles: numCols([1,3,5,7,8]),
+        headStyles:{fillColor:RED, textColor:255, fontStyle:'bold'}});
+      const y6 = doc.lastAutoTable.finalY + 6, h6 = H - y6 - 12;
+      const dgList = C.dgc.filter(g => g.pC.max > 0);
+      if (h6 > 50 && dgList.length){
+        const img = offChart(barCfg(dgList.map(g => pdfTxt(g.k).slice(0, 34)), dgList.map(g => g.pC.max), '#c6363a', 'Pic par ' + (S.icpe ? 'rubrique' : 'catégorie') + ' (unités)', 'C', null, Object.assign({h:true}, O)), 2400, Math.round(2400 * h6 / (W - 24)));
+        doc.addImage(img, 'JPEG', 12, y6, W - 24, h6);
+      }
+      doc.addPage(); head('Produits dangereux · 25 plus hauts seuils max');
+      tbl({startY: 28, head:[['MGB','Libellé','Secteur','Danger','Unité','Seuil max','Le','dm3','Kg net']], styles: small,
+        body: C.refs.filter(x => x.dg).sort((a, b) => a.unit === b.unit ? b.max - a.max : (a.unit === 'C' ? -1 : 1)).slice(0, 25)
+          .map(x => [x.mgb, x.lib, SEC_BY_K[x.sec].n, x.dg, uLab(x.unit), fmt(x.max, x.unit), D[x.dmax].label, x.lit != null ? fmt(x.lit,'L') : '', x.wt != null && x.unit === 'C' ? fmt(x.wt,'W') : ''].map(pdfTxt)),
+        columnStyles: Object.assign(numCols([5,7,8]), {1:{cellWidth:85}}), headStyles:{fillColor:RED, textColor:255, fontStyle:'bold'}});
+    } else { doc.setFontSize(12); doc.text('Aucun produit dangereux sur ces filtres.', 12, 40); }
+
+    // 7. ICPE 4755
+    doc.addPage(); head('ICPE 4755 · alcools de bouche > 40 % vol');
+    const m3 = C.pT.A.max / 1000, rg = regime(m3);
+    kpiRow([
+      ['Pic alcools > 40 %', fmt(m3,'M') + ' m3', le(C.pT.A), RED],
+      ['Part du seuil DC (50 m3)', Math.round(m3 / SEUIL_DC * 100) + ' %', 'autorisation à partir de 500 m3'],
+      ['Régime au pic', rg.c === 'nc' ? 'Non classé' : rg.c === 'dc' ? 'DC' : 'A', rg.t],
+      ['Alcools <= 40 % (non comptés)', fmt(C.pT.B.max / 1000,'M') + ' m3', le(C.pT.B)],
+    ], 28);
+    const hA = 62;
+    doc.addImage(offChart(lineCfg(D.map(d => d.label), [
+      {label:'Alcools > 40 % (4755)', data:[...C.tot.A].map(v => v / 1000), borderColor:'#c6363a', backgroundColor:'#c6363a', borderWidth:4, tension:.25, pointRadius: D.length > 40 ? 0 : 6},
+      {label:'Alcools <= 40 % (non comptés)', data:[...C.tot.B].map(v => v / 1000), borderColor:'#8793a9', backgroundColor:'#8793a9', borderWidth:3, borderDash:[8,6], tension:.25, pointRadius: D.length > 40 ? 0 : 5}],
+      'Volume d\'alcools de bouche en stock (m3)', 'M', O), 2400, Math.round(2400 * hA / (W - 24))), 'JPEG', 12, 62, W - 24, hA);
+    const alc = C.refs.filter(x => x.deg != null && x.deg > 40).sort((a, b) => (b.lit || 0) - (a.lit || 0)).slice(0, 12);
+    tbl({startY: 128, head:[['MGB','Libellé','Degré','Contenance','Seuil max (unités)','Le','dm3 au pic']], styles: small,
+      body: alc.map(x => [x.mgb, x.lib, String(x.deg).replace('.', ',') + ' %', x.cont ? fmt(x.cont * 100,'C') + ' cl' : '?', fmt(x.max,'C'), D[x.dmax].label, x.lit != null ? fmt(x.lit,'L') : '?'].map(pdfTxt)),
+      columnStyles: Object.assign(numCols([2,3,4,6]), {1:{cellWidth:110}}), headStyles:{fillColor:RED, textColor:255, fontStyle:'bold'}});
+    doc.setFontSize(7.5); doc.setTextColor(81,96,124);
+    doc.text(pdfTxt(`Rubrique 4755-2 : DC à partir de 50 m3, A à partir de 500 m3 d'alcools > 40 % vol. Degré et contenance lus dans le libellé ; ${C.refs.filter(x => x.chk).length} spiritueux sans degré lisible à vérifier.`), 12, H - 11);
+
+    // 8. Top références
+    for (const u of ['C','K']){
+      const top = C.refs.filter(x => x.unit === u).slice(0, 25);
+      if (!top.length) continue;
+      doc.addPage(); head(`25 plus hauts seuils max · ${uLab(u).toLowerCase()}`);
+      tbl({startY: 28, head:[['#','MGB','Libellé','Secteur','Famille','Seuil max','Le', u === 'C' ? 'Palettes' : 'Moyenne','Jours']], styles: small,
+        body: top.map((x, i) => [i + 1, x.mgb, x.lib, SEC_BY_K[x.sec].n, x.sa, fmt(x.max, u), D[x.dmax].label, u === 'C' ? (x.pal != null ? fmt(x.pal,'P') : '') : fmt(x.avg, u), `${x.pres}/${D.length}`].map(pdfTxt)),
+        columnStyles: Object.assign(numCols([0,5,7,8]), {2:{cellWidth:80}})});
+    }
+
+    // pieds de page
+    const n = doc.getNumberOfPages();
+    for (let i = 2; i <= n; i++){
+      doc.setPage(i); doc.setFontSize(8); doc.setTextColor(135,147,169);
+      doc.text(pdfTxt(`GDS · Seuil max stockage ${VERSION}`), 12, H - 5);
+      doc.text(`${i - 1} / ${n - 1}`, W - 12, H - 5, {align:'right'});
+    }
+    doc.save(`SEUIL_MAX_${D[0].iso}_${D[D.length-1].iso}.pdf`);
+  }catch(e){ console.error(e); alert('Erreur PDF : ' + e.message); }
+  btn.disabled = false;
+}
+
+/* =====================================================================
+   EXCEL : tableau croisé dynamique natif + graphiques natifs (OOXML)
+   ===================================================================== */
+const xe = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+const colL = n => { let s = ''; n++; while (n){ const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
+const serial = iso => { const [y, m, d] = iso.split('-').map(Number); return (Date.UTC(y, m - 1, d) - Date.UTC(1899, 11, 30)) / 86400000; };
+// styles : 0 normal · 1 en-tête · 2 date · 3 entier · 4 décimal · 5 titre · 6 sous-titre · 7 entier gras · 8 décimal gras
+function cell(ref, v, st){
+  if (v === null || v === undefined || v === '') return st ? `<c r="${ref}" s="${st}"/>` : '';
+  if (typeof v === 'number' && isFinite(v)) return `<c r="${ref}"${st ? ` s="${st}"` : ''}><v>${Math.round(v * 1000) / 1000}</v></c>`;
+  return `<c r="${ref}"${st ? ` s="${st}"` : ''} t="inlineStr"><is><t xml:space="preserve">${xe(v)}</t></is></c>`;
+}
+// rows : tableau de lignes ; chaque cellule = valeur ou {v, s}
+function sheetXml(rows, o = {}){
+  let x = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">';
+  if (o.freeze) x += `<sheetViews><sheetView workbookViewId="0"><pane ySplit="${o.freeze}" topLeftCell="A${o.freeze + 1}" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>`;
+  else x += '<sheetViews><sheetView workbookViewId="0"/></sheetViews>';
+  x += '<sheetFormatPr defaultRowHeight="15"/>';
+  if (o.cols) x += '<cols>' + o.cols.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('') + '</cols>';
+  x += '<sheetData>';
+  rows.forEach((r, i) => {
+    if (!r) return;
+    x += `<row r="${i + 1}">`;
+    r.forEach((c, j) => { const isO = c && typeof c === 'object'; x += cell(colL(j) + (i + 1), isO ? c.v : c, isO ? c.s : 0); });
+    x += '</row>';
+  });
+  x += '</sheetData>';
+  if (o.filter) x += `<autoFilter ref="${o.filter}"/>`;
+  if (o.drawing) x += '<drawing r:id="rIdDr"/>';
+  x += '</worksheet>';
+  return x;
+}
+function chartXml({type, title, cat, series, catFmt, valFmt, horiz}){
+  // series : [{name, ref, vals, color}] ; cat : {ref, vals}
+  const strCache = vals => `<c:strCache><c:ptCount val="${vals.length}"/>${vals.map((v, i) => `<c:pt idx="${i}"><c:v>${xe(v)}</c:v></c:pt>`).join('')}</c:strCache>`;
+  const numCache = (vals, f) => `<c:numCache><c:formatCode>${f || 'General'}</c:formatCode><c:ptCount val="${vals.length}"/>${vals.map((v, i) => `<c:pt idx="${i}"><c:v>${Math.round(v * 1000) / 1000}</c:v></c:pt>`).join('')}</c:numCache>`;
+  const catX = catFmt ? `<c:cat><c:numRef><c:f>${cat.ref}</c:f>${numCache(cat.vals, catFmt)}</c:numRef></c:cat>` : `<c:cat><c:strRef><c:f>${cat.ref}</c:f>${strCache(cat.vals)}</c:strRef></c:cat>`;
+  const ser = series.map((s, i) => {
+    const col = s.color.replace('#', '');
+    const sp = type === 'line'
+      ? `<c:spPr><a:ln w="${s.total ? 34925 : 22225}" cap="rnd"><a:solidFill><a:srgbClr val="${col}"/></a:solidFill>${s.total ? '<a:prstDash val="dash"/>' : ''}<a:round/></a:ln></c:spPr><c:marker><c:symbol val="none"/></c:marker>`
+      : `<c:spPr><a:solidFill><a:srgbClr val="${col}"/></a:solidFill></c:spPr><c:invertIfNegative val="0"/>` +
+        (s.pts ? s.pts.map((p, j) => `<c:dPt><c:idx val="${j}"/><c:invertIfNegative val="0"/><c:bubble3D val="0"/><c:spPr><a:solidFill><a:srgbClr val="${p.replace('#','')}"/></a:solidFill></c:spPr></c:dPt>`).join('') : '');
+    return `<c:ser><c:idx val="${i}"/><c:order val="${i}"/><c:tx><c:strRef><c:f>${s.nameRef}</c:f>${strCache([s.name])}</c:strRef></c:tx>${sp}${catX}<c:val><c:numRef><c:f>${s.ref}</c:f>${numCache(s.vals, valFmt)}</c:numRef></c:val>${type === 'line' ? '<c:smooth val="0"/>' : ''}</c:ser>`;
+  }).join('');
+  const txt = (t, sz, b) => `<c:tx><c:rich><a:bodyPr/><a:p><a:pPr><a:defRPr sz="${sz}" b="${b ? 1 : 0}"/></a:pPr><a:r><a:rPr lang="fr-FR" sz="${sz}" b="${b ? 1 : 0}"/><a:t>${xe(t)}</a:t></a:r></a:p></c:rich></c:tx>`;
+  const grid = '<c:majorGridlines><c:spPr><a:ln w="6350"><a:solidFill><a:srgbClr val="E4E8F0"/></a:solidFill></a:ln></c:spPr></c:majorGridlines>';
+  const plot = type === 'line'
+    ? `<c:lineChart><c:grouping val="standard"/><c:varyColors val="0"/>${ser}<c:marker val="1"/><c:axId val="1001"/><c:axId val="1002"/></c:lineChart>`
+    : `<c:barChart><c:barDir val="${horiz ? 'bar' : 'col'}"/><c:grouping val="clustered"/><c:varyColors val="0"/>${ser}<c:gapWidth val="60"/><c:axId val="1001"/><c:axId val="1002"/></c:barChart>`;
+  const catAx = catFmt
+    ? `<c:dateAx><c:axId val="1001"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:numFmt formatCode="${catFmt}" sourceLinked="0"/><c:majorTickMark val="out"/><c:minorTickMark val="none"/><c:tickLblPos val="low"/><c:crossAx val="1002"/><c:crosses val="autoZero"/><c:auto val="0"/><c:lblOffset val="100"/><c:baseTimeUnit val="days"/></c:dateAx>`
+    : `<c:catAx><c:axId val="1001"/><c:scaling><c:orientation val="${horiz ? 'maxMin' : 'minMax'}"/></c:scaling><c:delete val="0"/><c:axPos val="${horiz ? 'l' : 'b'}"/><c:numFmt formatCode="General" sourceLinked="0"/><c:majorTickMark val="none"/><c:minorTickMark val="none"/><c:tickLblPos val="low"/><c:crossAx val="1002"/><c:crosses val="autoZero"/><c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/><c:noMultiLvlLbl val="0"/></c:catAx>`;
+  const valAx = `<c:valAx><c:axId val="1002"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="${horiz ? 'b' : 'l'}"/>${grid}<c:numFmt formatCode="${valFmt || '#,##0'}" sourceLinked="0"/><c:majorTickMark val="none"/><c:minorTickMark val="none"/><c:tickLblPos val="nextTo"/><c:spPr><a:ln><a:noFill/></a:ln></c:spPr><c:crossAx val="1001"/><c:crosses val="${horiz ? 'max' : 'autoZero'}"/><c:crossBetween val="between"/></c:valAx>`;
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><c:roundedCorners val="0"/><c:chart><c:title>${txt(title, 1300, true)}<c:overlay val="0"/></c:title><c:autoTitleDeleted val="0"/><c:plotArea><c:layout/>${plot}${catAx}${valAx}</c:plotArea>${series.length > 1 ? '<c:legend><c:legendPos val="b"/><c:overlay val="0"/></c:legend>' : ''}<c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/></c:chart><c:spPr><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill><a:ln><a:solidFill><a:srgbClr val="DBE2EE"/></a:solidFill></a:ln></c:spPr><c:txPr><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr sz="900"><a:latin typeface="Calibri"/></a:defRPr></a:pPr><a:endParaRPr lang="fr-FR"/></a:p></c:txPr></c:chartSpace>`;
+}
+function drawingXml(anchors){ // [{c1,r1,c2,r2, rid}]
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">` +
+    anchors.map((a, i) => `<xdr:twoCellAnchor editAs="oneCell"><xdr:from><xdr:col>${a.c1}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${a.r1}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:to><xdr:col>${a.c2}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${a.r2}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to><xdr:graphicFrame macro=""><xdr:nvGraphicFramePr><xdr:cNvPr id="${i + 2}" name="Graphique ${i + 1}"/><xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr><xdr:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></xdr:xfrm><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart"><c:chart r:id="${a.rid}"/></a:graphicData></a:graphic></xdr:graphicFrame><xdr:clientData/></xdr:twoCellAnchor>`).join('') +
+    '</xdr:wsDr>';
+}
+const REL = (id, type, target) => `<Relationship Id="${id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/${type}" Target="${target}"/>`;
+const RELS = arr => `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${arr.join('')}</Relationships>`;
+
+async function exportXlsx(){
+  const btn = $('bXls'); btn.disabled = true; setMsg('Préparation du fichier Excel…'); await tick();
+  try{
+    // Excel : toujours tout le périmètre des dates choisies, sans filtre famille/secteur (les filtres sont dans le TCD)
+    const F = Object.assign(currentFilter(), {sec:'', sa:'', ga:'', dg:''});
+    const X = compute(F);
+    const D = X.days, nD = D.length;
+    const zip = new JSZip();
+    const sheets = []; // {name, xml, rels:[], drawing:{xml, rels}}
+    const charts = [];
+    const H = t => ({v:t, s:1});
+    const secs = X.secs;
+    const per = `du ${D[0].label} au ${D[nD-1].label} · ${nD} jour(s)`;
+
+    // ---------- Feuille 1 : Synthèse ----------
+    const PKX = ['Pic unités le','Pic unités','Moyenne unités','Pic kg le','Pic kg','Moyenne kg','Pic palettes le','Pic palettes'];
+    const pkX = o => [o.pC.max && o.pC.d >= 0 ? {v:serial(D[o.pC.d].iso), s:2} : '', {v:o.pC.max, s:3}, {v:o.pC.avg, s:3},
+                      o.pK.max && o.pK.d >= 0 ? {v:serial(D[o.pK.d].iso), s:2} : '', {v:o.pK.max, s:4}, {v:o.pK.avg, s:4},
+                      o.pP.max && o.pP.d >= 0 ? {v:serial(D[o.pP.d].iso), s:2} : '', {v:o.pP.max, s:4}];
+    {
+      const rows = [];
+      rows[0] = [{v:'Seuil max de stockage · Dépôt 171 La Brède', s:5}];
+      if (A.warn) rows[2] = [{v:'ATTENTION : ' + A.warn, s:6}];
+      rows[1] = [{v:`Période ${per} · un StockStatus par jour · INSPECTION (litige) exclue · quantités en unités de vente, kg pour les articles au poids · palettes = équivalent d'après le plan palette du data`, s:6}];
+      rows[3] = ['Secteur', ...PKX].map(H);
+      secs.forEach((s, i) => rows[4 + i] = [SEC_BY_K[s.k].n, ...pkX(s)]);
+      const rt = 4 + secs.length;
+      rows[rt] = [{v:'Total dépôt', s:1}, ...pkX({pC:X.pT.C, pK:X.pT.K, pP:X.pT.P}).map(c => c && c.s === 3 ? {v:c.v, s:7} : c && c.s === 4 ? {v:c.v, s:8} : c)];
+      const r0 = rt + 3;
+      rows[r0 - 1] = [{v: S.icpe ? 'Produits dangereux par rubrique ICPE' : 'Produits dangereux par catégorie (repérage par famille)', s:6}];
+      rows[r0] = [S.icpe ? 'Rubrique ICPE' : 'Catégorie', 'Références', 'Pic unités le', 'Pic unités', 'Pic volume le', 'Pic dm³', 'Pic poids le', 'Pic kg net'].map(H);
+      const pd = (p, st) => [p.max && p.d >= 0 ? {v:serial(D[p.d].iso), s:2} : '', {v:p.max, s:st}];
+      X.dgc.forEach((g, i) => rows[r0 + 1 + i] = [g.k, {v:g.nC + g.nK, s:3}, ...pd(g.pC, 3), ...pd(g.pL, 4), ...pd(g.pW, 4)]);
+      const n1 = secs.length;
+      charts.push({sheet:0, anchor:{c1:11, r1:3, c2:20, r2:22}, xml: chartXml({type:'bar', title:'Pic par secteur (unités)',
+        cat:{ref:`'Synthèse'!$A$5:$A$${4 + n1}`, vals: secs.map(s => SEC_BY_K[s.k].n)},
+        series:[{name:'Pic unités', nameRef:`'Synthèse'!$C$4`, ref:`'Synthèse'!$C$5:$C$${4 + n1}`, vals: secs.map(s => s.pC.max), color:'#2a78d6', pts: secs.map(s => SEC_BY_K[s.k].c)}]})});
+      charts.push({sheet:0, anchor:{c1:11, r1:23, c2:20, r2:42}, xml: chartXml({type:'bar', title:'Pic par secteur (palettes équivalentes)',
+        cat:{ref:`'Synthèse'!$A$5:$A$${4 + n1}`, vals: secs.map(s => SEC_BY_K[s.k].n)},
+        series:[{name:'Pic palettes', nameRef:`'Synthèse'!$I$4`, ref:`'Synthèse'!$I$5:$I$${4 + n1}`, vals: secs.map(s => s.pP.max), color:'#2a78d6', pts: secs.map(s => SEC_BY_K[s.k].c)}]})});
+      sheets.push({name:'Synthèse', rows, o:{cols:[34,13,13,14,13,13,14,13,13,13]}});
+    }
+
+    // ---------- Feuille 2 : Évolution (unités, kg, palettes) ----------
+    {
+      const rows = [[], []];
+      const blocks = [{m:'C', t:'Stock journalier en unités', st:3}, {m:'K', t:'Stock journalier en kg', st:4}, {m:'P', t:'Palettes équivalentes', st:4}];
+      const bw = secs.length + 2;
+      const last = 2 + nD;
+      const cols = [];
+      blocks.forEach((bk, bi) => {
+        const c0 = bi * (bw + 1);
+        rows[0][c0] = {v:bk.t, s:6};
+        ['Date', ...secs.map(s => SEC_BY_K[s.k].n), 'Total'].forEach((h, j) => rows[1][c0 + j] = H(h));
+        for (let d = 0; d < nD; d++){
+          const r = rows[2 + d] = rows[2 + d] || [];
+          r[c0] = {v:serial(D[d].iso), s:2};
+          secs.forEach((s, i) => r[c0 + 1 + i] = {v:s[bk.m][d], s:bk.st});
+          r[c0 + 1 + secs.length] = {v:X.tot[bk.m][d], s:bk.st + 4};
+        }
+        cols.push(11, ...secs.map(() => 13), 13, 3);
+        charts.push({sheet:1, anchor:{c1:3 * (bw + 1), r1:1 + bi * 22, c2:3 * (bw + 1) + 12, r2:21 + bi * 22}, xml: chartXml({type:'line', title:bk.t + ' par secteur', catFmt:'dd/mm/yy', valFmt:'#,##0',
+          cat:{ref:`'Évolution'!$${colL(c0)}$3:$${colL(c0)}$${last}`, vals: D.map(d => serial(d.iso))},
+          series:[...secs.map((s, i) => ({name:SEC_BY_K[s.k].n, nameRef:`'Évolution'!$${colL(c0 + 1 + i)}$2`, ref:`'Évolution'!$${colL(c0 + 1 + i)}$3:$${colL(c0 + 1 + i)}$${last}`, vals:[...s[bk.m]], color:SEC_BY_K[s.k].c})),
+                  {name:'Total', nameRef:`'Évolution'!$${colL(c0 + 1 + secs.length)}$2`, ref:`'Évolution'!$${colL(c0 + 1 + secs.length)}$3:$${colL(c0 + 1 + secs.length)}$${last}`, vals:[...X.tot[bk.m]], color:TOTAL_COLOR, total:true}]})});
+      });
+      for (const r of rows) for (let j = 0; j < r.length; j++) if (r[j] === undefined) r[j] = '';
+      sheets.push({name:'Évolution', rows, o:{freeze:2, cols}});
+    }
+
+    // ---------- Feuille 3 : ICPE 4755 ----------
+    {
+      const m3 = X.pT.A.max / 1000, rg = regime(m3);
+      const rows = [];
+      rows[0] = [{v:'ICPE 4755 · alcools de bouche > 40 % vol', s:5}];
+      rows[1] = [{v:'Rubrique 4755-2 : déclaration DC à partir de 50 m³, autorisation à partir de 500 m³ d\'alcools de titre > 40 % vol. Degré et contenance lus dans le libellé.', s:6}];
+      if (A.warn) rows[2] = [{v:'ATTENTION : ' + A.warn, s:6}];
+      rows[3] = [H('Pic alcools > 40 % (m³)'), {v:m3, s:4}, H('le'), X.pT.A.d >= 0 ? {v:serial(D[X.pT.A.d].iso), s:2} : ''];
+      rows[4] = [H('Part du seuil DC 50 m³'), {v:Math.round(m3 / SEUIL_DC * 1000) / 10, s:4}, H('Régime au pic'), rg.t];
+      rows[5] = [H('Pic alcools ≤ 40 % (m³, non comptés)'), {v:X.pT.B.max / 1000, s:4}];
+      rows[7] = ['Date', 'Alcools > 40 % (m³)', 'Alcools ≤ 40 % (m³)', 'Seuil DC (m³)'].map(H);
+      for (let d = 0; d < nD; d++) rows[8 + d] = [{v:serial(D[d].iso), s:2}, {v:X.tot.A[d] / 1000, s:4}, {v:X.tot.B[d] / 1000, s:4}, {v:SEUIL_DC, s:3}];
+      const last = 8 + nD;
+      charts.push({sheet:2, anchor:{c1:5, r1:3, c2:15, r2:22}, xml: chartXml({type:'line', title:'Volume d\'alcools de bouche en stock (m³)', catFmt:'dd/mm/yy', valFmt:'#,##0.0',
+        cat:{ref:`'ICPE 4755'!$A$9:$A$${last}`, vals: D.map(d => serial(d.iso))},
+        series:[{name:'Alcools > 40 % (m³)', nameRef:`'ICPE 4755'!$B$8`, ref:`'ICPE 4755'!$B$9:$B$${last}`, vals:[...X.tot.A].map(v => v / 1000), color:'#c6363a'},
+                {name:'Alcools ≤ 40 % (m³)', nameRef:`'ICPE 4755'!$C$8`, ref:`'ICPE 4755'!$C$9:$C$${last}`, vals:[...X.tot.B].map(v => v / 1000), color:'#8793a9', total:true}]})});
+      let r = last + 2;
+      rows[r++] = [{v:'Références > 40 % vol', s:6}];
+      const hd = ['MGB','Libellé','Secteur','Groupe','Degré (%)','Contenance (L)','Seuil max (unités)','Date du pic','dm³ au pic'].map(H);
+      rows[r++] = hd;
+      for (const x of X.refs.filter(x => x.deg != null && x.deg > 40).sort((a, b) => (b.lit || 0) - (a.lit || 0)))
+        rows[r++] = [x.mgb, x.lib, SEC_BY_K[x.sec].n, x.ga, {v:x.deg, s:4}, x.cont ? {v:x.cont, s:4} : '?', {v:x.max, s:3}, {v:serial(D[x.dmax].iso), s:2}, x.lit != null ? {v:x.lit, s:4} : '?'];
+      r++;
+      rows[r++] = [{v:'Spiritueux sans degré lisible · à vérifier', s:6}];
+      rows[r++] = hd;
+      for (const x of X.refs.filter(x => x.chk).sort((a, b) => (b.lit || 0) - (a.lit || 0)))
+        rows[r++] = [x.mgb, x.lib, SEC_BY_K[x.sec].n, x.ga, '?', x.cont ? {v:x.cont, s:4} : '?', {v:x.max, s:3}, {v:serial(D[x.dmax].iso), s:2}, x.lit != null ? {v:x.lit, s:4} : '?'];
+      sheets.push({name:'ICPE 4755', rows, o:{cols:[34,48,16,28,11,14,16,12,13]}});
+    }
+
+    // ---------- Feuille 4 : Seuils max ----------
+    {
+      const rows = [['MGB','Libellé','Secteur','Famille','Groupe','Dangereux','Catégorie danger','Unité','Seuil max','Date du pic','Palettes au pic','dm³ au pic','Kg net au pic','Degré (%)','Moyenne','Dernier jour','Jours présents'].map(H)];
+      for (const x of X.refs) rows.push([x.mgb, x.lib, SEC_BY_K[x.sec].n, x.sa, x.ga, x.dg ? 'Oui' : 'Non', x.dg, uLab(x.unit),
+        {v:x.max, s:x.unit === 'K' ? 4 : 3}, {v:serial(D[x.dmax].iso), s:2}, x.pal != null ? {v:x.pal, s:4} : '', x.lit != null ? {v:x.lit, s:4} : '', x.wt != null && x.unit === 'C' ? {v:x.wt, s:4} : '', x.deg != null ? {v:x.deg, s:4} : '',
+        {v:x.avg, s:x.unit === 'K' ? 4 : 3}, {v:x.last, s:x.unit === 'K' ? 4 : 3}, {v:x.pres, s:3}]);
+      sheets.push({name:'Seuils max', rows, o:{freeze:1, filter:`A1:Q${rows.length}`, cols:[15,48,16,30,30,11,28,8,12,12,13,12,12,10,12,12,10]}});
+    }
+
+    // ---------- Feuille 5 : Base TCD ----------
+    // unités, kg et palettes dans des colonnes séparées : impossible de les additionner par erreur
+    const FIELDS = ['Date','Mois','Secteur','Famille','Groupe','Dangereux','Catégorie danger','Unités','Kg','Palettes','dm³','dm³ alcool > 40 %','Kg net (libellé)','Références'];
+    const NUM0 = 7, nF = FIELDS.length, MX = ['C','K','P','L','A','W'];
+    const recs = [];
+    {
+      const {R, KS} = A;
+      for (let d = 0; d < nD; d++){
+        const K = S.dayK[F.d1 + d], Q = S.dayQ[F.d1 + d];
+        const m = new Map();
+        for (let i = 0; i < K.length; i++){
+          const k = K[i], r = S.keys[k].r, a = R[r], sec = KS[k];
+          const key = sec + '\u0001' + a.sa + '\u0001' + a.ga + '\u0001' + a.dg;
+          let o = m.get(key); if (!o){ o = {sec, sa:a.sa, ga:a.ga, dg:a.dg, v:{C:0, K:0, P:0, L:0, A:0, W:0}, refs:new Set()}; m.set(key, o); }
+          for (const mm of MX) o.v[mm] += Q[i] * a.co[mm];
+          o.refs.add(r);
+        }
+        const iso = D[d].iso;
+        for (const o of m.values()) recs.push([iso, iso.slice(0, 7), SEC_BY_K[o.sec].n, o.sa, o.ga, o.dg ? 'Oui' : 'Non', o.dg || '(aucune)',
+          ...MX.map(mm => Math.round(o.v[mm] * 1000) / 1000), o.refs.size]);
+      }
+      const rows = [FIELDS.map(H), ...recs.map(r => r.map((v, j) => j === 7 || j === 13 ? {v, s:3} : j >= 8 ? {v, s:4} : v))];
+      sheets.push({name:'Base TCD', rows, o:{freeze:1, filter:`A1:${colL(nF - 1)}${rows.length}`, cols:[12,9,16,30,30,11,28,12,12,12,12,14,14,11]}});
+    }
+
+    // ---------- Feuille 6 : TCD (trois tableaux croisés dynamiques natifs : unités, kg, palettes) ----------
+    const items = FIELDS.map((_, j) => j >= NUM0 ? null : [...new Set(recs.map(r => r[j]))].sort((a, b) => String(a).localeCompare(String(b), 'fr')));
+    const secOrder = [...SECTEURS, SEC_NC].map(s => s.n);
+    items[2].sort((a, b) => secOrder.indexOf(a) - secOrder.indexOf(b));
+    const idxMap = items.map(it => it ? new Map(it.map((v, i) => [v, i])) : null);
+    let cacheDef = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><pivotCacheDefinition xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:id="rId1" refreshOnLoad="1" refreshedBy="GDS" refreshedDate="45000" createdVersion="6" refreshedVersion="6" minRefreshableVersion="3" recordCount="${recs.length}"><cacheSource type="worksheet"><worksheetSource ref="A1:${colL(nF - 1)}${recs.length + 1}" sheet="Base TCD"/></cacheSource><cacheFields count="${nF}">`;
+    FIELDS.forEach((f, j) => {
+      if (j >= NUM0){
+        let mn = Infinity, mx = 0, int = true;
+        for (const r of recs){ const v = r[j]; if (v < mn) mn = v; if (v > mx) mx = v; if (int && v !== Math.floor(v)) int = false; }
+        if (!recs.length) mn = 0;
+        cacheDef += `<cacheField name="${xe(f)}" numFmtId="0"><sharedItems containsSemiMixedTypes="0" containsString="0" containsNumber="1"${int ? ' containsInteger="1"' : ''} minValue="${mn}" maxValue="${mx}"/></cacheField>`;
+      } else cacheDef += `<cacheField name="${xe(f)}" numFmtId="0"><sharedItems count="${items[j].length}">${items[j].map(v => `<s v="${xe(v)}"/>`).join('')}</sharedItems></cacheField>`;
+    });
+    cacheDef += '</cacheFields></pivotCacheDefinition>';
+    const recParts = [`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><pivotCacheRecords xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" count="${recs.length}">`];
+    for (const r of recs){
+      let s = '<r>';
+      for (let j = 0; j < nF; j++) s += j >= NUM0 ? `<n v="${r[j]}"/>` : `<x v="${idxMap[j].get(r[j])}"/>`;
+      recParts.push(s + '</r>');
+    }
+    recParts.push('</pivotCacheRecords>');
+
+    // disposition : filtres Dangereux / Famille / Groupe ; lignes = Date ; colonnes = Secteur
+    const ROW = 0, COL = 2, PAGES = [5, 3, 4];
+    const nRowIt = items[ROW].length, nColIt = items[COL].length;
+    const top = PAGES.length + 2;
+    const lastRow = top + 1 + nRowIt + 1;
+    const width = nColIt + 2;
+    const pivots = [{fld:7, name:'TCD_Unites', title:'Somme de Unités', st:3}, {fld:8, name:'TCD_Kg', title:'Somme de Kg', st:4}, {fld:9, name:'TCD_Palettes', title:'Somme de Palettes', st:4}]
+      .map((pv, i) => Object.assign(pv, {left: i * (width + 1)}));
+    const pf = (j, dataFld) => {
+      if (j >= NUM0) return `<pivotField${j === dataFld ? ' dataField="1"' : ''} showAll="0"/>`;
+      const ax = j === ROW ? ' axis="axisRow"' : j === COL ? ' axis="axisCol"' : PAGES.includes(j) ? ' axis="axisPage"' : '';
+      if (!ax) return '<pivotField showAll="0"/>';
+      return `<pivotField${ax} showAll="0"${PAGES.includes(j) ? ' multipleItemSelectionAllowed="1"' : ''}><items count="${items[j].length + 1}">${items[j].map((_, i) => `<item x="${i}"/>`).join('')}<item t="default"/></items></pivotField>`;
+    };
+    const ptXml = pv => {
+      let pt = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><pivotTableDefinition xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" name="${pv.name}" cacheId="1" applyNumberFormats="0" applyBorderFormats="0" applyFontFormats="0" applyPatternFormats="0" applyAlignmentFormats="0" applyWidthHeightFormats="1" dataCaption="Valeurs" updatedVersion="6" minRefreshableVersion="3" useAutoFormatting="1" itemPrintTitles="1" createdVersion="6" indent="0" outline="1" outlineData="1" multipleFieldFilters="0" rowHeaderCaption="Date" colHeaderCaption="Secteur">`;
+      pt += `<location ref="${colL(pv.left)}${top}:${colL(pv.left + width - 1)}${lastRow}" firstHeaderRow="1" firstDataRow="2" firstDataCol="1" rowPageCount="${PAGES.length}" colPageCount="1"/>`;
+      pt += `<pivotFields count="${nF}">${FIELDS.map((_, j) => pf(j, pv.fld)).join('')}</pivotFields>`;
+      pt += `<rowFields count="1"><field x="${ROW}"/></rowFields><rowItems count="${nRowIt + 1}">${items[ROW].map((_, i) => i ? `<i><x v="${i}"/></i>` : '<i><x/></i>').join('')}<i t="grand"><x/></i></rowItems>`;
+      pt += `<colFields count="1"><field x="${COL}"/></colFields><colItems count="${nColIt + 1}">${items[COL].map((_, i) => i ? `<i><x v="${i}"/></i>` : '<i><x/></i>').join('')}<i t="grand"><x/></i></colItems>`;
+      pt += `<pageFields count="${PAGES.length}">${PAGES.map(j => `<pageField fld="${j}" hier="-1"/>`).join('')}</pageFields>`;
+      pt += `<dataFields count="1"><dataField name="${xe(pv.title)}" fld="${pv.fld}" baseField="0" baseItem="0" numFmtId="${pv.fld === 7 ? 3 : 4}"/></dataFields>`;
+      pt += `<pivotTableStyleInfo name="PivotStyleMedium2" showRowHeaders="1" showColHeaders="1" showRowStripes="0" showColStripes="0" showLastColumn="1"/></pivotTableDefinition>`;
+      return pt;
+    };
+    const tcdRows = [];
+    const put = (r, c, v) => { (tcdRows[r] = tcdRows[r] || [])[c] = v; };
+    for (const pv of pivots){
+      const L0 = pv.left;
+      PAGES.forEach((j, i) => { put(i, L0, {v:FIELDS[j], s:1}); put(i, L0 + 1, '(Tous)'); });
+      put(top - 1, L0, {v:pv.title, s:1}); put(top - 1, L0 + 1, {v:'Secteur', s:1});
+      put(top, L0, {v:'Date', s:1}); items[COL].forEach((v, c) => put(top, L0 + 1 + c, {v, s:1})); put(top, L0 + 1 + nColIt, {v:'Total général', s:1});
+      const agg = new Map();
+      for (const r of recs){ const k = r[0] + '\u0001' + r[2]; agg.set(k, (agg.get(k) || 0) + r[pv.fld]); }
+      const colT = new Array(nColIt).fill(0);
+      items[ROW].forEach((dv, i) => {
+        let t = 0; put(top + 1 + i, L0, dv);
+        items[COL].forEach((cv, c) => { const v = agg.get(dv + '\u0001' + cv) || 0; t += v; colT[c] += v; if (v) put(top + 1 + i, L0 + 1 + c, {v, s:pv.st}); });
+        put(top + 1 + i, L0 + 1 + nColIt, {v:t, s:pv.st + 4});
+      });
+      put(lastRow - 1, L0, {v:'Total général', s:1});
+      colT.forEach((v, c) => put(lastRow - 1, L0 + 1 + c, {v, s:pv.st + 4}));
+      put(lastRow - 1, L0 + 1 + nColIt, {v:colT.reduce((a, b) => a + b, 0), s:pv.st + 4});
+    }
+    for (let i = 0; i < tcdRows.length; i++) if (tcdRows[i]) for (let c = 0; c < tcdRows[i].length; c++) if (tcdRows[i][c] === undefined) tcdRows[i][c] = '';
+    const tcdCols = []; pivots.forEach(() => tcdCols.push(18, ...items[COL].map(() => 15), 15, 4));
+    sheets.push({name:'TCD', rows: tcdRows, o:{cols: tcdCols}, pivot:true});
+
+    // ---------- Assemblage ----------
+    const ct = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>'];
+    const wbRels = [];
+    sheets.forEach((sh, i) => {
+      const n = i + 1;
+      const myCharts = charts.filter(c => c.sheet === i);
+      const rels = [];
+      if (myCharts.length){
+        const dn = `drawing${n}.xml`;
+        const drRels = [], anchors = [];
+        myCharts.forEach((c, k) => {
+          const cn = charts.indexOf(c) + 1;
+          zip.file(`xl/charts/chart${cn}.xml`, c.xml);
+          ct.push(`<Override PartName="/xl/charts/chart${cn}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>`);
+          drRels.push(REL('rIdC' + k, 'chart', `../charts/chart${cn}.xml`));
+          anchors.push(Object.assign({rid:'rIdC' + k}, c.anchor));
+        });
+        zip.file(`xl/drawings/${dn}`, drawingXml(anchors));
+        zip.file(`xl/drawings/_rels/${dn}.rels`, RELS(drRels));
+        ct.push(`<Override PartName="/xl/drawings/${dn}" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>`);
+        rels.push(REL('rIdDr', 'drawing', `../drawings/${dn}`));
+        sh.o.drawing = true;
+      }
+      if (sh.pivot) pivots.forEach((pv, k) => rels.push(REL('rIdPt' + k, 'pivotTable', `../pivotTables/pivotTable${k + 1}.xml`)));
+      zip.file(`xl/worksheets/sheet${n}.xml`, sheetXml(sh.rows, sh.o));
+      if (rels.length) zip.file(`xl/worksheets/_rels/sheet${n}.xml.rels`, RELS(rels));
+      ct.push(`<Override PartName="/xl/worksheets/sheet${n}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`);
+      wbRels.push(REL('rId' + n, 'worksheet', `worksheets/sheet${n}.xml`));
+    });
+    // TCD
+    zip.file('xl/pivotCache/pivotCacheDefinition1.xml', cacheDef);
+    zip.file('xl/pivotCache/pivotCacheRecords1.xml', recParts.join(''));
+    zip.file('xl/pivotCache/_rels/pivotCacheDefinition1.xml.rels', RELS([REL('rId1', 'pivotCacheRecords', 'pivotCacheRecords1.xml')]));
+    pivots.forEach((pv, k) => {
+      zip.file(`xl/pivotTables/pivotTable${k + 1}.xml`, ptXml(pv));
+      zip.file(`xl/pivotTables/_rels/pivotTable${k + 1}.xml.rels`, RELS([REL('rId1', 'pivotCacheDefinition', '../pivotCache/pivotCacheDefinition1.xml')]));
+      ct.push(`<Override PartName="/xl/pivotTables/pivotTable${k + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.pivotTable+xml"/>`);
+    });
+    ct.push('<Override PartName="/xl/pivotCache/pivotCacheDefinition1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.pivotCacheDefinition+xml"/>');
+    ct.push('<Override PartName="/xl/pivotCache/pivotCacheRecords1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.pivotCacheRecords+xml"/>');
+    const nS = sheets.length;
+    wbRels.push(REL('rId' + (nS + 1), 'styles', 'styles.xml'));
+    wbRels.push(REL('rId' + (nS + 2), 'pivotCacheDefinition', 'pivotCache/pivotCacheDefinition1.xml'));
+    zip.file('xl/_rels/workbook.xml.rels', RELS(wbRels));
+    zip.file('xl/workbook.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView xWindow="0" yWindow="0" windowWidth="28800" windowHeight="15000" activeTab="0"/></bookViews><sheets>${sheets.map((s, i) => `<sheet name="${xe(s.name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('')}</sheets><definedNames>${sheets.map((s, i) => s.o.filter ? `<definedName name="_xlnm._FilterDatabase" localSheetId="${i}" hidden="1">'${xe(s.name)}'!${s.o.filter.split(':').map(p => p.replace(/^([A-Z]+)(\d+)$/, (m, c, r) => '$' + c + '$' + r)).join(':')}</definedName>` : '').join('')}</definedNames><pivotCaches><pivotCache cacheId="1" r:id="rId${nS + 2}"/></pivotCaches></workbook>`);
+    zip.file('xl/styles.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="dd/mm/yyyy"/><numFmt numFmtId="165" formatCode="#,##0.0"/></numFmts><fonts count="5"><font><sz val="10"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="16"/><color rgb="FF14254A"/><name val="Calibri"/><family val="2"/></font><font><i/><sz val="10"/><color rgb="FF51607C"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="10"/><name val="Calibri"/><family val="2"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF14254A"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="9"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="3" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="3" fontId="4" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1"/><xf numFmtId="165" fontId="4" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`);
+    zip.file('docProps/core.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>Seuil max stockage</dc:title><dc:creator>GDS</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">${new Date().toISOString().slice(0, 19)}Z</dcterms:created></cp:coreProperties>`);
+    zip.file('docProps/app.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><Application>Microsoft Excel</Application></Properties>`);
+    zip.file('_rels/.rels', RELS([REL('rId1', 'officeDocument', 'xl/workbook.xml'), `<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>`, REL('rId3', 'extended-properties', 'docProps/app.xml')]));
+    ct.push('</Types>');
+    zip.file('[Content_Types].xml', ct.join(''));
+    const blob = await zip.generateAsync({type:'blob', compression:'DEFLATE', compressionOptions:{level:6}, mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = `SEUIL_MAX_${D[0].iso}_${D[nD-1].iso}.xlsx`; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    setMsg('');
+    window.__lastXlsx = blob;
+  }catch(e){ console.error(e); alert('Erreur Excel : ' + e.message); setMsg(''); }
+  btn.disabled = false;
+}
+
+/* =====================================================================
+   ÉVÉNEMENTS
+   ===================================================================== */
+const drop = $('drop');
+['dragenter','dragover'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', async ev => {
+  const items = [...(ev.dataTransfer.items || [])];
+  const entries = items.map(i => i.webkitGetAsEntry && i.webkitGetAsEntry()).filter(Boolean);
+  if (entries.some(e => e.isDirectory)){
+    const out = [];
+    const walk = async en => {
+      if (en.isFile) out.push(await new Promise(r => en.file(r)));
+      else if (en.isDirectory){ const rd = en.createReader(); let b; do { b = await new Promise(r => rd.readEntries(r)); for (const x of b) await walk(x); } while (b.length); }
+    };
+    for (const e of entries) await walk(e);
+    classify(out);
+  } else classify([...ev.dataTransfer.files]);
+});
+$('bFiles').onclick = () => $('inFiles').click();
+$('bDir').onclick = () => $('inDir').click();
+$('inFiles').onchange = e => { classify([...e.target.files]); e.target.value = ''; };
+$('inDir').onchange = e => { classify([...e.target.files]); e.target.value = ''; };
+$('bReset').onclick = () => { location.reload(); };
+// démarrage : connecté à GDS ou poste seul
+if (window.GDS && GDS.API && !G.jeton){
+  setMsg("Session GDS absente : ouvre cet outil depuis le sommaire pour avoir l'historique. Les fichiers du poste restent utilisables.");
+  $('msg').style.color = '#c6363a';
+}
+if (G.on && !G.peut){
+  document.body.innerHTML = '<p style="font-family:system-ui,sans-serif;padding:48px;text-align:center;color:#5c6883">Cet outil est réservé à l\'encadrement.<br><br><a href="sommaire.html" style="color:#1a2e55">Retour au tableau de bord</a></p>';
+} else if (G.on) startGDS();
+['fSec','fGa','fDg','fD1','fD2'].forEach(id => $(id).addEventListener('change', render));
+$('fSa').addEventListener('change', () => { fillGa(); render(); });
+$('fQ').addEventListener('input', () => renderRef());
+$('fU').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  S.unit = b.dataset.u; [...$('fU').children].forEach(x => x.classList.toggle('on', x === b)); render();
+});
+$('tabs').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  [...$('tabs').children].forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id === 'v-' + b.dataset.v));
+  Object.values(charts).forEach(c => c.resize());
+});
+$('bPdf').onclick = exportPdf;
+$('bUp').onclick = uploadLocal;
+$('bXls').onclick = exportXlsx;
+if (window.Chart) Chart.defaults.font.family = 'DM Sans';
+</script>
+</body>
+</html>
