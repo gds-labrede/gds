@@ -64,16 +64,28 @@ select:focus{border-color:var(--navy)}
 .export:hover{filter:brightness(1.07)}
 
 /* ══ LISTE ══ */
-.liste{background:var(--white);border:1px solid var(--border);border-radius:13px;overflow:hidden;
-  box-shadow:0 1px 3px rgba(20,32,60,.06)}
-.ligne{display:grid;grid-template-columns:118px 1fr 104px 110px 1fr;gap:14px;align-items:center;
+/* Beaucoup de lignes : la liste défile dans son propre cadre,
+   en-tête figé en haut, le reste de la page ne bouge pas. */
+.liste{background:var(--white);border:1px solid var(--border);border-radius:13px;
+  box-shadow:0 1px 3px rgba(20,32,60,.06);
+  max-height:calc(100vh - 340px);min-height:260px;overflow-y:auto;overflow-x:hidden;
+  scrollbar-color:var(--border-hi) transparent}
+.liste::-webkit-scrollbar{width:12px}
+.liste::-webkit-scrollbar-track{background:#f6f8fc;border-radius:0 13px 13px 0}
+.liste::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:7px;
+  border:3px solid #f6f8fc}
+.liste::-webkit-scrollbar-thumb:hover{background:#a8b4c6}
+
+.ligne{display:grid;grid-template-columns:110px 1fr 168px 96px 104px 236px;gap:14px;align-items:center;
   padding:11px 18px;border-bottom:1px solid #f1f4f9}
 .ligne:last-child{border-bottom:none}
 .ligne:hover:not(.tete){background:#f8fafd}
 .ligne.tete{background:#fbfcfe;border-bottom:1px solid var(--border);
   font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.2px;
-  color:var(--text-low);text-transform:uppercase;position:sticky;top:60px}
+  color:var(--text-low);text-transform:uppercase;
+  position:sticky;top:0;z-index:2;border-radius:13px 13px 0 0}
 .mgb{font-family:'DM Mono',monospace;font-size:12.5px;color:var(--text-mid)}
+.sv{font-size:12px;color:var(--text-mid);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lib{font-size:13.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .num{font-family:'DM Mono',monospace;font-size:13.5px;font-weight:600;text-align:right}
 .num.plus{color:var(--vert)}
@@ -111,8 +123,9 @@ select:focus{border-color:var(--navy)}
   .bar{padding:0 16px}
   .page{padding:22px 16px 44px}
   .ligne{grid-template-columns:1fr 92px 104px}
-  .ligne .mgb,.ligne .histo{display:none}
+  .ligne .mgb,.ligne .histo,.ligne .sv{display:none}
   .ligne.tete{display:none}
+  .liste{max-height:calc(100vh - 300px)}
 }
 </style>
 </head>
@@ -148,6 +161,7 @@ select:focus{border-color:var(--navy)}
 
   <div class="filtres">
     <input type="text" class="recherche" id="rech" placeholder="Rechercher un MGB ou une désignation…">
+    <select id="f-sv"><option value="">Tous les SV</option></select>
     <select id="f-sens">
       <option value="">Dans les deux sens</option>
       <option value="plus">Excédent — dépôt &gt; MMS</option>
@@ -337,9 +351,11 @@ async function lireClasseur(buf){
   var rl = await extraire(buf, trouve('xl/_rels/workbook.xml.rels'));
 
   var fs = feuillesDe(wb, rl);
-  var cible = null;
-  for(var i = 0; i < fs.length; i++) if(FEUILLE.test(fs[i].nom)) cible = fs[i];
-  if(!cible) cible = fs[fs.length - 1];
+  var cible = null, autres = [];
+  for(var i = 0; i < fs.length; i++){
+    if(FEUILLE.test(fs[i].nom)) cible = fs[i]; else autres.push(fs[i]);
+  }
+  if(!cible){ cible = fs[fs.length - 1]; autres = fs.slice(0, -1); }
   if(!cible) throw new Error('aucune feuille exploitable');
 
   var ssE = trouve('xl/sharedStrings.xml');
@@ -348,7 +364,41 @@ async function lireClasseur(buf){
     var ss = await extraire(buf, ssE);
     chaines = (ss.match(/<si>[\s\S]*?<\/si>|<si\/>/g) || []).map(textesDe);
   }
-  return lignesDe(await extraire(buf, trouve(cible.fichier)), chaines);
+
+  return {
+    ecarts: lignesDe(await extraire(buf, trouve(cible.fichier)), chaines),
+    autres: autres, chaines: chaines, buf: buf, trouve: trouve
+  };
+}
+
+/* Dans la feuille des écarts, Subsys et SV sortent en #NAME? :
+   les formules ne suivent pas à l'export. Le rattachement existe
+   pourtant dans l'autre feuille du classeur, article par article.
+   On va le chercher là. */
+async function rattachements(c){
+  var carte = {};
+  for(var i = 0; i < c.autres.length; i++){
+    var L;
+    try { L = lignesDe(await extraire(c.buf, c.trouve(c.autres[i].fichier)), c.chaines); }
+    catch(e){ continue; }
+    if(!L.length) continue;
+
+    var t = L[0].map(function(h){ return String(h).trim().toLowerCase(); });
+    var col = function(re){ for(var k = 0; k < t.length; k++) if(re.test(t[k])) return k; return -1; };
+    var iM = col(/^mgb/), iN = col(/numero sv|n° sv|^sv$/), iL = col(/sv_name|nom sv/);
+    if(iM === -1 || (iN === -1 && iL === -1)) continue;
+
+    for(var k = 1; k < L.length; k++){
+      var m = netMGB(L[k][iM]);
+      if(!m || carte[m]) continue;
+      var num = iN !== -1 ? String(L[k][iN]).trim() : '';
+      var lib = iL !== -1 ? String(L[k][iL]).trim() : '';
+      var v = (num && lib) ? (num + ' - ' + lib) : (num || lib);
+      if(v) carte[m] = v;
+    }
+    if(Object.keys(carte).length) break;
+  }
+  return carte;
 }
 
 /* ══════════ DONNÉES ══════════ */
@@ -394,17 +444,18 @@ async function lireHisto(){
     var j = c[0].trim(), m = netMGB(c[1]);
     if(!j || !m) return;
     if(!jours[j]) jours[j] = {};
-    jours[j][m] = { lib: c[2] || '', ec: nombre(c[3]) || 0 };
+    jours[j][m] = { lib: c[2] || '', ec: nombre(c[3]) || 0, sv: (c[4] || '').trim() };
   });
 }
 
 async function enregistrerHisto(){
   var cles = Object.keys(jours).sort().slice(-JOURS_GARDE);
-  var lignes = ['JOUR;MGB;DESIGNATION;ECART'];
+  var lignes = ['JOUR;MGB;DESIGNATION;ECART;SV'];
+  var propre = function(v){ return String(v == null ? '' : v).replace(/[;\r\n]/g, ' '); };
   cles.forEach(function(j){
     var d = jours[j];
     Object.keys(d).forEach(function(m){
-      lignes.push(j + ';' + m + ';' + String(d[m].lib).replace(/[;\r\n]/g, ' ') + ';' + d[m].ec);
+      lignes.push(j + ';' + m + ';' + propre(d[m].lib) + ';' + d[m].ec + ';' + propre(d[m].sv));
     });
   });
   var csv = lignes.join('\r\n') + '\r\n';
@@ -419,7 +470,8 @@ async function enregistrerHisto(){
    7 Mo par jour n'ont rien à faire dans l'espace courant. Seul le
    résumé de la journée, quelques kilo-octets, est conservé. */
 async function absorber(buf, jour){
-  var L = await lireClasseur(buf);
+  var c = await lireClasseur(buf);
+  var L = c.ecarts;
   if(!L.length) throw new Error('classeur vide');
 
   var t = L[0].map(function(h){ return String(h).trim().toLowerCase(); });
@@ -430,6 +482,8 @@ async function absorber(buf, jour){
   var iD = trouve(/^difference$|^différence$/);
   var iE = trouve(/^ecarts?$|^écarts?$/);
   if(iM === -1) throw new Error('colonne MGB introuvable dans le classeur');
+
+  var carte = await rattachements(c);
 
   var d = {};
   for(var k = 1; k < L.length; k++){
@@ -445,7 +499,11 @@ async function absorber(buf, jour){
 
     ec = Math.round(ec * 100) / 100;
     if(ec === 0) continue;
-    d[mgb] = { lib: iL !== -1 ? String(L[k][iL]).trim() : '', ec: ec };
+    d[mgb] = {
+      lib: iL !== -1 ? String(L[k][iL]).trim() : '',
+      ec: ec,
+      sv: carte[mgb] || ''
+    };
   }
   jours[jour] = d;
 }
@@ -482,6 +540,7 @@ async function charger(champ){
 
   construire();
   compteurs();
+  listeSV();
   entete();
   vue(ordreJours.length < 2 ? 'tous' : 'confirme');
   dire('Journée du ' + joli(jour) + ' enregistrée', 'ok');
@@ -502,9 +561,14 @@ function construire(){
     var suite = ordreJours.map(function(j){
       return jours[j][m] ? jours[j][m].ec : null;
     });
-    var lib = '';
-    for(var i = ordreJours.length - 1; i >= 0; i--)
-      if(jours[ordreJours[i]][m]){ lib = jours[ordreJours[i]][m].lib; break; }
+    var lib = '', sv = '';
+    for(var i = ordreJours.length - 1; i >= 0; i--){
+      var e = jours[ordreJours[i]][m];
+      if(!e) continue;
+      if(!lib) lib = e.lib;
+      if(!sv)  sv  = e.sv || '';
+      if(lib && sv) break;
+    }
 
     var auj  = jours[jourDuJour] && jours[jourDuJour][m] ? jours[jourDuJour][m].ec : null;
     var hier = veille && jours[veille] && jours[veille][m] ? jours[veille][m].ec : null;
@@ -521,7 +585,7 @@ function construire(){
     return {
       mgb: m, lib: lib, suite: suite,
       ec: auj, hier: hier, tenue: tenue, etat: etat,
-      consigne: CONSIGNE.test(lib)
+      sv: sv, consigne: CONSIGNE.test(lib)
     };
   }).filter(function(a){ return a.etat !== 'parti'; });
 
@@ -550,6 +614,7 @@ function vue(v){
 
 function filtrees(){
   var q  = document.getElementById('rech').value.trim().toLowerCase();
+  var fv = document.getElementById('f-sv').value;
   var fs = document.getElementById('f-sens').value;
   var ft = parseFloat(document.getElementById('f-taille').value) || 0;
   var fc = document.getElementById('f-consigne').value;
@@ -564,7 +629,9 @@ function filtrees(){
     if(ft && Math.abs(e) < ft) return false;
     if(fc === 'hors' && a.consigne) return false;
     if(fc === 'seul' && !a.consigne) return false;
-    if(q && a.mgb.indexOf(q) === -1 && a.lib.toLowerCase().indexOf(q) === -1) return false;
+    if(fv && a.sv !== fv) return false;
+    if(q && a.mgb.indexOf(q) === -1 && a.lib.toLowerCase().indexOf(q) === -1
+       && a.sv.toLowerCase().indexOf(q) === -1) return false;
     return true;
   });
 }
@@ -585,18 +652,23 @@ function afficher(){
   }
 
   zone.innerHTML = '<div class="ligne tete"><span>MGB</span><span>Désignation</span>' +
-    '<span style="text-align:right">Écart</span><span>État</span><span>Sept derniers jours</span></div>';
+    '<span>SV</span><span style="text-align:right">Écart</span>' +
+    '<span>État</span><span>Sept derniers jours</span></div>';
 
   l.slice(0, MAX_LIGNES).forEach(function(a){
     var d = document.createElement('div');
     d.className = 'ligne';
-    d.innerHTML = '<span class="mgb"></span><span class="lib"></span>' +
+    d.innerHTML = '<span class="mgb"></span><span class="lib"></span><span class="sv"></span>' +
       '<span class="num"></span><span class="e"></span><span class="histo"></span>';
 
     d.querySelector('.mgb').textContent = a.mgb;
     var lib = d.querySelector('.lib');
     lib.textContent = a.lib || '—';
     lib.title = a.lib;
+
+    var sv = d.querySelector('.sv');
+    sv.textContent = a.sv || '—';
+    sv.title = a.sv;
 
     var e = a.ec === null ? a.hier : a.ec;
     var n = d.querySelector('.num');
@@ -636,7 +708,22 @@ function afficher(){
   }
 }
 
-['rech','f-sens','f-taille','f-consigne'].forEach(function(id){
+/* Les SV réellement présents, classés par nombre d'écarts. */
+function listeSV(){
+  var n = {};
+  articles.forEach(function(a){ if(a.sv) n[a.sv] = (n[a.sv] || 0) + 1; });
+  var s = document.getElementById('f-sv');
+  var garde = s.value;
+  while(s.options.length > 1) s.remove(1);
+  Object.keys(n).sort(function(a, b){ return n[b] - n[a]; }).forEach(function(v){
+    var o = document.createElement('option');
+    o.value = v; o.textContent = v + ' — ' + n[v];
+    s.appendChild(o);
+  });
+  if(garde && n[garde]) s.value = garde;
+}
+
+['rech','f-sv','f-sens','f-taille','f-consigne'].forEach(function(id){
   document.getElementById(id).addEventListener(id === 'rech' ? 'input' : 'change', afficher);
 });
 
@@ -645,12 +732,12 @@ function exporter(){
   var l = filtrees();
   if(!l.length){ dire('Rien à exporter', 'err'); return; }
 
-  var tete = ['MGB','Designation','Ecart du jour','Etat','Jours consecutifs'];
+  var tete = ['MGB','Designation','SV','Ecart du jour','Etat','Jours consecutifs'];
   ordreJours.forEach(function(j){ tete.push(joli(j)); });
 
   var lignes = [tete];
   l.forEach(function(a){
-    var r = [a.mgb, a.lib,
+    var r = [a.mgb, a.lib, a.sv,
       a.ec === null ? '' : String(a.ec).replace('.', ','),
       a.etat === 'confirme' ? 'CONFIRME' : a.etat === 'nouveau' ? 'NOUVEAU' : 'RESORBE',
       a.tenue];
@@ -714,6 +801,7 @@ function entete(){
 
     construire();
     compteurs();
+    listeSV();
     entete();
     vue(ordreJours.length < 2 ? 'tous' : 'confirme');
 
