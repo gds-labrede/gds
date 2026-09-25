@@ -253,6 +253,76 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
   .grille{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
   .t-ico svg{width:50px;height:50px}
 }
+
+/* ══ CHECKLIST (fichier dans l'Archive uniquement) ══ */
+.ck{position:fixed;inset:0;z-index:60;background:rgba(16,24,44,.55);display:none;
+  align-items:stretch;justify-content:center;padding:24px}
+.ck.on{display:flex}
+.ck-fen{width:min(1320px,100%);background:#eef1f6;border-radius:14px;display:flex;flex-direction:column;
+  overflow:hidden;box-shadow:0 30px 70px -20px rgba(0,0,0,.55)}
+.ck-h{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;padding:18px 22px;background:#fff;
+  border-bottom:1px solid var(--border)}
+.ck-t{flex:1;min-width:220px}
+.ck-t b{font-size:20px;letter-spacing:-.4px}
+.ck-t p{font-size:12.5px;color:var(--text-mid);margin-top:3px}
+.ck-puces{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.ck-puce{font-family:'DM Mono',monospace;font-size:10.5px;padding:4px 9px;border-radius:6px;
+  background:#fff;border:1px solid var(--border);color:var(--text-mid)}
+.ck-puce.fort{background:#fdf1ea;border-color:#f3d7c3;color:#a9530f}
+.ck-puce.lien{background:#fdf6e3;border-color:#efe0b8;color:#8a6d1f;cursor:pointer}
+.ck-act{display:flex;gap:8px;flex-wrap:wrap}
+.ck-btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border);cursor:pointer;
+  padding:9px 14px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:12.5px;font-weight:600;
+  color:var(--text-mid);background:#fff}
+.ck-btn:hover{border-color:var(--navy);color:var(--navy)}
+.ck-btn.plein{border-color:transparent;color:#fff;background:linear-gradient(180deg,#2a4576,var(--navy))}
+.ck-btn.orange{border-color:transparent;color:#fff;background:linear-gradient(180deg,#e0843a,var(--orange))}
+.ck-btn.plein:hover,.ck-btn.orange:hover{filter:brightness(1.1);color:#fff}
+.ck-btn:disabled{opacity:.5;cursor:default}
+.ck-c{flex:1;overflow:hidden;display:flex;flex-direction:column;padding:16px 22px 22px}
+.ck-ongl{display:flex;gap:3px;padding:3px;background:#fff;border:1px solid var(--border);border-radius:10px;
+  align-self:flex-start;margin-bottom:12px;flex-wrap:wrap}
+.ck-ongl button{border:none;background:transparent;padding:8px 15px;border-radius:8px;cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-size:12.5px;font-weight:600;color:var(--text-low)}
+.ck-ongl button.on{background:var(--navy);color:#fff}
+.ck-cadre{flex:1;overflow:auto;background:#fff;border:1px solid var(--border);border-radius:12px}
+.ck-cadre table{border-collapse:collapse;font-size:12.5px;min-width:100%}
+.ck-cadre td{border:1px solid var(--border);padding:7px 10px;vertical-align:top;white-space:pre-wrap;max-width:360px}
+.ck-cadre tr.tete td{position:sticky;top:0;background:var(--navy);color:#fff;font-family:'DM Mono',monospace;
+  font-size:10px;letter-spacing:1.2px;text-transform:uppercase;border-color:#2a4576}
+.ck-cadre tr.titre td{font-weight:700;color:var(--navy)}
+.ck-info{padding:34px;text-align:center;color:var(--text-low);font-size:13px}
+.ck-l{display:grid;grid-template-columns:80px 160px 1fr 1.3fr 180px;gap:12px;align-items:center;
+  padding:10px 14px;border-top:1px solid var(--border);font-size:13px}
+.ck-l:first-child{border-top:none}
+.ck-l.tete{background:#f7f9fc;font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:1.3px;
+  color:var(--text-low);text-transform:uppercase}
+.ck-l.cour{background:#fdf8f3}
+.ck-l .m{font-family:'DM Mono',monospace;font-size:12px;color:var(--text-mid)}
+.ck-l .a{display:flex;gap:6px;justify-content:flex-end}
+.ck-mini{background:#fff;border:1px solid var(--border);border-radius:7px;padding:5px 10px;
+  font-family:'DM Sans',sans-serif;font-size:11.5px;color:var(--text-mid);cursor:pointer}
+.ck-mini:hover{border-color:var(--navy);color:var(--navy)}
+.ck-depot{position:fixed;inset:0;z-index:70;background:rgba(16,24,44,.45);display:none;
+  align-items:center;justify-content:center;padding:20px}
+.ck-depot.on{display:flex}
+.ck-boite{width:min(470px,100%);background:#fff;border-radius:14px;overflow:hidden;
+  box-shadow:0 30px 70px -20px rgba(0,0,0,.55)}
+.ck-boite .h{padding:16px 20px 12px;border-bottom:1px solid var(--border)}
+.ck-boite .h b{font-size:16px}
+.ck-boite .h p{font-size:12.5px;color:var(--text-mid);margin-top:3px}
+.ck-boite .c{padding:16px 20px;display:flex;flex-direction:column;gap:12px;font-size:13px;color:var(--text-mid)}
+.ck-boite .p{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
+.ck-fic{padding:12px;border:2px dashed var(--border-hi);border-radius:10px;text-align:center;cursor:pointer}
+.ck-fic.ok{border-style:solid;border-color:#1d7a5f;color:#1d7a5f}
+.ck-boite input[type=text]{padding:10px 12px;border:1px solid var(--border);border-radius:9px;
+  font-family:'DM Sans',sans-serif;font-size:13.5px;outline:none;width:100%}
+@media (max-width:760px){
+  .ck{padding:0}.ck-fen{border-radius:0}
+  .ck-h,.ck-c{padding-left:16px;padding-right:16px}
+  .ck-l{grid-template-columns:70px 1fr}.ck-l .n,.ck-l .a{grid-column:1 / -1}.ck-l .a{justify-content:flex-start}
+  .ck-l.tete{display:none}
+}
 </style>
 </head>
 <body>
@@ -397,6 +467,42 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
 
 </main>
 
+<div class="ck" id="ck">
+  <div class="ck-fen">
+    <div class="ck-h">
+      <div class="ck-t"><b>Checklist GDS</b><p id="ck-acc">Chargement…</p><div class="ck-puces" id="ck-ver"></div></div>
+      <div class="ck-act">
+        <button class="ck-btn" id="ck-b-hist" onclick="ckHistorique()">Historique</button>
+        <button class="ck-btn plein" id="ck-b-tel" onclick="ckTelecharger(ckCour)" disabled>Télécharger</button>
+        <button class="ck-btn orange" id="ck-b-dep" onclick="ckOuvrirDepot()" style="display:none">Nouvelle version</button>
+        <button class="ck-btn" onclick="ckFermer()">Fermer</button>
+      </div>
+    </div>
+    <div class="ck-c">
+      <div id="ck-z-f" style="display:flex;flex-direction:column;flex:1;min-height:0">
+        <div class="ck-ongl" id="ck-ongl"></div>
+        <div class="ck-cadre" id="ck-cadre"><div class="ck-info">Chargement…</div></div>
+      </div>
+      <div class="ck-cadre" id="ck-z-h" style="display:none"></div>
+    </div>
+  </div>
+</div>
+<div class="ck-depot" id="ck-depot">
+  <div class="ck-boite">
+    <div class="h"><b>Nouvelle version</b><p id="ck-d-sous">—</p></div>
+    <div class="c">
+      <div class="ck-fic" id="ck-d-fic" onclick="document.getElementById('ck-d-in').click()">Choisir le fichier Excel modifié</div>
+      <input type="file" id="ck-d-in" accept=".xlsx,.xlsm,.xls" style="display:none">
+      <input type="text" id="ck-d-note" maxlength="160" placeholder="Ce qui a changé (facultatif)">
+      <label><input type="checkbox" id="ck-d-maj"> Version majeure</label>
+    </div>
+    <div class="p">
+      <button class="ck-btn" onclick="ckFermerDepot()">Annuler</button>
+      <button class="ck-btn plein" id="ck-d-ok" onclick="ckDeposer()" disabled>Enregistrer</button>
+    </div>
+  </div>
+</div>
+
 <div class="toasts" id="toasts"></div>
 
 <script src="config.js"></script>
@@ -493,6 +599,7 @@ var FAMILLES = [
     { nom:'Contrôle Réception', f:'reception.html', ico:'colis' }
   ]},
   { id:'documents', nom:'Documents', ico:'feuille', c:'#2a5f8f', desc:'Procédures, fiches et documents PDF', admin:false, outils:[
+    { nom:'Checklist GDS',          action:'checklist',                  ico:'check' },
     { nom:'Affiche Alerte Retrait', f:'affiche_alerte_retrait.pdf',       ico:'alerte' },
     { nom:'QR Libre IN-1', f:'QR_Libre_IN_1_x10_2025-12-17.pdf', ico:'feuille' },
     { nom:'QR Libre IN-2', f:'QR_Libre_IN_2_x10_2025-12-17.pdf', ico:'feuille' },
@@ -504,7 +611,6 @@ var FAMILLES = [
   { id:'synthese', nom:'Synthèse Admin', ico:'cadenas', c:'#1a2e55', desc:'Tableau de bord administrateur', admin:true, outils:[
     { nom:'KPIs GDS',               f:'KPIS_GDS.html',                      ico:'courbe' },
     { nom:"Taux d'occupation",      f:'Taux_occupation_FINAL_COMPLET.html', ico:'tableau' },
-    { nom:'Checklist GDS',          f:'Checklist_GDS_LaBrede.xlsx',         ico:'check' },
     { nom:'Compléter Base Article', f:'completer_base_article.html',        ico:'boite' }
   ]}
 ];
@@ -626,11 +732,15 @@ function ouvrirVue(id){
     vus.forEach(function(o){
       var a = document.createElement('a');
       a.className = 'outil';
-      a.href = BASE + o.f; a.target = '_blank'; a.rel = 'noopener';
+      if(o.action){
+        a.href = '#'; a.onclick = function(e){ e.preventDefault(); ACTIONS[o.action](); };
+      } else {
+        a.href = BASE + o.f; a.target = '_blank'; a.rel = 'noopener';
+      }
       a.style.setProperty('--c', f.c);
       a.innerHTML = '<div class="o-ico">' + svg(o.ico) + '</div>' +
                     '<div class="o-nom">' + o.nom + '</div>' +
-                    '<div class="o-fleche">↗</div>';
+                    '<div class="o-fleche">' + (o.action ? '→' : '↗') + '</div>';
       liste.appendChild(a);
     });
   }
@@ -667,7 +777,7 @@ if(location.hash){
 }
 
 document.addEventListener('keydown', function(e){
-  if(e.key === 'Escape' &&
+  if(e.key === 'Escape' && !document.getElementById('ck').classList.contains('on') &&
      document.getElementById('vue-outils').style.display === 'block') retour();
 });
 
@@ -1176,6 +1286,217 @@ function tic(){
     new Date().toLocaleTimeString('fr-FR', { hour12:false });
 }
 tic(); setInterval(tic, 1000);
+</script>
+<script>
+/* ══════════ CHECKLIST ══════════
+   Le fichier vit uniquement dans l'Archive, dossier Checklist/ (noms = RGPD).
+   Rien n'est publié sur le site : on le lit et on l'affiche ici.
+   Chaque enregistrement ajoute un fichier daté et versionné, l'ancien reste :
+     Checklist/Checklist_GDS_LaBrede_v1.3_2026-09-25_12h40.xlsx
+   et une ligne dans Checklist/historique.json.
+   Lecture et téléchargement : tous. Dépôt : admin et admin_restreint. */
+var ACTIONS = { checklist: function(){ ckOuvrir(); } };
+var CK_DOS = 'Checklist/', CK_HISTO = CK_DOS + 'historique.json', CK_NOM = 'Checklist_GDS_LaBrede';
+var ckHist = [], ckCour = null, ckClasseur = null, ckFichier = null;
+var ckPeut = role === 'admin' || role === 'admin_restreint';
+
+function ckEsc(t){ return String(t == null ? '' : t).replace(/[&<>"]/g, function(c){
+  return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); }
+function ck2(n){ return (n < 10 ? '0' : '') + n; }
+function ckDate(iso){ var d = new Date(iso);
+  return ck2(d.getDate()) + '/' + ck2(d.getMonth()+1) + '/' + d.getFullYear() + ' à ' + ck2(d.getHours()) + 'h' + ck2(d.getMinutes()); }
+function ckRefus(r){ if(r.status === 401 || r.status === 403){ dire('Accès refusé par le serveur (' + r.status + ')', 'err'); return true; } return false; }
+function ckCmp(a, b){ var x = a.split('.').map(Number), y = b.split('.').map(Number); return (x[0]-y[0]) || (x[1]-y[1]); }
+function ckSuiv(maj){ if(!ckHist.length) return '1.0';
+  var p = ckHist[ckHist.length-1].version.split('.').map(Number);
+  return maj ? (p[0]+1) + '.0' : p[0] + '.' + (p[1]+1); }
+
+/* Bibliothèque Excel chargée à la première ouverture seulement */
+function ckLib(){
+  if(window.XLSX) return Promise.resolve();
+  function charger(src){ return new Promise(function(ok, ko){
+    var s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = ko; document.head.appendChild(s); }); }
+  return charger('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js')
+    .catch(function(){ return charger('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'); });
+}
+
+async function ckOuvrir(){
+  document.getElementById('ck').classList.add('on');
+  document.getElementById('ck-b-dep').style.display = ckPeut ? '' : 'none';
+  ckVue(true);
+  try {
+    await ckLib();
+    await ckCharger();
+  } catch(e){
+    document.getElementById('ck-acc').textContent = 'Archive inaccessible pour le moment.';
+    document.getElementById('ck-cadre').innerHTML = '<div class="ck-info">Réessayez dans un instant.</div>';
+    return;
+  }
+  if(!ckHist.length){
+    document.getElementById('ck-acc').textContent = ckPeut
+      ? 'Aucune checklist dans l\'archive : déposez le fichier avec « Nouvelle version ».'
+      : 'La checklist n\'est pas encore disponible.';
+    document.getElementById('ck-cadre').innerHTML = '<div class="ck-info">Aucune version enregistrée.</div>';
+    return;
+  }
+  ckAfficher(ckHist[ckHist.length-1]);
+}
+function ckFermer(){ document.getElementById('ck').classList.remove('on'); }
+
+async function ckCharger(){
+  try {
+    var r = await fetch(API + '/archive/' + encodeURIComponent(CK_HISTO), { headers: auth() });
+    if(r.ok){ var d = await r.json(); if(Array.isArray(d.versions)){ ckHist = d.versions; return; } }
+  } catch(e){}
+  var r2 = await fetch(API + '/archive', { method:'POST', headers: auth({ 'Content-Type':'application/json' }),
+    body: JSON.stringify({ prefix: CK_DOS }) });
+  if(ckRefus(r2)) return;
+  if(!r2.ok) throw new Error('archive');
+  var d2 = await r2.json();
+  ckHist = (d2.files || []).filter(function(f){ return f.fileName.indexOf(CK_DOS) === 0 && /\.xls[xm]?$/i.test(f.fileName); })
+    .map(function(f){ var m = f.fileName.match(/_v(\d+)\.(\d+)_/);
+      return { version: m ? m[1] + '.' + m[2] : '1.0', date: new Date(f.uploadTimestamp || Date.now()).toISOString(),
+               auteur:'', note:'', fichier: f.fileName, taille: f.contentLength || 0 }; })
+    .sort(function(a, b){ return ckCmp(a.version, b.version); });
+}
+
+async function ckAfficher(v){
+  ckCour = v;
+  document.getElementById('ck-b-tel').disabled = false;
+  var anc = v !== ckHist[ckHist.length-1];
+  document.getElementById('ck-acc').textContent = anc ? 'Vous consultez une version antérieure.' : 'Version en vigueur.';
+  document.getElementById('ck-ver').innerHTML =
+    '<span class="ck-puce fort">v' + ckEsc(v.version) + '</span><span class="ck-puce">' + ckEsc(ckDate(v.date)) + '</span>' +
+    (v.auteur ? '<span class="ck-puce">par ' + ckEsc(v.auteur) + '</span>' : '') +
+    (anc ? '<span class="ck-puce lien" onclick="ckAfficher(ckHist[ckHist.length-1])">Revenir à la version en vigueur</span>' : '');
+  ckVue(true);
+  var cadre = document.getElementById('ck-cadre');
+  cadre.innerHTML = '<div class="ck-info">Chargement…</div>';
+  document.getElementById('ck-ongl').innerHTML = '';
+  try {
+    var r = await fetch(API + '/archive/' + encodeURIComponent(v.fichier), { headers: auth() });
+    if(ckRefus(r)){ cadre.innerHTML = '<div class="ck-info">Accès refusé.</div>'; return; }
+    if(!r.ok) throw new Error('lecture');
+    ckClasseur = XLSX.read(await r.arrayBuffer(), { type:'array', cellDates:true });
+    var z = document.getElementById('ck-ongl');
+    ckClasseur.SheetNames.forEach(function(n, i){
+      var b = document.createElement('button');
+      b.textContent = n; if(i === 0) b.className = 'on';
+      b.onclick = function(){ z.querySelectorAll('button').forEach(function(x){ x.className = ''; }); b.className = 'on'; ckFeuille(n); };
+      z.appendChild(b);
+    });
+    ckFeuille(ckClasseur.SheetNames[0]);
+  } catch(e){ cadre.innerHTML = '<div class="ck-info">Impossible d\'ouvrir ce fichier.</div>'; }
+}
+
+function ckFeuille(n){
+  var cadre = document.getElementById('ck-cadre');
+  cadre.innerHTML = XLSX.utils.sheet_to_html(ckClasseur.Sheets[n], { editable:false, header:'', footer:'' });
+  var t = cadre.querySelector('table');
+  if(!t){ cadre.innerHTML = '<div class="ck-info">Feuille vide.</div>'; return; }
+  var tete = false;
+  t.querySelectorAll('tr').forEach(function(tr){
+    var tx = Array.prototype.map.call(tr.querySelectorAll('td'), function(c){ return c.textContent.trim(); });
+    if(!tx.filter(Boolean).length){ tr.remove(); return; }
+    if(!tete && tx[0] === 'N°'){ tr.className = 'tete'; tete = true; }
+    else if(!tete) tr.className = 'titre';
+  });
+  cadre.scrollTop = 0;
+}
+
+function ckVue(feuille){
+  document.getElementById('ck-z-f').style.display = feuille ? 'flex' : 'none';
+  document.getElementById('ck-z-h').style.display = feuille ? 'none' : '';
+  document.getElementById('ck-b-hist').textContent = feuille ? 'Historique' : 'Voir la checklist';
+}
+
+function ckHistorique(){
+  if(document.getElementById('ck-z-h').style.display !== 'none'){ ckVue(true); return; }
+  var z = document.getElementById('ck-z-h');
+  if(!ckHist.length){ z.innerHTML = '<div class="ck-info">Aucune version enregistrée.</div>'; }
+  else {
+    var h = '<div class="ck-l tete"><div>Version</div><div>Date</div><div>Par</div><div>Changement</div><div></div></div>';
+    for(var i = ckHist.length-1; i >= 0; i--){ var v = ckHist[i];
+      h += '<div class="ck-l' + (v === ckCour ? ' cour' : '') + '"><div class="m"><b>v' + ckEsc(v.version) + '</b></div>' +
+        '<div class="m">' + ckEsc(ckDate(v.date)) + '</div><div class="n">' + ckEsc(v.auteur || '—') + '</div>' +
+        '<div class="n">' + ckEsc(v.note || '') + '</div><div class="a">' +
+        '<button class="ck-mini" onclick="ckAfficher(ckHist[' + i + '])">Voir</button>' +
+        '<button class="ck-mini" onclick="ckTelecharger(ckHist[' + i + '])">Télécharger</button></div></div>'; }
+    z.innerHTML = h;
+  }
+  ckVue(false);
+}
+
+async function ckTelecharger(v){
+  if(!v) return;
+  try {
+    var r = await fetch(API + '/archive/' + encodeURIComponent(v.fichier), { headers: auth() });
+    if(ckRefus(r)) return;
+    if(!r.ok) throw new Error('lecture');
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(await r.blob());
+    a.download = v.fichier.slice(CK_DOS.length);
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+  } catch(e){ dire('Téléchargement impossible', 'err'); }
+}
+
+function ckSous(){ document.getElementById('ck-d-sous').textContent =
+  'Sera enregistrée en v' + ckSuiv(document.getElementById('ck-d-maj').checked) + ', datée de maintenant. Les versions précédentes restent consultables.'; }
+function ckOuvrirDepot(){
+  if(!ckPeut) return;
+  ckFichier = null;
+  document.getElementById('ck-d-in').value = ''; document.getElementById('ck-d-note').value = '';
+  document.getElementById('ck-d-maj').checked = false;
+  var z = document.getElementById('ck-d-fic'); z.className = 'ck-fic'; z.textContent = 'Choisir le fichier Excel modifié';
+  document.getElementById('ck-d-ok').disabled = true;
+  ckSous();
+  document.getElementById('ck-depot').classList.add('on');
+}
+function ckFermerDepot(){ document.getElementById('ck-depot').classList.remove('on'); }
+document.getElementById('ck-d-maj').onchange = ckSous;
+document.getElementById('ck-d-in').onchange = function(e){
+  var f = e.target.files[0]; if(!f) return;
+  if(!/\.xls[xm]?$/i.test(f.name)){ dire('Choisissez un fichier Excel', 'err'); return; }
+  ckFichier = f;
+  var z = document.getElementById('ck-d-fic'); z.className = 'ck-fic ok'; z.textContent = f.name;
+  document.getElementById('ck-d-ok').disabled = false;
+};
+
+async function ckDeposer(){
+  if(!ckPeut || !ckFichier) return;
+  var b = document.getElementById('ck-d-ok'); b.disabled = true; b.textContent = 'Enregistrement…';
+  try {
+    var buf = await ckFichier.arrayBuffer();
+    XLSX.read(buf, { type:'array' });   /* refuse un fichier illisible */
+    var t = new Date(), ver = ckSuiv(document.getElementById('ck-d-maj').checked);
+    var ext = (ckFichier.name.match(/\.(xlsx|xlsm|xls)$/i) || ['', 'xlsx'])[1].toLowerCase();
+    var chemin = CK_DOS + CK_NOM + '_v' + ver + '_' + t.getFullYear() + '-' + ck2(t.getMonth()+1) + '-' + ck2(t.getDate()) +
+                 '_' + ck2(t.getHours()) + 'h' + ck2(t.getMinutes()) + '.' + ext;
+    var r = await fetch(API + '/archive/' + encodeURIComponent(chemin), { method:'POST',
+      headers: auth({ 'Content-Type':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), body: buf });
+    if(ckRefus(r)) throw new Error('refus');
+    if(!r.ok) throw new Error('envoi');
+    var e = { version: ver, date: t.toISOString(), auteur: nom || '',
+              note: document.getElementById('ck-d-note').value.trim(), fichier: chemin, taille: ckFichier.size };
+    var liste = ckHist.concat([e]);
+    var r2 = await fetch(API + '/archive/' + encodeURIComponent(CK_HISTO), { method:'POST',
+      headers: auth({ 'Content-Type':'application/json' }), body: JSON.stringify({ versions: liste }, null, 1) });
+    if(ckRefus(r2)) throw new Error('refus');
+    if(!r2.ok) throw new Error('historique');
+    ckHist = liste;
+    ckFermerDepot();
+    dire('Version v' + ver + ' enregistrée', 'ok');
+    ckAfficher(e);
+  } catch(err){ if(err.message !== 'refus') dire('Enregistrement impossible', 'err'); }
+  finally { b.disabled = false; b.textContent = 'Enregistrer'; }
+}
+
+document.addEventListener('keydown', function(e){
+  if(e.key !== 'Escape') return;
+  if(document.getElementById('ck-depot').classList.contains('on')) ckFermerDepot();
+  else if(document.getElementById('ck').classList.contains('on')) ckFermer();
+});
 </script>
 <script src="gds_stockstatus.js"></script>
 </body>
