@@ -253,75 +253,6 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
   .grille{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
   .t-ico svg{width:50px;height:50px}
 }
-
-/* ══ CHECKLIST (fichier dans l'Archive uniquement) ══ */
-.ck{position:fixed;inset:0;z-index:60;background:rgba(16,24,44,.55);display:none;
-  align-items:stretch;justify-content:center;padding:24px}
-.ck.on{display:flex}
-.ck-fen{width:min(1320px,100%);background:#eef1f6;border-radius:14px;display:flex;flex-direction:column;
-  overflow:hidden;box-shadow:0 30px 70px -20px rgba(0,0,0,.55)}
-.ck-h{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;padding:18px 22px;background:#fff;
-  border-bottom:1px solid var(--border)}
-.ck-t{flex:1;min-width:220px}
-.ck-t b{font-size:20px;letter-spacing:-.4px}
-.ck-t p{font-size:12.5px;color:var(--text-mid);margin-top:3px}
-.ck-puces{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
-.ck-puce{font-family:'DM Mono',monospace;font-size:10.5px;padding:4px 9px;border-radius:6px;
-  background:#fff;border:1px solid var(--border);color:var(--text-mid)}
-.ck-puce.fort{background:#fdf1ea;border-color:#f3d7c3;color:#a9530f}
-.ck-puce.lien{background:#fdf6e3;border-color:#efe0b8;color:#8a6d1f;cursor:pointer}
-.ck-act{display:flex;gap:8px;flex-wrap:wrap}
-.ck-btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border);cursor:pointer;
-  padding:9px 14px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:12.5px;font-weight:600;
-  color:var(--text-mid);background:#fff}
-.ck-btn:hover{border-color:var(--navy);color:var(--navy)}
-.ck-btn.plein{border-color:transparent;color:#fff;background:linear-gradient(180deg,#2a4576,var(--navy))}
-.ck-btn.orange{border-color:transparent;color:#fff;background:linear-gradient(180deg,#e0843a,var(--orange))}
-.ck-btn.plein:hover,.ck-btn.orange:hover{filter:brightness(1.1);color:#fff}
-.ck-btn:disabled{opacity:.5;cursor:default}
-.ck-c{flex:1;overflow:hidden;display:flex;flex-direction:column;padding:16px 22px 22px}
-.ck-ongl{display:flex;gap:3px;padding:3px;background:#fff;border:1px solid var(--border);border-radius:10px;
-  align-self:flex-start;margin-bottom:12px;flex-wrap:wrap}
-.ck-ongl button{border:none;background:transparent;padding:8px 15px;border-radius:8px;cursor:pointer;
-  font-family:'DM Sans',sans-serif;font-size:12.5px;font-weight:600;color:var(--text-low)}
-.ck-ongl button.on{background:var(--navy);color:#fff}
-.ck-cadre{flex:1;overflow:auto;background:#fff;border:1px solid var(--border);border-radius:12px}
-.ck-feuille{position:relative;margin:14px;background:#fff;transform-origin:0 0}
-.ck-feuille table{border-collapse:collapse;table-layout:fixed;font-family:Calibri,Carlito,Arial,sans-serif;color:#000}
-.ck-feuille td{padding:1px 3px;overflow:hidden;white-space:nowrap;vertical-align:bottom;font-size:11pt}
-.ck-feuille img{position:absolute;pointer-events:none}
-.ck-info{padding:34px;text-align:center;color:var(--text-low);font-size:13px}
-.ck-l{display:grid;grid-template-columns:80px 160px 1fr 1.3fr 180px;gap:12px;align-items:center;
-  padding:10px 14px;border-top:1px solid var(--border);font-size:13px}
-.ck-l:first-child{border-top:none}
-.ck-l.tete{background:#f7f9fc;font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:1.3px;
-  color:var(--text-low);text-transform:uppercase}
-.ck-l.cour{background:#fdf8f3}
-.ck-l .m{font-family:'DM Mono',monospace;font-size:12px;color:var(--text-mid)}
-.ck-l .a{display:flex;gap:6px;justify-content:flex-end}
-.ck-mini{background:#fff;border:1px solid var(--border);border-radius:7px;padding:5px 10px;
-  font-family:'DM Sans',sans-serif;font-size:11.5px;color:var(--text-mid);cursor:pointer}
-.ck-mini:hover{border-color:var(--navy);color:var(--navy)}
-.ck-depot{position:fixed;inset:0;z-index:70;background:rgba(16,24,44,.45);display:none;
-  align-items:center;justify-content:center;padding:20px}
-.ck-depot.on{display:flex}
-.ck-boite{width:min(470px,100%);background:#fff;border-radius:14px;overflow:hidden;
-  box-shadow:0 30px 70px -20px rgba(0,0,0,.55)}
-.ck-boite .h{padding:16px 20px 12px;border-bottom:1px solid var(--border)}
-.ck-boite .h b{font-size:16px}
-.ck-boite .h p{font-size:12.5px;color:var(--text-mid);margin-top:3px}
-.ck-boite .c{padding:16px 20px;display:flex;flex-direction:column;gap:12px;font-size:13px;color:var(--text-mid)}
-.ck-boite .p{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
-.ck-fic{padding:12px;border:2px dashed var(--border-hi);border-radius:10px;text-align:center;cursor:pointer}
-.ck-fic.ok{border-style:solid;border-color:#1d7a5f;color:#1d7a5f}
-.ck-boite input[type=text]{padding:10px 12px;border:1px solid var(--border);border-radius:9px;
-  font-family:'DM Sans',sans-serif;font-size:13.5px;outline:none;width:100%}
-@media (max-width:760px){
-  .ck{padding:0}.ck-fen{border-radius:0}
-  .ck-h,.ck-c{padding-left:16px;padding-right:16px}
-  .ck-l{grid-template-columns:70px 1fr}.ck-l .n,.ck-l .a{grid-column:1 / -1}.ck-l .a{justify-content:flex-start}
-  .ck-l.tete{display:none}
-}
 </style>
 </head>
 <body>
@@ -466,42 +397,6 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
 
 </main>
 
-<div class="ck" id="ck">
-  <div class="ck-fen">
-    <div class="ck-h">
-      <div class="ck-t"><b>Checklist GDS</b><p id="ck-acc">Chargement…</p><div class="ck-puces" id="ck-ver"></div></div>
-      <div class="ck-act">
-        <button class="ck-btn" id="ck-b-hist" onclick="ckHistorique()">Historique</button>
-        <button class="ck-btn plein" id="ck-b-tel" onclick="ckTelecharger(ckCour)" disabled>Télécharger</button>
-        <button class="ck-btn orange" id="ck-b-dep" onclick="ckOuvrirDepot()" style="display:none">Nouvelle version</button>
-        <button class="ck-btn" onclick="ckFermer()">Fermer</button>
-      </div>
-    </div>
-    <div class="ck-c">
-      <div id="ck-z-f" style="display:flex;flex-direction:column;flex:1;min-height:0">
-        <div class="ck-ongl" id="ck-ongl"></div>
-        <div class="ck-cadre" id="ck-cadre"><div class="ck-info">Chargement…</div></div>
-      </div>
-      <div class="ck-cadre" id="ck-z-h" style="display:none"></div>
-    </div>
-  </div>
-</div>
-<div class="ck-depot" id="ck-depot">
-  <div class="ck-boite">
-    <div class="h"><b>Nouvelle version</b><p id="ck-d-sous">—</p></div>
-    <div class="c">
-      <div class="ck-fic" id="ck-d-fic" onclick="document.getElementById('ck-d-in').click()">Choisir le fichier Excel modifié</div>
-      <input type="file" id="ck-d-in" accept=".xlsx,.xlsm,.xls" style="display:none">
-      <input type="text" id="ck-d-note" maxlength="160" placeholder="Ce qui a changé (facultatif)">
-      <label><input type="checkbox" id="ck-d-maj"> Version majeure</label>
-    </div>
-    <div class="p">
-      <button class="ck-btn" onclick="ckFermerDepot()">Annuler</button>
-      <button class="ck-btn plein" id="ck-d-ok" onclick="ckDeposer()" disabled>Enregistrer</button>
-    </div>
-  </div>
-</div>
-
 <div class="toasts" id="toasts"></div>
 
 <script src="config.js"></script>
@@ -557,15 +452,10 @@ var FAMILLES = [
     { nom:'Dashboard Inventaire 2026', f:'dashboard_inventaire_2026.html', ico:'tableau' },
     { nom:'Couverture Inventaire',     f:'couverture_inventaire.html',     ico:'check' }
   ]},
-  { id:'articles', nom:'Articles', ico:'boite', c:'#1f6f8b', desc:'Fiche article et base articles', admin:false, outils:[
-    { nom:'Fiche article', f:'FICHE_ARTICLE_2026.html', ico:'loupe' },
-    { nom:'Base articles', f:'ARTICLES_2026.html',      ico:'boite', roles:['admin','admin_restreint'] }
-  ]},
   { id:'implantation', nom:'Implantation', ico:'plan', c:'#1d7a5f', desc:'Optimisation des emplacements', admin:false, outils:[
     { nom:"Taux d'occupation",     f:'Taux_occupation_FINAL_COMPLET.html', ico:'tableau' },
     { nom:'Emplacements Vides',    f:'emplacements-vides-v2.html',         ico:'vide' },
-    { nom:'Diagonale de Stockage', f:'diagonale-stockage.html',            ico:'regle' },
-    { nom:'Seuil max stockage',    f:'SEUIL_MAX_2026.html',                ico:'courbe', roles:['admin','admin_restreint'] }
+    { nom:'Diagonale de Stockage', f:'diagonale-stockage.html',            ico:'regle' }
   ]},
   { id:'optimisations', nom:'Optimisations', ico:'eclair', c:'#c2701c', desc:'Analyse et amélioration des flux', admin:false, outils:[
     { nom:'Opti BBD 2026',           f:'OPTI_BBD_2026.html',           ico:'agenda' },
@@ -574,8 +464,15 @@ var FAMILLES = [
   ]},
   { id:'danger', nom:'Produits Dangereux', ico:'alerte', c:'#b8342f', desc:'Suivi et conformité réglementaire', admin:false, outils:[
     { nom:'Contrôle ICPE', f:'icpe.html', ico:'alerte', roles:['admin','admin_restreint'] },
-    { nom:'Placement ICPE', f:'placement_icpe.html', ico:'alerte', roles:['admin','admin_restreint'] },
     { nom:'Fiches FDS',    f:'fds.html',  ico:'feuille' }
+  ]},
+  { id:'metro', nom:'Métro', ico:'loupe', c:'#1a6d87', desc:'Écarts de références signalés par Metro',
+    admin:false, roles:['admin','admin_restreint','metro'], outils:[
+    { nom:'Écarts de références', f:'ecarts_refs.html', ico:'loupe' }
+  ]},
+  { id:'reception_metro', nom:'Réception', ico:'colis', c:'#a8452f', desc:'Suivi des DLC du jour',
+    admin:false, roles:['admin','admin_restreint','reception'], outils:[
+    { nom:'Suivi DLC du jour', f:'dlc_jour.html', ico:'horloge' }
   ]},
   { id:'outils', nom:'Outils', ico:'cle', c:'#5b4b8a', desc:'Utilitaires et outils divers', admin:false, outils:[
     { nom:'QR Code 2026 v2',       f:'QR_CODE_2026_v2.html',       ico:'etiq' },
@@ -584,8 +481,7 @@ var FAMILLES = [
   ]},
   { id:'planning', nom:'Planning & Événements', ico:'agenda', c:'#6d5bab', desc:"Calendrier et événements de l'équipe", admin:false, outils:[] },
   { id:'preparation', nom:'Préparation', ico:'camion', c:'#14706b', desc:'Réappros anticipés et préparation entrepôt', admin:false, outils:[
-    { nom:'Réappros Anticipés', f:'reappros_anticipes.html', ico:'camion' },
-    { nom:'Mouvements CT PREP', f:'MVT_CT_PREP_2026.html',  ico:'tableau' }
+    { nom:'Réappros Anticipés', f:'reappros_anticipes.html', ico:'camion' }
   ]},
   { id:'dlc', nom:'DLC', ico:'horloge', c:'#a8452f', desc:'Dates limites de consommation', admin:false, outils:[
     { nom:'DLC v2.0',                f:'dlc_v_2_0.html',               ico:'horloge' },
@@ -599,7 +495,6 @@ var FAMILLES = [
     { nom:'Contrôle Réception', f:'reception.html', ico:'colis' }
   ]},
   { id:'documents', nom:'Documents', ico:'feuille', c:'#2a5f8f', desc:'Procédures, fiches et documents PDF', admin:false, outils:[
-    { nom:'Checklist GDS',          action:'checklist',                  ico:'check' },
     { nom:'Affiche Alerte Retrait', f:'affiche_alerte_retrait.pdf',       ico:'alerte' },
     { nom:'QR Libre IN-1', f:'QR_Libre_IN_1_x10_2025-12-17.pdf', ico:'feuille' },
     { nom:'QR Libre IN-2', f:'QR_Libre_IN_2_x10_2025-12-17.pdf', ico:'feuille' },
@@ -611,6 +506,7 @@ var FAMILLES = [
   { id:'synthese', nom:'Synthèse Admin', ico:'cadenas', c:'#1a2e55', desc:'Tableau de bord administrateur', admin:true, outils:[
     { nom:'KPIs GDS',               f:'KPIS_GDS.html',                      ico:'courbe' },
     { nom:"Taux d'occupation",      f:'Taux_occupation_FINAL_COMPLET.html', ico:'tableau' },
+    { nom:'Checklist GDS',          f:'Checklist_GDS_LaBrede.xlsx',         ico:'check' },
     { nom:'Compléter Base Article', f:'completer_base_article.html',        ico:'boite' }
   ]}
 ];
@@ -642,7 +538,14 @@ if(jeton){
 }
 if(!jeton){ location.replace('index.html'); }
 
-var LIBELLE = { admin:'Administrateur', admin_restreint:'Admin restreint', user:'Utilisateur' };
+var LIBELLE = { admin:'Administrateur', admin_restreint:'Admin restreint',
+                user:'Utilisateur', metro:'Métro', reception:'Réception' };
+
+/* Les profils de l'entrepôt voient tout ce qui n'est pas restreint.
+   Les comptes externes — Métro, Réception — ne voient que les
+   familles qui les nomment explicitement, et rien d'autre. */
+var ROLES_INTERNES = ['admin', 'admin_restreint', 'user'];
+var externe = ROLES_INTERNES.indexOf(role) === -1;
 document.getElementById('moi-nom').textContent  = nom || '—';
 document.getElementById('moi-role').textContent = LIBELLE[role] || role || '—';
 document.getElementById('pastille').textContent =
@@ -675,6 +578,13 @@ function dire(texte, type){
 /* ══════════ ONGLETS ══════════ */
 if(role === 'admin') document.getElementById('ong-admin').style.display = 'block';
 
+/* Un compte externe n'a que ses outils : ni fichiers, ni planning. */
+if(externe){
+  document.querySelectorAll('.ong').forEach(function(b){
+    if(b.dataset.vue !== 'outils') b.style.display = 'none';
+  });
+}
+
 function onglet(v){
   /* L'onglet Outils ramène toujours aux familles, jamais à la
      famille qu'on venait de consulter. */
@@ -696,11 +606,23 @@ var grille = document.getElementById('grille');
 /* roles : liste explicite des profils admis, sur une famille entière
    ou sur un seul outil. À défaut, la règle historique — tout le monde,
    sauf ce qui est marqué admin. */
-function permis(x){ return !x.roles || x.roles.indexOf(role) !== -1; }
-function outilsVus(f){ return f.outils.filter(permis); }
+function permis(x){
+  if(x.roles) return x.roles.indexOf(role) !== -1;
+  return !externe;
+}
+/* Un outil sans mention de rôles suit sa famille : si la famille a
+   nommé ce profil, l'outil lui est ouvert. */
+function outilsVus(f){
+  var nomme = !!(f.roles && f.roles.indexOf(role) !== -1);
+  return f.outils.filter(function(o){
+    if(o.roles) return o.roles.indexOf(role) !== -1;
+    return nomme || !externe;
+  });
+}
 
 FAMILLES.filter(function(f){
   if(f.roles) return permis(f);
+  if(externe) return false;
   return !f.admin || role === 'admin';
 }).forEach(function(f){
   var b = document.createElement('button');
@@ -732,15 +654,11 @@ function ouvrirVue(id){
     vus.forEach(function(o){
       var a = document.createElement('a');
       a.className = 'outil';
-      if(o.action){
-        a.href = '#'; a.onclick = function(e){ e.preventDefault(); ACTIONS[o.action](); };
-      } else {
-        a.href = BASE + o.f; a.target = '_blank'; a.rel = 'noopener';
-      }
+      a.href = BASE + o.f; a.target = '_blank'; a.rel = 'noopener';
       a.style.setProperty('--c', f.c);
       a.innerHTML = '<div class="o-ico">' + svg(o.ico) + '</div>' +
                     '<div class="o-nom">' + o.nom + '</div>' +
-                    '<div class="o-fleche">' + (o.action ? '→' : '↗') + '</div>';
+                    '<div class="o-fleche">↗</div>';
       liste.appendChild(a);
     });
   }
@@ -777,7 +695,7 @@ if(location.hash){
 }
 
 document.addEventListener('keydown', function(e){
-  if(e.key === 'Escape' && !document.getElementById('ck').classList.contains('on') &&
+  if(e.key === 'Escape' &&
      document.getElementById('vue-outils').style.display === 'block') retour();
 });
 
@@ -821,9 +739,7 @@ var dossier = null;   /* dossier ouvert dans la liste, ex. 'FDS' */
 var PREFIXES = [
   'StockStatus_FR_STOREDEPOT_',
   'StorageGroupMappings_FR_STOREDEPOT_',
-  'M_DEPOT report_Emplacement de stk_Table',
-  'data - ',
-  'PRIX_ARTICLES_'
+  'M_DEPOT report_Emplacement de stk_Table'
 ];
 
 var charges = { courant:false, archive:false };
@@ -861,7 +777,6 @@ function choisirEspace(e){
 }
 
 /* ── Lecture ── */
-var DOSSIERS_A_PART = ['MVTS/'];
 async function lister(e){
   var cfg = ESPACES[e];
   var r = await fetch(API + cfg.route, {
@@ -875,19 +790,7 @@ async function lister(e){
   /* Les deux services ne nomment pas leurs champs pareil :
      on les ramène à une forme commune. */
   if(e === 'archive'){
-    var tous = d.files || [];
-    /* La liste de l'archive est plafonnée : avec les nombreuses FDS,
-       les dossiers classés après (MVTS…) sont coupés. On les demande à part. */
-    var vus = {};
-    tous.forEach(function(f){ vus[f.fileName] = 1; });
-    for(var i = 0; i < DOSSIERS_A_PART.length; i++){
-      try {
-        var r2 = await fetch(API + cfg.route, { method:'POST', headers: auth({ 'Content-Type':'application/json' }),
-                                                 body: JSON.stringify({ prefix: DOSSIERS_A_PART[i] }) });
-        if(r2.ok) ((await r2.json()).files || []).forEach(function(f){ if(!vus[f.fileName]){ vus[f.fileName] = 1; tous.push(f); } });
-      } catch(x){}
-    }
-    return tous.map(function(f){
+    return (d.files || []).map(function(f){
       return { nom:f.fileName, taille:f.contentLength || 0, date:f.uploadTimestamp || null };
     });
   }
@@ -1131,50 +1034,8 @@ function avance(pct, texte){
   document.getElementById('je-msg').textContent = texte;
 }
 
-/* Export des mouvements de stock : toujours archivé dans MVTS/,
-   un fichier par journée (dernière date du fichier), jamais supprimé. */
-var RX_MVTS = /^M_DEPOT[ _]?report_Mvt[ _]?stock_Table.*\.csv$/i;
-async function envoyerMvts(f){
-  try {
-    avance(20, 'Lecture de « ' + f.name + ' »…');
-    var texte = await f.text(), jours = texte.match(/^[^,;\n]*[,;](\d{4}-\d{2}-\d{2})[,;]/gm) || [], max = '';
-    jours.forEach(function(l){ var j = l.match(/\d{4}-\d{2}-\d{2}/)[0]; if(j > max) max = j; });
-    if(!max) throw new Error('dates');
-    var nom = 'MVTS/M_DEPOT report_Mvt stock_Table_' + max + '.csv';
-    avance(40, 'Vérification dans MVTS…');
-    var deja = await fetch(API + '/archive', { method:'POST', headers: auth({ 'Content-Type':'application/json' }), body: JSON.stringify({ prefix:'MVTS/' }) });
-    if(deja.ok && ((await deja.json()).files || []).some(function(x){ return x.fileName === nom; })){
-      avance(100, 'Déjà importé.');
-      dire('Déjà importé : les mouvements jusqu\'au ' + max.split('-').reverse().join('/') + ' sont déjà dans MVTS', 'err');
-      setTimeout(function(){ document.getElementById('jauge-envoi').classList.remove('on'); document.getElementById('je-barre').style.width = '0%'; }, 2500);
-      choix.value = '';
-      return;
-    }
-    avance(60, 'Archivage dans MVTS…');
-    var r = await fetch(API + '/archive/' + encodeURIComponent(nom), {
-      method:'POST', headers: auth({ 'Content-Type':'text/csv' }), body: f
-    });
-    if(!r.ok) throw new Error();
-    avance(100, 'Fichier archivé.');
-    dire('Mouvements archivés dans MVTS (jusqu\'au ' + max.split('-').reverse().join('/') + ')', 'ok');
-    setTimeout(function(){
-      document.getElementById('jauge-envoi').classList.remove('on');
-      document.getElementById('je-barre').style.width = '0%';
-    }, 1800);
-    charges.archive = false;
-    if(espace === 'archive') await chargerListe();
-    rafraichirJauges();
-  } catch(e){
-    avance(0, "Échec de l'archivage.");
-    dire(e.message === 'dates' ? 'Fichier mouvements illisible : aucune date trouvée' : 'Archivage impossible', 'err');
-    setTimeout(function(){ document.getElementById('jauge-envoi').classList.remove('on'); }, 2500);
-  }
-  choix.value = '';
-}
-
 async function envoyer(f){
   if(!f) return;
-  if(RX_MVTS.test(f.name)) return envoyerMvts(f);
   var cible = espace;
   try {
     avance(10, 'Vérification de « ' + f.name + ' »…');
@@ -1342,375 +1203,5 @@ function tic(){
 }
 tic(); setInterval(tic, 1000);
 </script>
-<script>
-/* ══════════ CHECKLIST ══════════
-   Le fichier vit uniquement dans l'Archive, dossier Checklist/ (noms = RGPD).
-   Rien n'est publié sur le site : on le lit et on l'affiche ici.
-   Chaque enregistrement ajoute un fichier daté et versionné, l'ancien reste :
-     Checklist/Checklist_GDS_LaBrede_v1.3_2026-09-25_12h40.xlsx
-   et une ligne dans Checklist/historique.json.
-   Lecture et téléchargement : tous. Dépôt : admin et admin_restreint. */
-var ACTIONS = { checklist: function(){ ckOuvrir(); } };
-var CK_DOS = 'Checklist/', CK_HISTO = CK_DOS + 'historique.json', CK_NOM = 'Checklist_GDS_LaBrede';
-var ckHist = [], ckCour = null, ckClasseur = null, ckFichier = null;
-var ckPeut = role === 'admin' || role === 'admin_restreint';
-
-function ckEsc(t){ return String(t == null ? '' : t).replace(/[&<>"]/g, function(c){
-  return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); }
-function ck2(n){ return (n < 10 ? '0' : '') + n; }
-function ckDate(iso){ var d = new Date(iso);
-  return ck2(d.getDate()) + '/' + ck2(d.getMonth()+1) + '/' + d.getFullYear() + ' à ' + ck2(d.getHours()) + 'h' + ck2(d.getMinutes()); }
-function ckRefus(r){ if(r.status === 401 || r.status === 403){ dire('Accès refusé par le serveur (' + r.status + ')', 'err'); return true; } return false; }
-function ckCmp(a, b){ var x = a.split('.').map(Number), y = b.split('.').map(Number); return (x[0]-y[0]) || (x[1]-y[1]); }
-function ckSuiv(maj){ if(!ckHist.length) return '1.0';
-  var p = ckHist[ckHist.length-1].version.split('.').map(Number);
-  return maj ? (p[0]+1) + '.0' : p[0] + '.' + (p[1]+1); }
-
-/* Bibliothèque Excel chargée à la première ouverture seulement */
-function ckLib(){
-  if(window.ExcelJS) return Promise.resolve();
-  function charger(src){ return new Promise(function(ok, ko){
-    var s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = ko; document.head.appendChild(s); }); }
-  return charger('https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js')
-    .catch(function(){ return charger('https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js'); });
-}
-
-async function ckOuvrir(){
-  document.getElementById('ck').classList.add('on');
-  document.getElementById('ck-b-dep').style.display = ckPeut ? '' : 'none';
-  ckVue(true);
-  try {
-    await ckLib();
-    await ckCharger();
-  } catch(e){
-    document.getElementById('ck-acc').textContent = 'Archive inaccessible pour le moment.';
-    document.getElementById('ck-cadre').innerHTML = '<div class="ck-info">Réessayez dans un instant.</div>';
-    return;
-  }
-  if(!ckHist.length){
-    document.getElementById('ck-acc').textContent = ckPeut
-      ? 'Aucune checklist dans l\'archive : déposez le fichier avec « Nouvelle version ».'
-      : 'La checklist n\'est pas encore disponible.';
-    document.getElementById('ck-cadre').innerHTML = '<div class="ck-info">Aucune version enregistrée.</div>';
-    return;
-  }
-  ckAfficher(ckHist[ckHist.length-1]);
-}
-function ckFermer(){ document.getElementById('ck').classList.remove('on'); }
-
-async function ckCharger(){
-  try {
-    var r = await fetch(API + '/archive/' + encodeURIComponent(CK_HISTO), { headers: auth() });
-    if(r.ok){ var d = await r.json(); if(Array.isArray(d.versions)){ ckHist = d.versions; return; } }
-  } catch(e){}
-  var r2 = await fetch(API + '/archive', { method:'POST', headers: auth({ 'Content-Type':'application/json' }),
-    body: JSON.stringify({ prefix: CK_DOS }) });
-  if(ckRefus(r2)) return;
-  if(!r2.ok) throw new Error('archive');
-  var d2 = await r2.json();
-  ckHist = (d2.files || []).filter(function(f){ return f.fileName.indexOf(CK_DOS) === 0 && /\.xls[xm]?$/i.test(f.fileName); })
-    .map(function(f){ var m = f.fileName.match(/_v(\d+)\.(\d+)_/);
-      return { version: m ? m[1] + '.' + m[2] : '1.0', date: new Date(f.uploadTimestamp || Date.now()).toISOString(),
-               auteur:'', note:'', fichier: f.fileName, taille: f.contentLength || 0 }; })
-    .sort(function(a, b){ return ckCmp(a.version, b.version); });
-}
-
-async function ckAfficher(v){
-  ckCour = v;
-  document.getElementById('ck-b-tel').disabled = false;
-  var anc = v !== ckHist[ckHist.length-1];
-  document.getElementById('ck-acc').textContent = anc ? 'Vous consultez une version antérieure.' : 'Version en vigueur.';
-  document.getElementById('ck-ver').innerHTML =
-    '<span class="ck-puce fort">v' + ckEsc(v.version) + '</span><span class="ck-puce">' + ckEsc(ckDate(v.date)) + '</span>' +
-    (v.auteur ? '<span class="ck-puce">par ' + ckEsc(v.auteur) + '</span>' : '') +
-    (anc ? '<span class="ck-puce lien" onclick="ckAfficher(ckHist[ckHist.length-1])">Revenir à la version en vigueur</span>' : '');
-  ckVue(true);
-  var cadre = document.getElementById('ck-cadre');
-  cadre.innerHTML = '<div class="ck-info">Chargement…</div>';
-  document.getElementById('ck-ongl').innerHTML = '';
-  try {
-    var r = await fetch(API + '/archive/' + encodeURIComponent(v.fichier), { headers: auth() });
-    if(ckRefus(r)){ cadre.innerHTML = '<div class="ck-info">Accès refusé.</div>'; return; }
-    if(!r.ok) throw new Error('lecture');
-    ckClasseur = new ExcelJS.Workbook();
-    await ckClasseur.xlsx.load(await r.arrayBuffer());
-    var z = document.getElementById('ck-ongl');
-    ckClasseur.worksheets.filter(function(w){ return w.state !== 'hidden' && w.state !== 'veryHidden'; })
-      .map(function(w){ return w.name; }).forEach(function(n, i){
-      var b = document.createElement('button');
-      b.textContent = n; if(i === 0) b.className = 'on';
-      b.onclick = function(){ z.querySelectorAll('button').forEach(function(x){ x.className = ''; }); b.className = 'on'; ckFeuille(n); };
-      z.appendChild(b);
-    });
-    ckFeuille(z.querySelector('button').textContent);
-  } catch(e){ cadre.innerHTML = '<div class="ck-info">Impossible d\'ouvrir ce fichier.</div>'; }
-}
-
-/* ── Rendu fidèle d'une feuille : largeurs, hauteurs, fusions, polices,
-      couleurs, bordures, alignements, logos. Dates au format français. ── */
-var CK_MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
-var CK_JOURS = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
-
-function ckCouleur(c){
-  if(!c) return '';
-  if(c.argb && c.argb.length === 8) return '#' + c.argb.slice(2);
-  if(c.argb && c.argb.length === 6) return '#' + c.argb;
-  if(c.indexed === 64) return '';
-  return '';
-}
-function ckDateTexte(d, fmt){
-  /* Excel stocke une date sans fuseau : on lit ses composantes UTC */
-  var j = d.getUTCDate(), m = d.getUTCMonth(), a = d.getUTCFullYear();
-  var f = (fmt || '').replace(/\[[^\]]*\]/g, '').replace(/;.*$/, '').toLowerCase();
-  if(f.indexOf('mmmm') !== -1)
-    return (f.indexOf('dddd') !== -1 ? CK_JOURS[d.getUTCDay()] + ' ' : '') + j + ' ' + CK_MOIS[m] + ' ' + a;
-  if(f.indexOf('mmm') !== -1) return j + ' ' + CK_MOIS[m].slice(0, 4).replace(/\.$/, '') + '. ' + a;
-  var t = ck2(j) + '/' + ck2(m + 1) + '/' + a;
-  if(/h/.test(f)) t += ' ' + ck2(d.getUTCHours()) + ':' + ck2(d.getUTCMinutes());
-  return t;
-}
-function ckTexte(c){
-  var v = c.value;
-  if(v && typeof v === 'object' && !(v instanceof Date)){
-    if('result' in v) v = v.result;
-    else if(v.richText) v = v.richText.map(function(x){ return x.text; }).join('');
-    else if('text' in v) v = v.text;
-    else if(v.error) v = v.error;
-    else v = '';
-    if(v && typeof v === 'object' && v.error) v = v.error;
-  }
-  if(v == null) return '';
-  if(v instanceof Date) return ckDateTexte(v, c.numFmt);
-  if(typeof v === 'number'){
-    if(/%/.test(c.numFmt || '')) return (v * 100).toLocaleString('fr-FR') + ' %';
-    return v.toLocaleString('fr-FR', { maximumFractionDigits: 10, useGrouping: false });
-  }
-  if(typeof v === 'boolean') return v ? 'VRAI' : 'FAUX';
-  return String(v);
-}
-function ckBord(b){
-  if(!b || !b.style) return '';
-  var ep = { thin:'1px solid', hair:'1px solid', medium:'2px solid', thick:'3px solid', double:'3px double',
-             dashed:'1px dashed', dotted:'1px dotted', mediumDashed:'2px dashed', dashDot:'1px dashed',
-             mediumDashDot:'2px dashed', dashDotDot:'1px dotted', slantDashDot:'2px dashed' }[b.style] || '1px solid';
-  return ep + ' ' + (ckCouleur(b.color) || '#000');
-}
-function ckStyle(c){
-  var st = [], f = c.font || {}, a = c.alignment || {}, b = c.border || {}, fl = c.fill;
-  if(f.name) st.push("font-family:'" + f.name + "'," + (/calibri/i.test(f.name) ? 'Carlito,' : '') + 'Arial,sans-serif');
-  if(f.size) st.push('font-size:' + f.size + 'pt');
-  if(f.bold) st.push('font-weight:700');
-  if(f.italic) st.push('font-style:italic');
-  if(f.underline) st.push('text-decoration:underline');
-  if(f.strike) st.push('text-decoration:line-through');
-  var col = ckCouleur(f.color); if(col) st.push('color:' + col);
-  if(fl && fl.type === 'pattern' && fl.pattern === 'solid'){
-    var bg = ckCouleur(fl.fgColor); if(bg) st.push('background:' + bg);
-  }
-  var h = a.horizontal;
-  if(h === 'center' || h === 'centerContinuous') st.push('text-align:center');
-  else if(h === 'right') st.push('text-align:right');
-  else if(h === 'justify' || h === 'distributed') st.push('text-align:justify');
-  else if(!h && typeof ckValeur(c) === 'number') st.push('text-align:right');
-  if(a.vertical === 'middle') st.push('vertical-align:middle');
-  else if(a.vertical === 'top') st.push('vertical-align:top');
-  if(a.wrapText) st.push('white-space:normal;word-wrap:break-word');
-  if(a.indent) st.push('padding-left:' + (3 + a.indent * 9) + 'px');
-  ['top','right','bottom','left'].forEach(function(k){ var x = ckBord(b[k]); if(x) st.push('border-' + k + ':' + x); });
-  return st.join(';');
-}
-function ckValeur(c){ var v = c.value; return (v && typeof v === 'object' && 'result' in v) ? v.result : v; }
-
-function ckFeuille(n){
-  var ws = ckClasseur.getWorksheet(n);
-  var cadre = document.getElementById('ck-cadre');
-  if(!ws){ cadre.innerHTML = '<div class="ck-info">Feuille vide.</div>'; return; }
-
-  /* fusions */
-  var fus = {}, cache = {};
-  ((ws.model && ws.model.merges) || []).forEach(function(rg){
-    var p = rg.split(':'); var d = ws.getCell(p[0]), f = ws.getCell(p[1] || p[0]);
-    var r1 = d.row, c1 = d.col, r2 = f.row, c2 = f.col;
-    fus[r1 + ':' + c1] = { rs: r2 - r1 + 1, cs: c2 - c1 + 1 };
-    for(var r = r1; r <= r2; r++) for(var c = c1; c <= c2; c++) if(r !== r1 || c !== c1) cache[r + ':' + c] = 1;
-  });
-
-  /* étendue : dernière ligne / colonne qui porte un contenu ou une bordure */
-  var derL = 0, derC = 0;
-  ws.eachRow({ includeEmpty:false }, function(row, r){
-    row.eachCell({ includeEmpty:false }, function(c, k){
-      var b = c.border || {};
-      if(ckTexte(c) !== '' || b.top || b.bottom || b.left || b.right || (c.fill && c.fill.pattern === 'solid')){
-        if(r > derL) derL = r; if(k > derC) derC = k;
-      }
-    });
-  });
-  var images = ws.getImages();
-  images.forEach(function(im){ var br = im.range.br;
-    if(br){ derL = Math.max(derL, Math.ceil(br.nativeRow) + 1); derC = Math.max(derC, Math.ceil(br.nativeCol) + 1); } });
-  Object.keys(fus).forEach(function(k){ var p = k.split(':').map(Number);
-    derL = Math.max(derL, p[0] + fus[k].rs - 1); derC = Math.max(derC, p[1] + fus[k].cs - 1); });
-  if(!derL){ cadre.innerHTML = '<div class="ck-info">Feuille vide.</div>'; return; }
-
-  /* largeurs (caractères → px) et hauteurs (points → px) */
-  var larg = [], x = [0], haut = [], y = [0];
-  var defL = (ws.properties && ws.properties.defaultColWidth) || 8.43;
-  var defH = (ws.properties && ws.properties.defaultRowHeight) || 15;
-  for(var c = 1; c <= derC; c++){
-    var co = ws.getColumn(c);
-    var w = co.hidden ? 0 : Math.round((co.width || defL) * 7 + 5);
-    larg.push(w); x.push(x[c - 1] + w);
-  }
-  for(var r = 1; r <= derL; r++){
-    var ro = ws.getRow(r);
-    var h = ro.hidden ? 0 : Math.round((ro.height || defH) * 96 / 72);
-    haut.push(h); y.push(y[r - 1] + h);
-  }
-
-  var html = '<table style="width:' + x[derC] + 'px"><colgroup>' +
-    larg.map(function(w){ return '<col style="width:' + w + 'px">'; }).join('') + '</colgroup>';
-  for(var r = 1; r <= derL; r++){
-    html += '<tr style="height:' + haut[r - 1] + 'px' + (haut[r - 1] ? '' : ';display:none') + '">';
-    for(var c = 1; c <= derC; c++){
-      var k = r + ':' + c;
-      if(cache[k]) continue;
-      var cel = ws.getCell(r, c), m = fus[k], tx = ckTexte(cel), sty = ckStyle(cel);
-      /* comme Excel : un texte déborde sur la case voisine si elle est vide */
-      if(tx && !m && !(cel.alignment && cel.alignment.wrapText) && c < derC && !cache[r + ':' + (c + 1)] &&
-         ckTexte(ws.getCell(r, c + 1)) === '') sty += ';overflow:visible';
-      html += '<td' + (m ? (m.rs > 1 ? ' rowspan="' + m.rs + '"' : '') + (m.cs > 1 ? ' colspan="' + m.cs + '"' : '') : '') +
-              ' style="' + sty + '">' + ckEsc(tx) + '</td>';
-    }
-    html += '</tr>';
-  }
-  html += '</table>';
-
-  /* logos, placés comme dans Excel (EMU → px) */
-  images.forEach(function(im){
-    var med = ckClasseur.getImage(im.imageId); if(!med || !med.buffer) return;
-    var tl = im.range.tl, br = im.range.br, px = function(e){ return (e || 0) / 9525; };
-    var cl = Math.floor(tl.nativeCol), rl = Math.floor(tl.nativeRow);
-    var gauche = (x[cl] || 0) + px(tl.nativeColOff), dessus = (y[rl] || 0) + px(tl.nativeRowOff);
-    var l, h;
-    if(br){
-      l = (x[Math.floor(br.nativeCol)] || 0) + px(br.nativeColOff) - gauche;
-      h = (y[Math.floor(br.nativeRow)] || 0) + px(br.nativeRowOff) - dessus;
-    } else if(im.range.ext){ l = im.range.ext.width; h = im.range.ext.height; }
-    if(!(l > 0 && h > 0)) return;
-    var url = URL.createObjectURL(new Blob([med.buffer], { type:'image/' + (med.extension === 'jpg' ? 'jpeg' : med.extension) }));
-    html += '<img src="' + url + '" style="left:' + gauche + 'px;top:' + dessus + 'px;width:' + l + 'px;height:' + h + 'px" alt="">';
-  });
-
-  cadre.innerHTML = '<div class="ck-feuille" id="ck-feuille">' + html + '</div>';
-  ckAjuster();
-  cadre.scrollTop = 0; cadre.scrollLeft = 0;
-}
-
-/* Ajuste la feuille à la largeur de la fenêtre, comme un aperçu Excel */
-function ckAjuster(){
-  var f = document.getElementById('ck-feuille'); if(!f) return;
-  var t = f.querySelector('table'); if(!t) return;
-  f.style.zoom = 1;
-  var dispo = document.getElementById('ck-cadre').clientWidth - 30;
-  var z = Math.min(1, dispo / t.offsetWidth);
-  f.style.zoom = z > 0.35 ? z : 0.35;
-}
-window.addEventListener('resize', function(){ if(document.getElementById('ck').classList.contains('on')) ckAjuster(); });
-
-function ckVue(feuille){
-  document.getElementById('ck-z-f').style.display = feuille ? 'flex' : 'none';
-  document.getElementById('ck-z-h').style.display = feuille ? 'none' : '';
-  document.getElementById('ck-b-hist').textContent = feuille ? 'Historique' : 'Voir la checklist';
-}
-
-function ckHistorique(){
-  if(document.getElementById('ck-z-h').style.display !== 'none'){ ckVue(true); return; }
-  var z = document.getElementById('ck-z-h');
-  if(!ckHist.length){ z.innerHTML = '<div class="ck-info">Aucune version enregistrée.</div>'; }
-  else {
-    var h = '<div class="ck-l tete"><div>Version</div><div>Date</div><div>Par</div><div>Changement</div><div></div></div>';
-    for(var i = ckHist.length-1; i >= 0; i--){ var v = ckHist[i];
-      h += '<div class="ck-l' + (v === ckCour ? ' cour' : '') + '"><div class="m"><b>v' + ckEsc(v.version) + '</b></div>' +
-        '<div class="m">' + ckEsc(ckDate(v.date)) + '</div><div class="n">' + ckEsc(v.auteur || '—') + '</div>' +
-        '<div class="n">' + ckEsc(v.note || '') + '</div><div class="a">' +
-        '<button class="ck-mini" onclick="ckAfficher(ckHist[' + i + '])">Voir</button>' +
-        '<button class="ck-mini" onclick="ckTelecharger(ckHist[' + i + '])">Télécharger</button></div></div>'; }
-    z.innerHTML = h;
-  }
-  ckVue(false);
-}
-
-async function ckTelecharger(v){
-  if(!v) return;
-  try {
-    var r = await fetch(API + '/archive/' + encodeURIComponent(v.fichier), { headers: auth() });
-    if(ckRefus(r)) return;
-    if(!r.ok) throw new Error('lecture');
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(await r.blob());
-    a.download = v.fichier.slice(CK_DOS.length);
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
-  } catch(e){ dire('Téléchargement impossible', 'err'); }
-}
-
-function ckSous(){ document.getElementById('ck-d-sous').textContent =
-  'Sera enregistrée en v' + ckSuiv(document.getElementById('ck-d-maj').checked) + ', datée de maintenant. Les versions précédentes restent consultables.'; }
-function ckOuvrirDepot(){
-  if(!ckPeut) return;
-  ckFichier = null;
-  document.getElementById('ck-d-in').value = ''; document.getElementById('ck-d-note').value = '';
-  document.getElementById('ck-d-maj').checked = false;
-  var z = document.getElementById('ck-d-fic'); z.className = 'ck-fic'; z.textContent = 'Choisir le fichier Excel modifié';
-  document.getElementById('ck-d-ok').disabled = true;
-  ckSous();
-  document.getElementById('ck-depot').classList.add('on');
-}
-function ckFermerDepot(){ document.getElementById('ck-depot').classList.remove('on'); }
-document.getElementById('ck-d-maj').onchange = ckSous;
-document.getElementById('ck-d-in').onchange = function(e){
-  var f = e.target.files[0]; if(!f) return;
-  if(!/\.xls[xm]?$/i.test(f.name)){ dire('Choisissez un fichier Excel', 'err'); return; }
-  ckFichier = f;
-  var z = document.getElementById('ck-d-fic'); z.className = 'ck-fic ok'; z.textContent = f.name;
-  document.getElementById('ck-d-ok').disabled = false;
-};
-
-async function ckDeposer(){
-  if(!ckPeut || !ckFichier) return;
-  var b = document.getElementById('ck-d-ok'); b.disabled = true; b.textContent = 'Enregistrement…';
-  try {
-    var buf = await ckFichier.arrayBuffer();
-    await new ExcelJS.Workbook().xlsx.load(buf.slice(0));   /* refuse un fichier illisible */
-    var t = new Date(), ver = ckSuiv(document.getElementById('ck-d-maj').checked);
-    var ext = (ckFichier.name.match(/\.(xlsx|xlsm|xls)$/i) || ['', 'xlsx'])[1].toLowerCase();
-    var chemin = CK_DOS + CK_NOM + '_v' + ver + '_' + t.getFullYear() + '-' + ck2(t.getMonth()+1) + '-' + ck2(t.getDate()) +
-                 '_' + ck2(t.getHours()) + 'h' + ck2(t.getMinutes()) + '.' + ext;
-    var r = await fetch(API + '/archive/' + encodeURIComponent(chemin), { method:'POST',
-      headers: auth({ 'Content-Type':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), body: buf });
-    if(ckRefus(r)) throw new Error('refus');
-    if(!r.ok) throw new Error('envoi');
-    var e = { version: ver, date: t.toISOString(), auteur: nom || '',
-              note: document.getElementById('ck-d-note').value.trim(), fichier: chemin, taille: ckFichier.size };
-    var liste = ckHist.concat([e]);
-    var r2 = await fetch(API + '/archive/' + encodeURIComponent(CK_HISTO), { method:'POST',
-      headers: auth({ 'Content-Type':'application/json' }), body: JSON.stringify({ versions: liste }, null, 1) });
-    if(ckRefus(r2)) throw new Error('refus');
-    if(!r2.ok) throw new Error('historique');
-    ckHist = liste;
-    ckFermerDepot();
-    dire('Version v' + ver + ' enregistrée', 'ok');
-    ckAfficher(e);
-  } catch(err){ if(err.message !== 'refus') dire('Enregistrement impossible', 'err'); }
-  finally { b.disabled = false; b.textContent = 'Enregistrer'; }
-}
-
-document.addEventListener('keydown', function(e){
-  if(e.key !== 'Escape') return;
-  if(document.getElementById('ck-depot').classList.contains('on')) ckFermerDepot();
-  else if(document.getElementById('ck').classList.contains('on')) ckFermer();
-});
-</script>
-<script src="gds_stockstatus.js"></script>
 </body>
 </html>
