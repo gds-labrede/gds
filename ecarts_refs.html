@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GDS — Écarts de références</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#eef1f6; --white:#fff;
+  --border:#e2e7ef; --border-hi:#c9d2e0;
+  --text:#16203a; --text-mid:#5c6883; --text-low:#98a1b5;
+  --navy:#1a2e55; --orange:#c2701c; --rouge:#b8342f; --vert:#1d7a5f; --bleu:#4a55a8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+.bar{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:14px;
+  padding:0 32px;height:60px;background:var(--white);
+  border-bottom:1px solid var(--border);box-shadow:0 1px 3px rgba(20,32,60,.07)}
+.logo{display:flex;align-items:baseline;gap:10px}
+.logo b{font-size:18px;font-weight:700;letter-spacing:-.4px}
+.logo span{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--text-low)}
+.sp{flex:1}
+.lien{display:inline-flex;align-items:center;gap:7px;background:var(--white);
+  border:1px solid var(--border);border-radius:8px;padding:8px 13px;color:var(--text-mid);
+  font-family:'DM Sans',sans-serif;font-size:12.5px;text-decoration:none;cursor:pointer;
+  transition:border-color .18s,color .18s}
+.lien:hover{border-color:var(--border-hi);color:var(--text)}
+.pastille{width:33px;height:33px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,#2a4576,var(--navy));color:#fff;font-size:12px;font-weight:700}
+
+.page{max-width:1500px;margin:0 auto;padding:30px 32px 60px}
+h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
+.accroche{font-size:13.5px;color:var(--text-mid);margin-top:5px;margin-bottom:20px}
+
+/* ══ COMPTEURS ══ */
+.bilan{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:18px}
+.bil{background:linear-gradient(180deg,#fff,#fbfcfe);border:1px solid var(--border);border-radius:12px;
+  padding:14px 16px;box-shadow:0 1px 2px rgba(20,32,60,.05),inset 0 1px 0 #fff;cursor:pointer;
+  transition:border-color .18s,box-shadow .18s,transform .18s}
+.bil:hover{transform:translateY(-2px);box-shadow:0 10px 22px -12px rgba(20,32,60,.4)}
+.bil.on{border-color:var(--navy);box-shadow:0 0 0 1px var(--navy),0 10px 22px -12px rgba(20,32,60,.4)}
+.bil-v{font-size:23px;font-weight:700;letter-spacing:-.6px}
+.bil-l{font-size:12px;color:var(--text-mid);margin-top:2px}
+.bil-s{font-size:11px;color:var(--text-low);margin-top:3px}
+.bil.confirme .bil-v{color:var(--rouge)}
+.bil.nouveau  .bil-v{color:var(--bleu)}
+.bil.resorbe  .bil-v{color:var(--vert)}
+.bil.tous     .bil-v{color:var(--navy)}
+
+/* ══ FILTRES ══ */
+.filtres{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.recherche{flex:1;min-width:220px;padding:11px 14px;border:1px solid var(--border);border-radius:10px;
+  font-family:'DM Sans',sans-serif;font-size:13.5px;background:var(--white);outline:none;color:var(--text)}
+.recherche:focus{border-color:var(--navy)}
+select{padding:11px 13px;border:1px solid var(--border);border-radius:10px;background:var(--white);
+  font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);outline:none;cursor:pointer}
+select:focus{border-color:var(--navy)}
+.export{padding:11px 18px;border:none;border-radius:10px;cursor:pointer;
+  background:linear-gradient(180deg,#f0913f,#d46c1a);color:#fff;
+  font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;
+  box-shadow:0 6px 14px -8px rgba(196,112,28,.9)}
+.export:hover{filter:brightness(1.07)}
+
+/* ══ LISTE ══ */
+.liste{background:var(--white);border:1px solid var(--border);border-radius:13px;overflow:hidden;
+  box-shadow:0 1px 3px rgba(20,32,60,.06)}
+.ligne{display:grid;grid-template-columns:118px 1fr 104px 110px 1fr;gap:14px;align-items:center;
+  padding:11px 18px;border-bottom:1px solid #f1f4f9}
+.ligne:last-child{border-bottom:none}
+.ligne:hover:not(.tete){background:#f8fafd}
+.ligne.tete{background:#fbfcfe;border-bottom:1px solid var(--border);
+  font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.2px;
+  color:var(--text-low);text-transform:uppercase;position:sticky;top:60px}
+.mgb{font-family:'DM Mono',monospace;font-size:12.5px;color:var(--text-mid)}
+.lib{font-size:13.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.num{font-family:'DM Mono',monospace;font-size:13.5px;font-weight:600;text-align:right}
+.num.plus{color:var(--vert)}
+.num.moins{color:var(--rouge)}
+
+.etat{display:inline-block;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;
+  letter-spacing:.7px;padding:4px 8px;border-radius:5px;border:1px solid}
+.etat.confirme{background:#fdeaea;color:var(--rouge);border-color:#f2c2c2}
+.etat.nouveau{background:#eef0fb;color:var(--bleu);border-color:#ccd2ee}
+.etat.resorbe{background:#e8f5f0;color:var(--vert);border-color:#bfe2d6}
+
+/* ══ HISTORIQUE ══ */
+.histo{display:flex;gap:4px;align-items:flex-end;height:30px}
+.jour{width:30px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.pt{width:26px;height:18px;border-radius:4px;display:flex;align-items:center;justify-content:center;
+  font-family:'DM Mono',monospace;font-size:9.5px;font-weight:600}
+.pt.vide{background:#f1f4f9;color:var(--text-low)}
+.pt.plus{background:#e8f5f0;color:var(--vert)}
+.pt.moins{background:#fdeaea;color:var(--rouge)}
+.jl{font-family:'DM Mono',monospace;font-size:8.5px;color:var(--text-low)}
+
+.info{padding:34px;text-align:center;color:var(--text-low);font-size:13px;line-height:1.7}
+.reste{padding:12px;text-align:center;color:var(--text-low);font-size:12px;border-top:1px solid var(--border)}
+.note{background:#fdf3e7;border:1px solid #f0d5b0;color:#8a5414;border-radius:10px;
+  padding:11px 15px;font-size:12.5px;margin-bottom:14px}
+
+.toasts{position:fixed;bottom:22px;right:22px;z-index:100;display:flex;flex-direction:column;gap:9px;align-items:flex-end}
+.toast{background:var(--navy);color:#fff;padding:12px 17px;border-radius:10px;font-size:13px;
+  box-shadow:0 10px 30px -8px rgba(20,32,60,.5)}
+.toast.ok{background:linear-gradient(180deg,#22916f,#1d7a5f)}
+.toast.err{background:linear-gradient(180deg,#c44540,#b8342f)}
+
+*:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+@media(max-width:900px){
+  .bar{padding:0 16px}
+  .page{padding:22px 16px 44px}
+  .ligne{grid-template-columns:1fr 92px 104px}
+  .ligne .mgb,.ligne .histo{display:none}
+  .ligne.tete{display:none}
+}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="logo"><b>GDS</b><span>ÉCARTS</span></div>
+  <div class="sp"></div>
+  <a class="lien" href="sommaire.html#metro">← Tableau de bord</a>
+  <div class="pastille" id="pastille">–</div>
+</header>
+
+<main class="page">
+  <h1>Écarts de références</h1>
+  <p class="accroche" id="accroche">Chargement…</p>
+
+  <div id="avis"></div>
+
+  <div class="bilan">
+    <div class="bil confirme" onclick="vue('confirme')" id="v-confirme">
+      <div class="bil-v" id="n-confirme">—</div><div class="bil-l">Écarts confirmés</div>
+      <div class="bil-s">présents 2 jours ou plus</div></div>
+    <div class="bil nouveau" onclick="vue('nouveau')" id="v-nouveau">
+      <div class="bil-v" id="n-nouveau">—</div><div class="bil-l">Apparus aujourd'hui</div>
+      <div class="bil-s">à ne pas réguler tout de suite</div></div>
+    <div class="bil resorbe" onclick="vue('resorbe')" id="v-resorbe">
+      <div class="bil-v" id="n-resorbe">—</div><div class="bil-l">Résorbés depuis hier</div>
+      <div class="bil-s">partis seuls, sans intervention</div></div>
+    <div class="bil tous" onclick="vue('tous')" id="v-tous">
+      <div class="bil-v" id="n-tous">—</div><div class="bil-l">Écarts du jour</div>
+      <div class="bil-s" id="s-tous">—</div></div>
+  </div>
+
+  <div class="filtres">
+    <input type="text" class="recherche" id="rech" placeholder="Rechercher un MGB ou une désignation…">
+    <select id="f-sens">
+      <option value="">Dans les deux sens</option>
+      <option value="plus">Excédent — dépôt &gt; MMS</option>
+      <option value="moins">Manquant — dépôt &lt; MMS</option>
+    </select>
+    <select id="f-taille">
+      <option value="">Toutes tailles d'écart</option>
+      <option value="1">À partir de 1</option>
+      <option value="3">À partir de 3</option>
+      <option value="10">À partir de 10</option>
+      <option value="50">À partir de 50</option>
+    </select>
+    <select id="f-consigne">
+      <option value="">Tout</option>
+      <option value="hors">Hors emballages consignés</option>
+      <option value="seul">Emballages consignés seuls</option>
+    </select>
+    <button class="export" onclick="exporter()">Exporter</button>
+  </div>
+
+  <div class="liste" id="liste"><div class="info">Chargement…</div></div>
+</main>
+
+<div class="toasts" id="toasts"></div>
+
+<script src="config.js"></script>
+<script>
+if (typeof GDS === 'undefined') {
+  document.body.innerHTML = '<p style="font-family:sans-serif;padding:40px">Fichier config.js absent.</p>';
+  throw new Error('config.js absent');
+}
+var API = GDS.API, CLE_PUBLIQUE = GDS.CLE_PUBLIQUE;
+
+/* ─────────────────────────────────────────────────────────
+   Réglages métier
+
+   Metro dépose chaque jour un classeur « Ecart_JJMM.xlsx ».
+   Un écart vu un seul jour ne veut rien dire : la facturation
+   retombe au moins 24 h plus tard et en efface une partie.
+   Réguler dès le premier jour, c'est corriger un stock qui
+   allait se corriger tout seul. On ne retient donc que ce qui
+   tient deux jours de suite.
+   ───────────────────────────────────────────────────────── */
+
+var PREFIXE     = 'ecart';                       /* début du nom des classeurs */
+var FEUILLE     = /discrep|ecart|écart/i;        /* la feuille à lire dedans   */
+var HISTO       = 'systeme/ecarts_histo.csv';    /* la mémoire des jours passés */
+var JOURS_GARDE = 30;                            /* profondeur conservée        */
+var JOURS_VUS   = 7;                             /* colonnes affichées          */
+var MAX_LIGNES  = 400;
+var CONSIGNE    = /\bvide\b|consigne|\bfut\b|\bcaisse\b|\bcfp\b|\bcais\./i;
+
+/* ══════════ SESSION ══════════ */
+function lire(c){
+  try { return sessionStorage.getItem(c) || localStorage.getItem(c); } catch(e){ return null; }
+}
+var jeton = lire('gds_jeton'), role = lire('gds_role'), nom = lire('gds_nom');
+if(!jeton) alert('Session absente.\n\nOuvrez cet outil depuis le sommaire.');
+
+var peutEcrire = (role === 'admin' || role === 'metro');
+
+document.getElementById('pastille').textContent =
+  (nom || '?').split(' ').map(function(m){ return m[0]; }).join('').slice(0,2).toUpperCase();
+
+function auth(sup){
+  var h = { 'Authorization':'Bearer ' + CLE_PUBLIQUE, 'apikey':CLE_PUBLIQUE, 'X-GDS-Session':jeton };
+  if(sup) for(var k in sup) h[k] = sup[k];
+  return h;
+}
+function dire(t, type){
+  var d = document.createElement('div');
+  d.className = 'toast' + (type ? ' ' + type : '');
+  d.textContent = t;
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){ d.remove(); }, 4000);
+}
+function refus(r){
+  if(r.status === 401 || r.status === 403){ dire('Accès refusé par le serveur (' + r.status + ')', 'err'); return true; }
+  return false;
+}
+
+/* ══════════ LECTURE XLSX ══════════
+   Décompression par le navigateur lui-même : pas de bibliothèque
+   à charger depuis l'extérieur, donc rien qui puisse être bloqué
+   par un réseau d'entreprise. */
+
+function entreesZip(buf){
+  var v = new DataView(buf), n = buf.byteLength, fin = -1;
+  for(var i = n - 22; i >= 0 && i > n - 65558; i--)
+    if(v.getUint32(i, true) === 0x06054b50){ fin = i; break; }
+  if(fin < 0) throw new Error('classeur illisible');
+
+  var nb = v.getUint16(fin + 10, true), pos = v.getUint32(fin + 16, true), liste = [];
+  for(var k = 0; k < nb; k++){
+    if(v.getUint32(pos, true) !== 0x02014b50) break;
+    var lnom = v.getUint16(pos + 28, true);
+    liste.push({
+      nom:     new TextDecoder('utf-8').decode(new Uint8Array(buf, pos + 46, lnom)),
+      methode: v.getUint16(pos + 10, true),
+      taille:  v.getUint32(pos + 20, true),
+      debut:   v.getUint32(pos + 42, true)
+    });
+    pos += 46 + lnom + v.getUint16(pos + 30, true) + v.getUint16(pos + 32, true);
+  }
+  return liste;
+}
+
+async function extraire(buf, e){
+  var v = new DataView(buf);
+  if(v.getUint32(e.debut, true) !== 0x04034b50) throw new Error('classeur abîmé');
+  var debut = e.debut + 30 + v.getUint16(e.debut + 26, true) + v.getUint16(e.debut + 28, true);
+  var brut  = new Uint8Array(buf, debut, e.taille);
+
+  if(e.methode === 0) return new TextDecoder('utf-8').decode(brut);
+  if(e.methode !== 8) throw new Error('compression non gérée');
+  if(typeof DecompressionStream === 'undefined')
+    throw new Error('navigateur trop ancien pour ouvrir un classeur Excel');
+
+  var flux = new Blob([brut]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  return await new Response(flux).text();
+}
+
+function deséchappe(s){
+  return String(s).replace(/&lt;/g,'<').replace(/&gt;/g,'>')
+                  .replace(/&quot;/g,'"').replace(/&apos;/g,"'")
+                  .replace(/&#(\d+);/g, function(_, n){ return String.fromCharCode(+n); })
+                  .replace(/&amp;/g,'&');
+}
+function textesDe(x){
+  return deséchappe((x.match(/<t[^>]*>([\s\S]*?)<\/t>/g) || []).map(function(t){
+    return t.replace(/<t[^>]*>/, '').replace(/<\/t>/, '');
+  }).join(''));
+}
+function feuillesDe(wb, rels){
+  var cibles = {};
+  (rels.match(/<Relationship\b[^>]*\/>/g) || []).forEach(function(r){
+    var id = (r.match(/Id="([^"]+)"/) || [])[1];
+    var t  = (r.match(/Target="([^"]+)"/) || [])[1];
+    if(id && t) cibles[id] = t.replace(/^\/?xl\//, '').replace(/^\.\.\//, '');
+  });
+  var out = [];
+  (wb.match(/<sheet\b[^>]*\/>/g) || []).forEach(function(s){
+    var n = (s.match(/name="([^"]+)"/) || [])[1];
+    var i = (s.match(/r:id="([^"]+)"/) || [])[1];
+    if(n && cibles[i]) out.push({ nom: deséchappe(n), fichier: 'xl/' + cibles[i] });
+  });
+  return out;
+}
+function colonne(ref){
+  var m = String(ref).match(/^([A-Z]+)/); if(!m) return 0;
+  var n = 0;
+  for(var i = 0; i < m[1].length; i++) n = n * 26 + (m[1].charCodeAt(i) - 64);
+  return n - 1;
+}
+/* Tout est rendu en texte : un code article garde ses zéros de tête. */
+function lignesDe(xml, chaines){
+  var out = [];
+  (xml.match(/<row\b[^>]*>[\s\S]*?<\/row>/g) || []).forEach(function(r){
+    var ligne = [];
+    (r.match(/<c\b[^>]*?(?:\/>|>[\s\S]*?<\/c>)/g) || []).forEach(function(c){
+      var ref = (c.match(/\br="([A-Z]+\d+)"/) || [])[1];
+      var t   = (c.match(/\bt="([^"]+)"/) || [])[1] || 'n';
+      var v;
+      if(t === 'inlineStr') v = textesDe(c);
+      else {
+        var mv = c.match(/<v>([\s\S]*?)<\/v>/);
+        v = mv ? deséchappe(mv[1]) : '';
+        if(t === 's') v = chaines[parseInt(v, 10)] || '';
+      }
+      ligne[ref ? colonne(ref) : ligne.length] = v;
+    });
+    for(var i = 0; i < ligne.length; i++) if(ligne[i] === undefined) ligne[i] = '';
+    out.push(ligne);
+  });
+  return out;
+}
+
+async function lireClasseur(buf){
+  var e = entreesZip(buf);
+  var trouve = function(n){
+    for(var i = 0; i < e.length; i++) if(e[i].nom === n) return e[i];
+    return null;
+  };
+  var wb = await extraire(buf, trouve('xl/workbook.xml'));
+  var rl = await extraire(buf, trouve('xl/_rels/workbook.xml.rels'));
+
+  var fs = feuillesDe(wb, rl);
+  var cible = null;
+  for(var i = 0; i < fs.length; i++) if(FEUILLE.test(fs[i].nom)) cible = fs[i];
+  if(!cible) cible = fs[fs.length - 1];
+  if(!cible) throw new Error('aucune feuille exploitable');
+
+  var ssE = trouve('xl/sharedStrings.xml');
+  var chaines = [];
+  if(ssE){
+    var ss = await extraire(buf, ssE);
+    chaines = (ss.match(/<si>[\s\S]*?<\/si>|<si\/>/g) || []).map(textesDe);
+  }
+  return lignesDe(await extraire(buf, trouve(cible.fichier)), chaines);
+}
+
+/* ══════════ DONNÉES ══════════ */
+var jours = {};      /* '2026-09-25' → { mgb → { lib, ec } } */
+var articles = [];
+var mode = 'confirme';
+var jourDuJour = '';
+var ordreJours = [];
+
+function nombre(v){
+  var n = parseFloat(String(v == null ? '' : v).replace(/\s/g, '').replace(',', '.'));
+  return isNaN(n) ? null : n;
+}
+function netMGB(v){ return String(v == null ? '' : v).trim().replace(/^'/, '').replace(/\s+/g, ''); }
+
+/* Le nom du classeur porte le jour : Ecart_2509 → 25 septembre.
+   Un mois dans le futur appartient à l'année précédente. */
+function jourDuNom(n){
+  var m = String(n).match(/(\d{2})(\d{2})/);
+  if(!m) return null;
+  var j = parseInt(m[1], 10), mo = parseInt(m[2], 10);
+  if(j < 1 || j > 31 || mo < 1 || mo > 12) return null;
+  var d = new Date(), an = d.getFullYear();
+  if(mo > d.getMonth() + 1) an--;
+  return an + '-' + String(mo).padStart(2, '0') + '-' + String(j).padStart(2, '0');
+}
+function joli(iso){
+  var p = String(iso).split('-');
+  return p.length === 3 ? p[2] + '/' + p[1] : iso;
+}
+
+async function listerCourant(){
+  var r = await fetch(API + '/fichiers', {
+    method:'POST', headers: auth({ 'Content-Type':'application/json' }),
+    body: JSON.stringify({ prefix: '' })
+  });
+  if(refus(r)) return [];
+  if(!r.ok) throw new Error('liste des fichiers indisponible');
+  var l = await r.json();
+  return Array.isArray(l) ? l : [];
+}
+
+async function lireHisto(){
+  var r = await fetch(API + '/fichier/' + encodeURIComponent(HISTO), { headers: auth() });
+  if(r.status === 404) return;
+  if(refus(r)) return;
+  if(!r.ok) return;
+
+  var t = await r.text();
+  t.split(/\r?\n/).slice(1).forEach(function(l){
+    if(!l) return;
+    var c = l.split(';');
+    if(c.length < 4) return;
+    var j = c[0].trim(), m = netMGB(c[1]);
+    if(!j || !m) return;
+    if(!jours[j]) jours[j] = {};
+    jours[j][m] = { lib: c[2] || '', ec: nombre(c[3]) || 0 };
+  });
+}
+
+async function enregistrerHisto(){
+  var cles = Object.keys(jours).sort().slice(-JOURS_GARDE);
+  var lignes = ['JOUR;MGB;DESIGNATION;ECART'];
+  cles.forEach(function(j){
+    var d = jours[j];
+    Object.keys(d).forEach(function(m){
+      lignes.push(j + ';' + m + ';' + String(d[m].lib).replace(/[;\r\n]/g, ' ') + ';' + d[m].ec);
+    });
+  });
+  var csv = lignes.join('\r\n') + '\r\n';
+  var r = await fetch(API + '/fichier/' + encodeURIComponent(HISTO), {
+    method:'POST', headers: auth({ 'Content-Type':'text/csv' }),
+    body: new Blob([csv], { type:'text/csv' })
+  });
+  if(!r.ok) throw new Error('historique non enregistré');
+}
+
+/* Un classeur de 7 Mo ne se relit pas pour rien : on ne l'ouvre
+   que si sa journée manque encore à l'historique. */
+async function absorber(fichier, jour){
+  dire('Lecture du classeur du ' + joli(jour) + '…');
+  var r = await fetch(API + '/fichier/' + encodeURIComponent(fichier.name), { headers: auth() });
+  if(refus(r)) throw new Error('refus');
+  if(!r.ok) throw new Error('classeur illisible');
+
+  var L = await lireClasseur(await r.arrayBuffer());
+  if(!L.length) throw new Error('classeur vide');
+
+  var t = L[0].map(function(h){ return String(h).trim().toLowerCase(); });
+  var trouve = function(re){ for(var i = 0; i < t.length; i++) if(re.test(t[i])) return i; return -1; };
+
+  var iM = trouve(/article number|mgb/);
+  var iL = trouve(/article name|designation|désignation|libell/);
+  var iD = trouve(/^difference$|^différence$/);
+  var iE = trouve(/^ecarts?$|^écarts?$/);
+  if(iM === -1) throw new Error('colonne MGB introuvable dans le classeur');
+
+  var d = {};
+  for(var k = 1; k < L.length; k++){
+    var mgb = netMGB(L[k][iM]);
+    if(!mgb || /^article/i.test(mgb)) continue;
+
+    /* Excel écrit #VALUE! dans la colonne Ecarts pour les articles
+       au poids. La colonne Difference, elle, reste juste : l'écart
+       en est l'opposé. On s'appuie dessus en priorité. */
+    var ec = (iD !== -1) ? nombre(L[k][iD]) : null;
+    ec = (ec !== null) ? -ec : (iE !== -1 ? nombre(L[k][iE]) : null);
+    if(ec === null) continue;
+
+    ec = Math.round(ec * 100) / 100;
+    if(ec === 0) continue;
+    d[mgb] = { lib: iL !== -1 ? String(L[k][iL]).trim() : '', ec: ec };
+  }
+  jours[jour] = d;
+}
+
+/* ══════════ CONSTRUCTION ══════════ */
+function construire(){
+  ordreJours = Object.keys(jours).sort().slice(-JOURS_VUS);
+  jourDuJour = ordreJours[ordreJours.length - 1] || '';
+  var veille = ordreJours[ordreJours.length - 2] || '';
+
+  var vus = {};
+  ordreJours.forEach(function(j){
+    Object.keys(jours[j]).forEach(function(m){ vus[m] = true; });
+  });
+
+  articles = Object.keys(vus).map(function(m){
+    var suite = ordreJours.map(function(j){
+      return jours[j][m] ? jours[j][m].ec : null;
+    });
+    var lib = '';
+    for(var i = ordreJours.length - 1; i >= 0; i--)
+      if(jours[ordreJours[i]][m]){ lib = jours[ordreJours[i]][m].lib; break; }
+
+    var auj  = jours[jourDuJour] && jours[jourDuJour][m] ? jours[jourDuJour][m].ec : null;
+    var hier = veille && jours[veille] && jours[veille][m] ? jours[veille][m].ec : null;
+
+    /* Jours consécutifs jusqu'à aujourd'hui */
+    var tenue = 0;
+    for(var k = suite.length - 1; k >= 0 && suite[k] !== null; k--) tenue++;
+
+    var etat;
+    if(auj === null)        etat = hier !== null ? 'resorbe' : 'parti';
+    else if(tenue >= 2)     etat = 'confirme';
+    else                    etat = 'nouveau';
+
+    return {
+      mgb: m, lib: lib, suite: suite,
+      ec: auj, hier: hier, tenue: tenue, etat: etat,
+      consigne: CONSIGNE.test(lib)
+    };
+  }).filter(function(a){ return a.etat !== 'parti'; });
+
+  articles.sort(function(a, b){
+    return Math.abs(b.ec === null ? 0 : b.ec) - Math.abs(a.ec === null ? 0 : a.ec);
+  });
+}
+
+function compteurs(){
+  var n = function(id, v){ document.getElementById(id).textContent = v.toLocaleString('fr-FR'); };
+  n('n-confirme', articles.filter(function(a){ return a.etat === 'confirme'; }).length);
+  n('n-nouveau',  articles.filter(function(a){ return a.etat === 'nouveau';  }).length);
+  n('n-resorbe',  articles.filter(function(a){ return a.etat === 'resorbe';  }).length);
+  n('n-tous',     articles.filter(function(a){ return a.ec !== null; }).length);
+  document.getElementById('s-tous').textContent =
+    ordreJours.length > 1 ? 'sur ' + ordreJours.length + ' jours observés' : 'premier jour observé';
+}
+
+function vue(v){
+  mode = v;
+  ['confirme','nouveau','resorbe','tous'].forEach(function(x){
+    document.getElementById('v-' + x).classList.toggle('on', x === v);
+  });
+  afficher();
+}
+
+function filtrees(){
+  var q  = document.getElementById('rech').value.trim().toLowerCase();
+  var fs = document.getElementById('f-sens').value;
+  var ft = parseFloat(document.getElementById('f-taille').value) || 0;
+  var fc = document.getElementById('f-consigne').value;
+
+  return articles.filter(function(a){
+    if(mode !== 'tous' && a.etat !== mode) return false;
+    if(mode === 'tous' && a.ec === null) return false;
+
+    var e = a.ec === null ? a.hier : a.ec;
+    if(fs === 'plus'  && !(e > 0)) return false;
+    if(fs === 'moins' && !(e < 0)) return false;
+    if(ft && Math.abs(e) < ft) return false;
+    if(fc === 'hors' && a.consigne) return false;
+    if(fc === 'seul' && !a.consigne) return false;
+    if(q && a.mgb.indexOf(q) === -1 && a.lib.toLowerCase().indexOf(q) === -1) return false;
+    return true;
+  });
+}
+
+function fmt(v){
+  if(v === null) return '—';
+  var s = (Math.round(v * 100) / 100).toLocaleString('fr-FR');
+  return v > 0 ? '+' + s : s;
+}
+
+function afficher(){
+  var l = filtrees();
+  var zone = document.getElementById('liste');
+
+  if(!l.length){
+    zone.innerHTML = '<div class="info">Aucune référence pour cette sélection.</div>';
+    return;
+  }
+
+  zone.innerHTML = '<div class="ligne tete"><span>MGB</span><span>Désignation</span>' +
+    '<span style="text-align:right">Écart</span><span>État</span><span>Sept derniers jours</span></div>';
+
+  l.slice(0, MAX_LIGNES).forEach(function(a){
+    var d = document.createElement('div');
+    d.className = 'ligne';
+    d.innerHTML = '<span class="mgb"></span><span class="lib"></span>' +
+      '<span class="num"></span><span class="e"></span><span class="histo"></span>';
+
+    d.querySelector('.mgb').textContent = a.mgb;
+    var lib = d.querySelector('.lib');
+    lib.textContent = a.lib || '—';
+    lib.title = a.lib;
+
+    var e = a.ec === null ? a.hier : a.ec;
+    var n = d.querySelector('.num');
+    n.textContent = fmt(a.ec);
+    n.className = 'num ' + (e > 0 ? 'plus' : e < 0 ? 'moins' : '');
+
+    var b = document.createElement('span');
+    b.className = 'etat ' + a.etat;
+    b.textContent = a.etat === 'confirme' ? (a.tenue + ' JOURS')
+                  : a.etat === 'nouveau'  ? 'NOUVEAU' : 'RÉSORBÉ';
+    if(a.etat === 'confirme') b.title = 'Présent ' + a.tenue + ' jours de suite — écart réel';
+    if(a.etat === 'nouveau')  b.title = 'Vu pour la première fois aujourd\'hui — attendre demain';
+    if(a.etat === 'resorbe')  b.title = 'Présent hier, absent aujourd\'hui — parti tout seul';
+    d.querySelector('.e').appendChild(b);
+
+    var h = d.querySelector('.histo');
+    a.suite.forEach(function(v, i){
+      var jc = document.createElement('span'); jc.className = 'jour';
+      var pt = document.createElement('span');
+      pt.className = 'pt ' + (v === null ? 'vide' : v > 0 ? 'plus' : 'moins');
+      pt.textContent = v === null ? '·' : (Math.abs(v) >= 100 ? '99+' : String(Math.round(Math.abs(v))));
+      pt.title = joli(ordreJours[i]) + ' : ' + fmt(v);
+      var jl = document.createElement('span'); jl.className = 'jl';
+      jl.textContent = joli(ordreJours[i]).slice(0, 5);
+      jc.appendChild(pt); jc.appendChild(jl); h.appendChild(jc);
+    });
+
+    zone.appendChild(d);
+  });
+
+  if(l.length > MAX_LIGNES){
+    var p = document.createElement('div');
+    p.className = 'reste';
+    p.textContent = (l.length - MAX_LIGNES).toLocaleString('fr-FR') +
+      ' références de plus — affinez la sélection ou exportez.';
+    zone.appendChild(p);
+  }
+}
+
+['rech','f-sens','f-taille','f-consigne'].forEach(function(id){
+  document.getElementById(id).addEventListener(id === 'rech' ? 'input' : 'change', afficher);
+});
+
+/* ══════════ EXPORT ══════════ */
+function exporter(){
+  var l = filtrees();
+  if(!l.length){ dire('Rien à exporter', 'err'); return; }
+
+  var tete = ['MGB','Designation','Ecart du jour','Etat','Jours consecutifs'];
+  ordreJours.forEach(function(j){ tete.push(joli(j)); });
+
+  var lignes = [tete];
+  l.forEach(function(a){
+    var r = [a.mgb, a.lib,
+      a.ec === null ? '' : String(a.ec).replace('.', ','),
+      a.etat === 'confirme' ? 'CONFIRME' : a.etat === 'nouveau' ? 'NOUVEAU' : 'RESORBE',
+      a.tenue];
+    a.suite.forEach(function(v){ r.push(v === null ? '' : String(v).replace('.', ',')); });
+    lignes.push(r);
+  });
+
+  var csv = lignes.map(function(r){
+    return r.map(function(v){
+      v = String(v);
+      return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+    }).join(';');
+  }).join('\r\n');
+
+  var b = new Blob(['﻿' + csv], { type:'text/csv;charset=utf-8' });
+  var u = URL.createObjectURL(b);
+  var a = document.createElement('a');
+  a.href = u;
+  a.download = 'Ecarts_' + (jourDuJour || 'export') + '.csv';
+  a.click();
+  URL.revokeObjectURL(u);
+  dire(l.length + ' références exportées', 'ok');
+}
+
+/* ══════════ DÉMARRAGE ══════════ */
+function avis(txt, cls){
+  var d = document.getElementById('avis');
+  d.innerHTML = '';
+  if(!txt) return;
+  var n = document.createElement('div');
+  n.className = cls || 'note';
+  n.textContent = txt;
+  d.appendChild(n);
+}
+
+(async function(){
+  if(!jeton) return;
+  try {
+    var liste = await listerCourant();
+
+    var classeurs = liste.filter(function(f){
+      return f.name && f.name.toLowerCase().indexOf(PREFIXE) === 0 &&
+             /\.xlsx$/i.test(f.name) && jourDuNom(f.name);
+    }).map(function(f){
+      return { fichier: f, jour: jourDuNom(f.name) };
+    }).sort(function(a, b){ return a.jour < b.jour ? -1 : 1; });
+
+    await lireHisto();
+
+    var neuf = false;
+    if(classeurs.length){
+      var dernier = classeurs[classeurs.length - 1];
+      if(!jours[dernier.jour]){
+        await absorber(dernier.fichier, dernier.jour);
+        neuf = true;
+      }
+    }
+
+    if(!Object.keys(jours).length)
+      throw new Error('aucun classeur « Ecart_JJMM.xlsx » dans l\'espace courant');
+
+    if(neuf && peutEcrire){
+      try { await enregistrerHisto(); dire('Journée du ' + joli(jourDuJour) + ' ajoutée à l\'historique', 'ok'); }
+      catch(e){ dire('Historique non enregistré — la comparaison reste possible', 'err'); }
+    }
+
+    construire();
+    compteurs();
+
+    document.getElementById('accroche').textContent =
+      'Écarts du ' + joli(jourDuJour) + ' — ' +
+      articles.filter(function(a){ return a.ec !== null; }).length.toLocaleString('fr-FR') +
+      ' références en écart, comparées aux ' + (ordreJours.length - 1) + ' jours précédents.';
+
+    if(ordreJours.length < 2)
+      avis('Première journée enregistrée. Il faut le classeur de demain pour distinguer '
+         + 'un écart réel d\'un écart que la facturation va effacer.');
+    else if(classeurs.length > 4)
+      avis(classeurs.length + ' classeurs Ecart occupent l\'espace courant. '
+         + 'L\'historique est conservé à part : les anciens classeurs peuvent être supprimés.');
+
+    vue(ordreJours.length < 2 ? 'tous' : 'confirme');
+
+  } catch(e){
+    document.getElementById('accroche').textContent = 'Chargement impossible — ' + (e.message || '') + '.';
+    document.getElementById('liste').innerHTML =
+      '<div class="info">Déposez le classeur du jour dans l\'espace courant,<br>' +
+      'sous la forme <b>Ecart_JJMM.xlsx</b> — par exemple Ecart_2509.xlsx.</div>';
+  }
+})();
+</script>
+</body>
+</html>
