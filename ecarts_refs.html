@@ -166,6 +166,9 @@ select:focus{border-color:var(--navy)}
       <option value="seul">Emballages consignés seuls</option>
     </select>
     <button class="export" onclick="exporter()">Exporter</button>
+    <button class="lien" id="b-charge" style="display:none"
+            onclick="document.getElementById('f-classeur').click()">Charger le classeur du jour</button>
+    <input type="file" id="f-classeur" accept=".xlsx" style="display:none" onchange="charger(this)">
   </div>
 
   <div class="liste" id="liste"><div class="info">Chargement…</div></div>
@@ -192,7 +195,6 @@ var API = GDS.API, CLE_PUBLIQUE = GDS.CLE_PUBLIQUE;
    tient deux jours de suite.
    ───────────────────────────────────────────────────────── */
 
-var PREFIXE     = 'ecart';                       /* début du nom des classeurs */
 var FEUILLE     = /discrep|ecart|écart/i;        /* la feuille à lire dedans   */
 var HISTO       = 'systeme/ecarts_histo.csv';    /* la mémoire des jours passés */
 var JOURS_GARDE = 30;                            /* profondeur conservée        */
@@ -365,7 +367,7 @@ function netMGB(v){ return String(v == null ? '' : v).trim().replace(/^'/, '').r
 /* Le nom du classeur porte le jour : Ecart_2509 → 25 septembre.
    Un mois dans le futur appartient à l'année précédente. */
 function jourDuNom(n){
-  var m = String(n).match(/(\d{2})(\d{2})/);
+  var m = String(n).match(/(\d{2})[-_ .\/]?(\d{2})/);
   if(!m) return null;
   var j = parseInt(m[1], 10), mo = parseInt(m[2], 10);
   if(j < 1 || j > 31 || mo < 1 || mo > 12) return null;
@@ -376,17 +378,6 @@ function jourDuNom(n){
 function joli(iso){
   var p = String(iso).split('-');
   return p.length === 3 ? p[2] + '/' + p[1] : iso;
-}
-
-async function listerCourant(){
-  var r = await fetch(API + '/fichiers', {
-    method:'POST', headers: auth({ 'Content-Type':'application/json' }),
-    body: JSON.stringify({ prefix: '' })
-  });
-  if(refus(r)) return [];
-  if(!r.ok) throw new Error('liste des fichiers indisponible');
-  var l = await r.json();
-  return Array.isArray(l) ? l : [];
 }
 
 async function lireHisto(){
@@ -424,15 +415,11 @@ async function enregistrerHisto(){
   if(!r.ok) throw new Error('historique non enregistré');
 }
 
-/* Un classeur de 7 Mo ne se relit pas pour rien : on ne l'ouvre
-   que si sa journée manque encore à l'historique. */
-async function absorber(fichier, jour){
-  dire('Lecture du classeur du ' + joli(jour) + '…');
-  var r = await fetch(API + '/fichier/' + encodeURIComponent(fichier.name), { headers: auth() });
-  if(refus(r)) throw new Error('refus');
-  if(!r.ok) throw new Error('classeur illisible');
-
-  var L = await lireClasseur(await r.arrayBuffer());
+/* Le classeur est lu sur le poste, jamais envoyé sur le serveur :
+   7 Mo par jour n'ont rien à faire dans l'espace courant. Seul le
+   résumé de la journée, quelques kilo-octets, est conservé. */
+async function absorber(buf, jour){
+  var L = await lireClasseur(buf);
   if(!L.length) throw new Error('classeur vide');
 
   var t = L[0].map(function(h){ return String(h).trim().toLowerCase(); });
@@ -461,6 +448,43 @@ async function absorber(fichier, jour){
     d[mgb] = { lib: iL !== -1 ? String(L[k][iL]).trim() : '', ec: ec };
   }
   jours[jour] = d;
+}
+
+/* Chargement depuis le poste. Le jour vient du nom du fichier —
+   Ecart_2509.xlsx — et à défaut de la date d'aujourd'hui. */
+async function charger(champ){
+  var f = champ.files && champ.files[0];
+  champ.value = '';
+  if(!f) return;
+
+  var jour = jourDuNom(f.name);
+  if(!jour){
+    var d = new Date();
+    jour = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') +
+           '-' + String(d.getDate()).padStart(2, '0');
+    if(!confirm('Le nom « ' + f.name + ' » ne porte pas de date.\n\n' +
+                'Enregistrer ce classeur au ' + joli(jour) + ' ?')) return;
+  }
+  else if(jours[jour] &&
+          !confirm('La journée du ' + joli(jour) + ' est déjà enregistrée.\n\n' +
+                   'La remplacer par ce classeur ?')) return;
+
+  dire('Lecture du classeur…');
+  try {
+    await absorber(await f.arrayBuffer(), jour);
+  } catch(e){
+    dire(e.message || 'Classeur illisible', 'err');
+    return;
+  }
+
+  try { await enregistrerHisto(); }
+  catch(e){ dire('Historique non enregistré — l\'affichage reste à jour', 'err'); }
+
+  construire();
+  compteurs();
+  entete();
+  vue(ordreJours.length < 2 ? 'tous' : 'confirme');
+  dire('Journée du ' + joli(jour) + ' enregistrée', 'ok');
 }
 
 /* ══════════ CONSTRUCTION ══════════ */
@@ -662,59 +686,44 @@ function avis(txt, cls){
   d.appendChild(n);
 }
 
+function entete(){
+  document.getElementById('accroche').textContent =
+    'Écarts du ' + joli(jourDuJour) + ' — ' +
+    articles.filter(function(a){ return a.ec !== null; }).length.toLocaleString('fr-FR') +
+    ' références en écart' +
+    (ordreJours.length > 1
+      ? ', comparées aux ' + (ordreJours.length - 1) + ' jours précédents.'
+      : '.');
+
+  if(ordreJours.length < 2)
+    avis('Première journée enregistrée. Il faudra le classeur de demain pour distinguer '
+       + 'un écart réel d\'un écart que la facturation va effacer.');
+  else
+    avis('');
+}
+
 (async function(){
   if(!jeton) return;
+  if(peutEcrire) document.getElementById('b-charge').style.display = 'inline-flex';
+
   try {
-    var liste = await listerCourant();
-
-    var classeurs = liste.filter(function(f){
-      return f.name && f.name.toLowerCase().indexOf(PREFIXE) === 0 &&
-             /\.xlsx$/i.test(f.name) && jourDuNom(f.name);
-    }).map(function(f){
-      return { fichier: f, jour: jourDuNom(f.name) };
-    }).sort(function(a, b){ return a.jour < b.jour ? -1 : 1; });
-
     await lireHisto();
 
-    var neuf = false;
-    if(classeurs.length){
-      var dernier = classeurs[classeurs.length - 1];
-      if(!jours[dernier.jour]){
-        await absorber(dernier.fichier, dernier.jour);
-        neuf = true;
-      }
-    }
-
     if(!Object.keys(jours).length)
-      throw new Error('aucun classeur « Ecart_JJMM.xlsx » dans l\'espace courant');
-
-    if(neuf && peutEcrire){
-      try { await enregistrerHisto(); dire('Journée du ' + joli(jourDuJour) + ' ajoutée à l\'historique', 'ok'); }
-      catch(e){ dire('Historique non enregistré — la comparaison reste possible', 'err'); }
-    }
+      throw new Error('aucune journée enregistrée pour le moment');
 
     construire();
     compteurs();
-
-    document.getElementById('accroche').textContent =
-      'Écarts du ' + joli(jourDuJour) + ' — ' +
-      articles.filter(function(a){ return a.ec !== null; }).length.toLocaleString('fr-FR') +
-      ' références en écart, comparées aux ' + (ordreJours.length - 1) + ' jours précédents.';
-
-    if(ordreJours.length < 2)
-      avis('Première journée enregistrée. Il faut le classeur de demain pour distinguer '
-         + 'un écart réel d\'un écart que la facturation va effacer.');
-    else if(classeurs.length > 4)
-      avis(classeurs.length + ' classeurs Ecart occupent l\'espace courant. '
-         + 'L\'historique est conservé à part : les anciens classeurs peuvent être supprimés.');
-
+    entete();
     vue(ordreJours.length < 2 ? 'tous' : 'confirme');
 
   } catch(e){
-    document.getElementById('accroche').textContent = 'Chargement impossible — ' + (e.message || '') + '.';
+    document.getElementById('accroche').textContent = e.message || 'Chargement impossible.';
     document.getElementById('liste').innerHTML =
-      '<div class="info">Déposez le classeur du jour dans l\'espace courant,<br>' +
-      'sous la forme <b>Ecart_JJMM.xlsx</b> — par exemple Ecart_2509.xlsx.</div>';
+      '<div class="info">' + (peutEcrire
+        ? 'Cliquez sur <b>Charger le classeur du jour</b> et choisissez le fichier reçu de Metro.<br>'
+          + 'Nommez-le <b>Ecart_JJMM.xlsx</b> — par exemple Ecart_2509.xlsx — pour que la date soit reconnue.'
+        : 'Aucune journée n\'a encore été chargée.') + '</div>';
   }
 })();
 </script>
