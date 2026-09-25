@@ -466,13 +466,13 @@ var FAMILLES = [
     { nom:'Contrôle ICPE', f:'icpe.html', ico:'alerte', roles:['admin','admin_restreint'] },
     { nom:'Fiches FDS',    f:'fds.html',  ico:'feuille' }
   ]},
+  { id:'articles', nom:'Articles', ico:'boite', c:'#2d5a9e', desc:'Base articles et book produit', admin:false, outils:[
+    { nom:'Book fiche article', f:'FICHE_ARTICLE_2026.html', ico:'presse' },
+    { nom:'Base articles',      f:'ARTICLES_2026.html',      ico:'tableau', roles:['admin','admin_restreint'] }
+  ]},
   { id:'metro', nom:'Métro', ico:'loupe', c:'#1a6d87', desc:'Écarts de références signalés par Metro',
     admin:false, roles:['admin','admin_restreint','metro'], outils:[
     { nom:'Écarts de références', f:'ecarts_refs.html', ico:'loupe' }
-  ]},
-  { id:'reception_metro', nom:'Réception', ico:'colis', c:'#a8452f', desc:'Suivi des DLC du jour',
-    admin:false, roles:['admin','admin_restreint','reception'], outils:[
-    { nom:'Suivi DLC du jour', f:'dlc_jour.html', ico:'horloge' }
   ]},
   { id:'outils', nom:'Outils', ico:'cle', c:'#5b4b8a', desc:'Utilitaires et outils divers', admin:false, outils:[
     { nom:'QR Code 2026 v2',       f:'QR_CODE_2026_v2.html',       ico:'etiq' },
@@ -491,8 +491,10 @@ var FAMILLES = [
   { id:'ruptures', nom:'Ruptures', ico:'baisse', c:'#5f6b78', desc:'Suivi des ruptures de stock', admin:false, outils:[
     { nom:'Ruptures 2026', f:'RUPTURES_2026.html', ico:'baisse' }
   ]},
-  { id:'reception', nom:'Réception', ico:'colis', c:'#1a6d87', desc:'Contrôle et suivi des réceptions', admin:false, outils:[
-    { nom:'Contrôle Réception', f:'reception.html', ico:'colis' }
+  { id:'reception', nom:'Réception', ico:'colis', c:'#1a6d87', desc:'Contrôle des réceptions et DLC du jour',
+    admin:false, roles:['admin','admin_restreint','reception'], outils:[
+    { nom:'Contrôle Réception', f:'reception.html',  ico:'colis' },
+    { nom:'Suivi DLC du jour',  f:'dlc_jour.html',   ico:'horloge' }
   ]},
   { id:'documents', nom:'Documents', ico:'feuille', c:'#2a5f8f', desc:'Procédures, fiches et documents PDF', admin:false, outils:[
     { nom:'Affiche Alerte Retrait', f:'affiche_alerte_retrait.pdf',       ico:'alerte' },
