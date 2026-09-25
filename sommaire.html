@@ -1128,6 +1128,15 @@ async function envoyerMvts(f){
     jours.forEach(function(l){ var j = l.match(/\d{4}-\d{2}-\d{2}/)[0]; if(j > max) max = j; });
     if(!max) throw new Error('dates');
     var nom = 'MVTS/M_DEPOT report_Mvt stock_Table_' + max + '.csv';
+    avance(40, 'Vérification dans MVTS…');
+    var deja = await fetch(API + '/archive', { method:'POST', headers: auth({ 'Content-Type':'application/json' }), body: JSON.stringify({ prefix:'MVTS/' }) });
+    if(deja.ok && ((await deja.json()).files || []).some(function(x){ return x.fileName === nom; })){
+      avance(100, 'Déjà importé.');
+      dire('Déjà importé : les mouvements jusqu\'au ' + max.split('-').reverse().join('/') + ' sont déjà dans MVTS', 'err');
+      setTimeout(function(){ document.getElementById('jauge-envoi').classList.remove('on'); document.getElementById('je-barre').style.width = '0%'; }, 2500);
+      choix.value = '';
+      return;
+    }
     avance(60, 'Archivage dans MVTS…');
     var r = await fetch(API + '/archive/' + encodeURIComponent(nom), {
       method:'POST', headers: auth({ 'Content-Type':'text/csv' }), body: f
