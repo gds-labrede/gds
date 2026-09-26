@@ -242,6 +242,75 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
 .toast.err{background:linear-gradient(180deg,#c44540,#b8342f)}
 @keyframes entre{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 
+
+/* ══ PLANNING & ADMINISTRATION ══ */
+.carte{background:linear-gradient(180deg,#fff,#fbfcfe);border:1px solid var(--border);border-radius:16px;
+  padding:26px 28px;box-shadow:0 1px 2px rgba(20,32,60,.05),inset 0 1px 0 #fff;min-width:0}
+.c-titre{display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;color:#3a4661;margin-bottom:18px}
+.c-titre::before{content:'';width:3px;height:17px;border-radius:2px;background:var(--orange)}
+.c-titre.sans::before{display:none}
+.c-titre svg{width:20px;height:20px}
+.adm-grille{display:grid;grid-template-columns:1fr 1fr;gap:26px;align-items:start}
+.c-aide{font-size:13.5px;color:var(--text-mid);line-height:1.5;margin-bottom:16px}
+.comptes{background:var(--bg);border-radius:10px;padding:14px 18px;display:flex;flex-direction:column;gap:9px}
+.cpt{display:flex;align-items:center;gap:10px;font-family:'DM Mono',monospace;font-size:13px;color:#3a4661}
+.cpt svg{width:16px;height:16px;flex-shrink:0}
+.anniv-liste{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;max-height:340px;overflow-y:auto}
+.anniv{display:flex;align-items:center;gap:14px;padding:11px 14px 11px 16px;border:1px solid var(--border);
+  border-radius:10px;background:linear-gradient(180deg,#fbfcfe,#f5f7fb)}
+.anniv svg{width:22px;height:22px;flex-shrink:0}
+.anniv b{flex:1;font-size:14.5px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.anniv .dt{font-family:'DM Mono',monospace;font-size:13px;color:var(--text-mid)}
+.anniv.jour{border-color:var(--orange);background:linear-gradient(180deg,#fff7ef,#fdeedd)}
+.suppr{background:none;border:none;cursor:pointer;color:var(--text-low);width:26px;height:26px;border-radius:6px;
+  display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;transition:.15s}
+.suppr:hover{color:#c44540;background:#fbe9e8}
+.form-ligne{display:flex;gap:10px}
+.champ{font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);padding:10px 13px;
+  border:1px solid var(--border-hi);border-radius:8px;background:#fff;min-width:0}
+.champ:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 3px rgba(26,46,85,.1)}
+.btn-nav{font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;color:#fff;border:none;cursor:pointer;
+  padding:10px 18px;border-radius:8px;background:linear-gradient(180deg,#2a4576,var(--navy));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 2px 6px rgba(20,32,60,.2);white-space:nowrap}
+.btn-nav:hover{background:linear-gradient(180deg,#d9782a,var(--orange))}
+.vide-txt{font-size:13.5px;color:var(--text-low);text-align:center;padding:14px 0}
+
+.pl-grille{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:26px;align-items:start}
+.cal-tete{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.cal-tete h2{font-size:21px;font-weight:700;letter-spacing:-.3px}
+.cal-fl{width:40px;height:40px;border-radius:9px;border:1px solid var(--border);background:var(--bg);
+  cursor:pointer;font-size:18px;color:var(--text);font-family:inherit;transition:.15s}
+.cal-fl:hover{border-color:var(--navy)}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.cal-j{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.2px;color:var(--text-low);
+  text-align:center;padding-bottom:8px}
+.cal-c{min-height:84px;border-radius:8px;background:#f1f3f7;padding:8px 8px 6px;display:flex;flex-direction:column;
+  gap:3px;overflow:hidden;cursor:pointer;border:1px solid transparent;transition:border-color .15s}
+.cal-c:hover{border-color:var(--border-hi)}
+.cal-c .n{font-size:13.5px;font-weight:600}
+.cal-c.hors{background:#f8f9fb;cursor:default}.cal-c.hors .n{color:#c6ccd8;font-weight:500}
+.cal-c.auj{border:1.5px solid var(--navy);background:#eceff5}
+.cal-c.choisi{box-shadow:inset 0 0 0 2px var(--orange)}
+.pas{font-size:11px;font-weight:600;color:#fff;border-radius:4px;padding:2px 5px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.pas.an{background:#fdeedd;color:#a4521a;display:flex;align-items:center;gap:3px}
+.pas.an svg{width:11px;height:11px;flex-shrink:0}
+.ev-liste{display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto}
+.ev-l{display:flex;align-items:center;gap:11px;padding:9px 10px 9px 12px;border:1px solid var(--border);border-radius:9px}
+.ev-l i{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.ev-l .t{flex:1;min-width:0}
+.ev-l .t b{display:block;font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ev-l .t span{font-family:'DM Mono',monospace;font-size:11.5px;color:var(--text-mid)}
+.ev-form{border-top:1px solid var(--border);margin-top:18px;padding-top:18px;display:flex;flex-direction:column;gap:11px}
+.couleurs{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-mid)}
+.couleurs button{width:24px;height:24px;border-radius:50%;border:2px solid #fff;cursor:pointer;
+  box-shadow:0 0 0 1px var(--border-hi);transition:transform .15s}
+.couleurs button.on{box-shadow:0 0 0 2px var(--text);transform:scale(1.1)}
+@media(max-width:980px){.adm-grille,.pl-grille{grid-template-columns:1fr}}
+@media(max-width:640px){.carte{padding:20px 16px}.cal{gap:3px}.cal-c{min-height:56px;padding:5px}
+  .pas{font-size:0;height:6px;padding:0}.pas.an svg{display:none}.form-ligne{flex-wrap:wrap}}
+
 *:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 @media(max-width:640px){
@@ -294,6 +363,7 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
     <div class="b-txt">
       <div class="b-date" id="b-date"></div>
       <div class="b-msg"  id="b-msg"></div>
+      <div class="b-fete" id="b-fete"></div>
       <div class="b-bday" id="b-bday"></div>
     </div>
     <button class="b-fermer" onclick="fermerBanniere()" aria-label="Fermer">&times;</button>
@@ -386,13 +456,49 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
   <!-- ══ PLANNING ══ -->
   <div class="vue" id="v-planning">
     <h1>Planning &amp; Événements</h1>
-    <p class="accroche">À construire.</p>
+    <p class="accroche">Calendrier de l'équipe GDS La Brède.</p>
+    <div class="pl-grille">
+      <div class="carte">
+        <div class="cal-tete">
+          <button class="cal-fl" onclick="moisCal(-1)" aria-label="Mois précédent">&lsaquo;</button>
+          <h2 id="cal-titre"></h2>
+          <button class="cal-fl" onclick="moisCal(1)" aria-label="Mois suivant">&rsaquo;</button>
+        </div>
+        <div class="cal" id="cal"></div>
+      </div>
+      <div class="carte">
+        <div class="c-titre sans"><svg viewBox="0 0 24 24"><path fill="#d46c1a" d="M14.5 2l7.5 7.5-2 1-2-.5-3.5 3.5.5 4-1.5 1.5-4-4L4 20.5 3.5 20 8.5 14l-4-4L6 8.5l4 .5L13.5 5.5 13 3.5z"/></svg><span id="ev-titre-mois">Événements du mois</span></div>
+        <div class="ev-liste" id="ev-liste"></div>
+        <div class="ev-form">
+          <input class="champ" id="ev-nom" maxlength="80" placeholder="Titre de l'événement…">
+          <input class="champ" id="ev-date" type="date">
+          <div class="couleurs" id="ev-couleurs">Couleur :</div>
+          <button class="btn-nav" onclick="ajouterEvenement()">+ Ajouter</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ══ ADMINISTRATION ══ -->
   <div class="vue" id="v-admin">
     <h1>Administration</h1>
-    <p class="accroche">À construire.</p>
+    <p class="accroche">Gestion du dashboard et des accès.</p>
+    <div class="adm-grille">
+      <div class="carte">
+        <div class="c-titre">Comptes utilisateurs</div>
+        <p class="c-aide">Les comptes sont gérés sur le serveur. Contactez l'administrateur technique pour les modifier.</p>
+        <div class="comptes" id="comptes"></div>
+      </div>
+      <div class="carte">
+        <div class="c-titre">Anniversaires équipe</div>
+        <div class="anniv-liste" id="anniv-liste"></div>
+        <div class="form-ligne">
+          <input class="champ" id="an-nom" style="flex:1" maxlength="60" placeholder="Prénom Nom">
+          <input class="champ" id="an-date" style="width:100px" maxlength="5" placeholder="JJ/MM" inputmode="numeric">
+          <button class="btn-nav" onclick="ajouterAnniv()">+ Ajouter</button>
+        </div>
+      </div>
+    </div>
   </div>
 
 </main>
@@ -400,6 +506,7 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
 <div class="toasts" id="toasts"></div>
 
 <script src="config.js"></script>
+<script src="evenements.js"></script>
 <script>
 /* Garde-fou : sans config.js, tout le script s'arrêterait
    sans explication. On le signale clairement. */
@@ -1183,6 +1290,18 @@ async function afficherBanniere(){
     : "Bonjour à toute l'équipe GDS La Brède !";
 
   var bdays = await anniversairesDuJour(dd + '/' + mm);
+
+  /* Événement du calendrier (evenements.js) : animation + phrase.
+     Un anniversaire de l'équipe passe devant les fêtes pour l'animation. */
+  var fete = window.GDS_FETES
+    ? GDS_FETES.demarrer(null, bdays.map(function(b){ return b.name.split(' ')[0]; })) : null;
+  if (fete){
+    document.getElementById('b-fete').textContent = fete.phrase;
+    document.querySelector('.b-ico').innerHTML =
+      '<img alt="" style="width:44px;height:44px" src="data:image/svg+xml;charset=utf-8,' +
+      encodeURIComponent(fete.icone) + '">';
+  }
+
   document.getElementById('b-bday').textContent = bdays.length
     ? 'Joyeux anniversaire ' + bdays.map(function(b){ return b.name; }).join(', ') + ' !'
     : '';
@@ -1197,6 +1316,183 @@ async function afficherBanniere(){
 }
 
 afficherBanniere();
+
+
+/* ══════════ PLANNING & ANNIVERSAIRES ══════════
+   Deux fichiers de l'espace courant (jamais sur GitHub : il y a des noms) :
+   anniversaires.json  [{ name:'Prénom Nom', date:'JJ/MM' }]
+   planning.json       [{ id, titre, date:'AAAA-MM-JJ', couleur }]            */
+var ANNIVS = [], EVTS = [], calMois = new Date(), calChoix = null;
+calMois.setDate(1);
+var COULEURS_EV = ['#1a2e55', '#1f9d6b', '#d46c1a', '#d93636', '#8b3fe0', '#1590b8'];
+var couleurEv = COULEURS_EV[0];
+var MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+var ICO_GATEAU = '<svg viewBox="0 0 24 24"><rect x="3" y="12" width="18" height="9" rx="2" fill="#f0c48a"/>' +
+  '<path d="M3 15c2 1.5 4 1.5 6 0s4-1.5 6 0 4 1.5 6 0v-1c0-1-1-2-2-2H5c-1 0-2 1-2 2z" fill="#fff"/>' +
+  '<rect x="3" y="18.5" width="18" height="2.5" rx="1" fill="#d46c1a"/>' +
+  '<path d="M8 12V8M12 12V8M16 12V8" stroke="#1a2e55" stroke-width="1.6"/>' +
+  '<path d="M8 4.5c.8 1 .8 2 0 2.5-.8-.5-.8-1.5 0-2.5zM12 4.5c.8 1 .8 2 0 2.5-.8-.5-.8-1.5 0-2.5zM16 4.5c.8 1 .8 2 0 2.5-.8-.5-.8-1.5 0-2.5z" fill="#f0913f"/></svg>';
+var ICO_PERSONNE = '<svg viewBox="0 0 24 24"><circle cx="12" cy="7.5" r="4.5" fill="#1a2e55"/><path d="M3 21c0-5 4-8 9-8s9 3 9 8z" fill="#1a2e55" opacity=".75"/></svg>';
+
+function echap(t){ return String(t).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+async function lireJson(nom){
+  try {
+    var r = await fetch(API + '/fichier/' + nom, { headers: auth() });
+    if(!r.ok) return [];
+    var d = await r.json();
+    return Array.isArray(d) ? d : [];
+  } catch(e){ return []; }
+}
+async function ecrireJson(nom, donnees){
+  var corps = JSON.stringify(donnees, null, 1);
+  var r = await fetch(API + '/fichier/' + nom, {
+    method:'POST', headers: auth({ 'Content-Type':'application/json' }), body: corps });
+  if(!r.ok){
+    /* Si le serveur refuse d'écraser, on retire l'ancien puis on réécrit. */
+    await fetch(API + '/fichiers', { method:'DELETE',
+      headers: auth({ 'Content-Type':'application/json' }), body: JSON.stringify({ prefixes:[nom] }) });
+    r = await fetch(API + '/fichier/' + nom, {
+      method:'POST', headers: auth({ 'Content-Type':'application/json' }), body: corps });
+  }
+  if(!r.ok) throw new Error('écriture');
+  charges.courant = false;
+}
+
+/* ── Anniversaires (Administration) ── */
+function cleAnniv(a){ var p = a.date.split('/'); return p[1] + p[0]; }
+function afficherAnnivs(){
+  var el = document.getElementById('anniv-liste');
+  if(!el) return;
+  var d = new Date(), auj = String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0');
+  var tri = ANNIVS.map(function(a, i){ return { a:a, i:i }; })
+    .sort(function(x, y){ return cleAnniv(x.a) < cleAnniv(y.a) ? -1 : 1; });
+  el.innerHTML = tri.length ? tri.map(function(o){
+    return '<div class="anniv' + (o.a.date === auj ? ' jour' : '') + '">' + ICO_GATEAU +
+      '<b>' + echap(o.a.name) + '</b><span class="dt">' + echap(o.a.date) + '</span>' +
+      '<button class="suppr" title="Supprimer" onclick="supprimerAnniv(' + o.i + ')">&times;</button></div>';
+  }).join('') : '<div class="vide-txt">Aucun anniversaire enregistré.</div>';
+}
+async function ajouterAnniv(){
+  var n = document.getElementById('an-nom').value.trim().replace(/\s+/g, ' ');
+  var dt = document.getElementById('an-date').value.trim().replace(/[.\-\s]/g, '/');
+  var m = dt.match(/^(\d{1,2})\/(\d{1,2})$/);
+  if(!n){ dire('Indiquez le prénom et le nom', 'err'); return; }
+  if(!m){ dire('Date au format JJ/MM', 'err'); return; }
+  var j = +m[1], mo = +m[2], max = [31,29,31,30,31,30,31,31,30,31,30,31][mo - 1];
+  if(!max || j < 1 || j > max){ dire('Date invalide', 'err'); return; }
+  var a = { name:n, date: String(j).padStart(2,'0') + '/' + String(mo).padStart(2,'0') };
+  var avant = ANNIVS.slice();
+  ANNIVS.push(a);
+  try {
+    await ecrireJson('anniversaires.json', ANNIVS);
+    document.getElementById('an-nom').value = ''; document.getElementById('an-date').value = '';
+    dire('Anniversaire de ' + n + ' ajouté', 'ok');
+  } catch(e){ ANNIVS = avant; dire("Enregistrement impossible", 'err'); }
+  afficherAnnivs(); dessinerCal();
+}
+async function supprimerAnniv(i){
+  var a = ANNIVS[i]; if(!a) return;
+  if(!confirm("Supprimer l'anniversaire de " + a.name + ' ?')) return;
+  var avant = ANNIVS.slice();
+  ANNIVS.splice(i, 1);
+  try { await ecrireJson('anniversaires.json', ANNIVS); dire('Anniversaire supprimé', 'ok'); }
+  catch(e){ ANNIVS = avant; dire('Suppression impossible', 'err'); }
+  afficherAnnivs(); dessinerCal();
+}
+document.getElementById('an-date').addEventListener('keydown', function(e){ if(e.key === 'Enter') ajouterAnniv(); });
+
+/* ── Comptes (lecture seule) ── */
+document.getElementById('comptes').innerHTML = [
+  ['poy59', 'Administrateur'], ['maxime', 'Admin restreint'], ['gds', 'Équipe GDS']
+].map(function(c){ return '<div class="cpt">' + ICO_PERSONNE + c[0] + ' — ' + c[1] + '</div>'; }).join('');
+
+/* ── Calendrier (Planning) ── */
+function iso(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function moisCal(n){ calMois.setMonth(calMois.getMonth() + n); dessinerCal(); }
+function choisirJour(v){
+  calChoix = v; document.getElementById('ev-date').value = v; dessinerCal();
+  document.getElementById('ev-nom').focus();
+}
+function dessinerCal(){
+  var el = document.getElementById('cal'); if(!el) return;
+  var an = calMois.getFullYear(), mo = calMois.getMonth();
+  document.getElementById('cal-titre').textContent = MOIS[mo] + ' ' + an;
+  var debut = new Date(an, mo, 1), dec = (debut.getDay() + 6) % 7;
+  var jour = new Date(an, mo, 1 - dec), auj = iso(new Date());
+  var nbSem = Math.ceil((dec + new Date(an, mo + 1, 0).getDate()) / 7);
+  var h = ['LUN','MAR','MER','JEU','VEN','SAM','DIM'].map(function(j){ return '<div class="cal-j">' + j + '</div>'; }).join('');
+  for(var k = 0; k < nbSem * 7; k++){
+    var v = iso(jour), dans = jour.getMonth() === mo;
+    var jm = String(jour.getDate()).padStart(2,'0') + '/' + String(jour.getMonth()+1).padStart(2,'0');
+    var pas = '';
+    if(dans){
+      ANNIVS.filter(function(a){ return a.date === jm; }).forEach(function(a){
+        pas += '<div class="pas an" title="Anniversaire de ' + echap(a.name) + '">' + ICO_GATEAU + echap(a.name.split(' ')[0]) + '</div>';
+      });
+      EVTS.filter(function(e){ return e.date === v; }).forEach(function(e){
+        pas += '<div class="pas" style="background:' + e.couleur + '" title="' + echap(e.titre) + '">' + echap(e.titre) + '</div>';
+      });
+    }
+    h += '<div class="cal-c' + (dans ? '' : ' hors') + (v === auj ? ' auj' : '') + (dans && v === calChoix ? ' choisi' : '') + '"' +
+      (dans ? ' onclick="choisirJour(\'' + v + '\')"' : '') + '><span class="n">' + jour.getDate() + '</span>' + pas + '</div>';
+    jour.setDate(jour.getDate() + 1);
+  }
+  el.innerHTML = h;
+
+  /* Événements du mois, dans l'ordre des dates */
+  var prefixe = an + '-' + String(mo + 1).padStart(2,'0');
+  var liste = EVTS.filter(function(e){ return e.date.indexOf(prefixe) === 0; })
+                  .sort(function(a, b){ return a.date < b.date ? -1 : 1; });
+  document.getElementById('ev-titre-mois').textContent = 'Événements — ' + MOIS[mo].toLowerCase() + ' ' + an;
+  document.getElementById('ev-liste').innerHTML = liste.length ? liste.map(function(e){
+    var p = e.date.split('-');
+    return '<div class="ev-l"><i style="background:' + e.couleur + '"></i><div class="t"><b>' + echap(e.titre) +
+      '</b><span>' + p[2] + '/' + p[1] + '/' + p[0] + '</span></div>' +
+      '<button class="suppr" title="Supprimer" onclick="supprimerEvenement(\'' + e.id + '\')">&times;</button></div>';
+  }).join('') : '<div class="vide-txt">Aucun événement ce mois-ci.</div>';
+}
+document.getElementById('ev-couleurs').innerHTML += COULEURS_EV.map(function(c, i){
+  return '<button type="button" style="background:' + c + '"' + (i ? '' : ' class="on"') +
+    ' onclick="choisirCouleur(this,\'' + c + '\')" aria-label="Couleur ' + (i + 1) + '"></button>';
+}).join('');
+function choisirCouleur(b, c){
+  couleurEv = c;
+  document.querySelectorAll('#ev-couleurs button').forEach(function(x){ x.classList.toggle('on', x === b); });
+}
+async function ajouterEvenement(){
+  var t = document.getElementById('ev-nom').value.trim(), d = document.getElementById('ev-date').value;
+  if(!t){ dire("Indiquez le titre de l'événement", 'err'); return; }
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){ dire('Choisissez une date', 'err'); return; }
+  var avant = EVTS.slice();
+  EVTS.push({ id: Date.now().toString(36), titre:t, date:d, couleur:couleurEv });
+  try {
+    await ecrireJson('planning.json', EVTS);
+    document.getElementById('ev-nom').value = '';
+    var p = d.split('-'); calMois = new Date(+p[0], +p[1] - 1, 1); calChoix = d;
+    dire('Événement ajouté', 'ok');
+  } catch(e){ EVTS = avant; dire('Enregistrement impossible', 'err'); }
+  dessinerCal();
+}
+async function supprimerEvenement(id){
+  var e = EVTS.filter(function(x){ return x.id === id; })[0]; if(!e) return;
+  if(!confirm('Supprimer « ' + e.titre + ' » ?')) return;
+  var avant = EVTS.slice();
+  EVTS = EVTS.filter(function(x){ return x.id !== id; });
+  try { await ecrireJson('planning.json', EVTS); dire('Événement supprimé', 'ok'); }
+  catch(err){ EVTS = avant; dire('Suppression impossible', 'err'); }
+  dessinerCal();
+}
+document.getElementById('ev-nom').addEventListener('keydown', function(e){ if(e.key === 'Enter') ajouterEvenement(); });
+
+async function chargerPlanning(){
+  var r = await Promise.all([ lireJson('anniversaires.json'), lireJson('planning.json') ]);
+  ANNIVS = r[0].filter(function(a){ return a && a.name && /^\d{2}\/\d{2}$/.test(a.date); });
+  EVTS   = r[1].filter(function(e){ return e && e.titre && e.date; });
+  afficherAnnivs(); dessinerCal();
+}
+dessinerCal();
+chargerPlanning();
 
 /* ══════════ HORLOGE ══════════ */
 function tic(){
