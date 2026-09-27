@@ -254,7 +254,7 @@ td.n{text-align:right;font-family:'DM Mono'} td.m{font-family:'DM Mono'}
   <div class="hr">
     <span class="etat" id="etat"></span>
     <button class="hb" id="hRel" title="Relire la base, le stock et les FDS dans GDS">Actualiser</button>
-    <span class="ver">v12</span>
+    <span class="ver">v13</span>
   </div>
 </header>
 <div id="accueil" class="cover">
@@ -577,13 +577,17 @@ var CH = {
   emballage:['Emballage','s',['Europe (EPAL)','Logipal','CHEP','Palette perdue','Demi-palette','Quart de palette','Rolls','Bac plastique','Carton seul']],
   tailleEmballage:['Taille emballage','s',['80 × 120','100 × 120','60 × 80','40 × 60','120 × 120']],
   poidsColis:['Poids colis (kg)','n'], pictos:['Pictogrammes de danger','p'], fds:['Fiche FDS','u'],
-  colisCouche:['Colis / couche','n'], colisPalette:['Colis / palette','n'], dlv:['DLV (jours)','n'], typeDate:['Type de date','s',['DLC','DDM']], abc:['Classe ABC','t'],
+  colisCouche:['Colis / couche','n'], colisPalette:['Colis / palette','n'], dlv:['DLV (jours)','n'], typeDate:['Type de date','s',['DLC','DDM']],
+  degre:['Degré d\'alcool (% vol.)','n'], contenance:['Contenance','t'], marque:['Niveau de marque','t'], assort:['Code assortiment','t'],
+  cluster:['Type d\'assortiment','t'], flux:['Flux logistique','t'], fluxMarch:['Flux marchandise','t'], module:['Module','t'],
+  reappro:['Code réappro','t'], raisonBlocage:['Raison du blocage','t'], bundle:['N° de lot de vente','n'],
+  dder:['Dernière réception','d'], ddv:['Dernière vente','d'], vente1m:['Ventes 1 mois','n'], vente12m:['Ventes 12 mois','n'], abc:['Classe ABC','t'],
   prix:['Prix unitaire','n'], prixDate:['Date du prix','d'], prixSource:['Source du prix','t'], prixPiece:['Prix à la pièce','n'],
   prixPrec:['Prix précédent','n'], prixPrecDate:['Date prix précédent','d'],
   icpe:['Rubrique ICPE','t'], activation:['Article activé','b'], codeBlocage:['Code blocage','t'],
   creeLe:['Créé le','d'], ajouteLe:['Ajouté à la base','d'], majLe:['Mis à jour le','d'], remarque:['Remarque','l']
 };
-var PAGES = ['L\'essentiel','Logistique & sécurité','Classification & achat','Stock du jour','Historique','Notes'];
+var PAGES = ['L\'essentiel','Logistique & sécurité','Classification & achat','Stock du jour','Historique','Assortiment & notes'];
 
 /* ================= pictogrammes SGH ================= */
 var SGH = {
@@ -886,6 +890,9 @@ function page1(){
       '<div class="id"><div class="lb">EAN</div><div class="v">' + champ('ean') + '</div></div>' +
     '</div>' +
     '<div class="badges"><span class="bd ' + st[1] + '">' + st[0] + '</span>' +
+      (a.saNum ? '<span class="bd">SA ' + esc(a.saNum) + (a.secteur ? ' · ' + esc(a.secteur) : '') + '</span>' : '') +
+      (a.contenance ? '<span class="bd">' + esc(a.contenance) + '</span>' : '') +
+      (a.degre != null ? '<span class="bd o">' + nb(a.degre) + ' % vol.</span>' : '') +
       (a.abc ? '<span class="bd">Classe ' + esc(a.abc) + '</span>' : '') +
       (a.icpe ? '<span class="bd r">ICPE ' + esc(a.icpe) + '</span>' : '') +
       (a.codeBlocage && a.codeBlocage !== '0' ? '<span class="bd o">Blocage ' + esc(a.codeBlocage) + '</span>' : '') +
@@ -960,14 +967,16 @@ function page2(){
 function page3c(){
   return '<div class="run">' + esc(ART.mgb) + '</div>' +
     '<div class="sec"><h3>Classification</h3><div class="rows">' + ['saNum','secteur','svNum','rayon'].map(function(k){ return ligne(k); }).join('') + ligne('ga', 1) + ligne('sga', 1) + ligne('ssga', 1) + '</div></div>' +
-    '<div class="sec"><h3>Conditionnement</h3><div class="rows">' + ['unite','ccaf','ccvm','umc','typeDate','dlv','abc','mgb6'].map(function(k){ return ligne(k); }).join('') + '</div></div>' +
+    '<div class="sec"><h3>Conditionnement</h3><div class="rows">' + ['unite','contenance','ccaf','ccvm','umc','degre','typeDate','dlv','abc','mgb6'].map(function(k){ return ligne(k); }).join('') + '</div></div>' +
     '<div class="sec"><h3>Prix</h3><div class="rows">' + ['prix','prixDate','prixPiece','prixSource','prixPrec','prixPrecDate'].map(function(k){ return ligne(k); }).join('') + '</div></div>' +
     '<div class="sec"><h3>Suivi</h3><div class="rows">' + ['codeBlocage','activation','creeLe','ajouteLe','majLe'].map(function(k){ return ligne(k); }).join('') + ligne('fds', 1) + '</div></div>' +
     '<div class="num">3</div>';
 }
 function page6(){
-  return '<div class="run">Notes</div><div class="eyebrow">Notes</div><h2 class="titre" style="font-size:24px">Remarques</h2>' +
-    '<div class="remarque" style="min-height:260px">' + champ('remarque') + '</div><div class="num">6</div>';
+  return '<div class="run">Assortiment & notes</div>' +
+    '<div class="sec"><h3>Assortiment</h3><div class="rows">' + ['marque','cluster','assort','module','bundle','reappro'].map(function(k){ return ligne(k); }).join('') + ligne('raisonBlocage', 1) + '</div></div>' +
+    '<div class="sec"><h3>Flux & activité</h3><div class="rows">' + ['flux','fluxMarch','dder','ddv','vente1m','vente12m'].map(function(k){ return ligne(k); }).join('') + '</div></div>' +
+    '<div class="sec bas"><h3>Remarques</h3><div class="remarque" style="min-height:8em">' + champ('remarque') + '</div></div><div class="num">6</div>';
 }
 
 function page3(){
