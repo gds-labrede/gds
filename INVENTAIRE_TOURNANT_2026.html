@@ -127,7 +127,7 @@ tr.nouv td{border-top:2px solid #c7cfdc}
 <body>
 <header><div class="wrap">
   <h1>Inventaire <span>tournant</span></h1>
-  <span class="ver">v3.5</span>
+  <span class="ver">v3.6</span>
   <nav class="tabs" id="tabs">
     <button data-t="vNouv" class="on">Nouvel inventaire</button>
     <button data-t="vListe">Saisir les écarts</button>
@@ -260,7 +260,7 @@ tr.nouv td{border-top:2px solid #c7cfdc}
              M_DEPOT report_Emplacement de stk (emplacements vides, famille, type),
              BASE_ARTICLES/base_articles.json.gz (+ saisies.json) : libellé, GA, cond., prix
    ═══════════════════════════════════════════════════════════ */
-var VERSION = 'v3.5', AGE_MAX_MIN = 15;
+var VERSION = 'v3.6', AGE_MAX_MIN = 15;
 var DOSSIER = 'INVENTAIRE_TOURNANT/';
 var P_STOCK = 'StockStatus_FR_STOREDEPOT_', P_STRUCT = 'M_DEPOT report_Emplacement de stk';
 var SECTEURS = [
@@ -857,7 +857,8 @@ function remplirDates(){
   var an = $('lAn').value, mo = $('lMois').value, jo = $('lJour').value;
   var uniq = function(t){ return t.filter(function(x, i){ return t.indexOf(x) === i; }); };
   var A = uniq(FICHIERS.map(function(f){ return f.d.an; }));
-  if(an === '' && A.length) an = A[0];                      /* par défaut : l'année la plus récente */
+  /* à l'ouverture : le jour du dernier inventaire exporté (en général aujourd'hui), pas « Tous » */
+  if(an === '' && FICHIERS.length){ an = FICHIERS[0].d.an; mo = FICHIERS[0].d.mois; jo = FICHIERS[0].d.jour; }
   $('lAn').innerHTML = '<option value="*">Toutes</option>' + A.map(function(a){ return '<option>' + a + '</option>'; }).join('');
   $('lAn').value = A.indexOf(an) >= 0 || an === '*' ? an : (A[0] || '*');
   var M = uniq(FICHIERS.filter(function(f){ return $('lAn').value === '*' || f.d.an === $('lAn').value; }).map(function(f){ return f.d.mois; }));
