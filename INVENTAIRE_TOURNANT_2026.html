@@ -95,6 +95,25 @@ tr.nouv td{border-top:2px solid #c7cfdc}
 .multi .menu label:hover{background:#f3f5f9}
 .multi .menu input{accent-color:var(--orange);width:16px;height:16px}
 .multi .menu .tous{border-bottom:1px solid var(--line);margin-bottom:4px;font-weight:700}
+.tabs{display:flex;gap:4px;margin-left:8px}
+.tabs button{font-family:var(--sans);font-size:13.5px;border:0;border-radius:8px;padding:7px 14px;cursor:pointer;background:transparent;color:#c9d2e3}
+.tabs button.on{background:var(--orange);color:var(--navy);font-weight:700}
+.tabs button:focus-visible{outline:2px solid #fff;outline-offset:1px}
+.acts{display:flex;gap:6px;justify-content:flex-end}
+.btn.sm{height:32px;padding:0 12px;font-size:12.5px}
+.st.ok{background:#dcfce7;color:#1f5f3a}
+.barre{display:flex;gap:10px 24px;flex-wrap:wrap;align-items:center}
+.prog{height:6px;background:#e1e6ef;border-radius:99px;overflow:hidden;flex:1;min-width:140px}
+.prog i{display:block;height:100%;background:var(--orange);width:0}
+.outils{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+.outils input,.outils select{font-family:var(--sans);font-size:13.5px;border:1px solid var(--line);border-radius:8px;padding:0 9px;height:40px;background:#fff;color:var(--ink)}
+.outils input{width:280px}
+.sv{font-size:12px;border-radius:999px;padding:4px 11px;background:#e8ecf3;color:var(--muted);margin-left:auto}
+.sv.ok{background:#dcfce7;color:#1f5f3a} .sv.att{background:#fde8d2;color:#7a4a12} .sv.err{background:var(--red-soft);color:var(--red)}
+.q{font-family:var(--mono);font-size:14px;width:100%;border:1.5px solid #b7c1d3;border-radius:7px;padding:0 7px;text-align:right;height:32px;background:#fff;color:var(--ink)}
+.q.ok{border-color:var(--green);background:var(--green-soft)} .q.ec{border-color:var(--red);background:#fff5f5}
+.pos{color:var(--green)} .neg{color:var(--red)}
+.force{border-left:5px solid var(--orange);background:var(--orange-soft);border-radius:10px;padding:9px 14px;margin-bottom:12px;font-size:13px;font-weight:500}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -102,6 +121,10 @@ tr.nouv td{border-top:2px solid #c7cfdc}
 <header><div class="wrap">
   <h1>Inventaire <span>tournant</span></h1>
   <span class="ver">v3</span>
+  <nav class="tabs" id="tabs">
+    <button data-t="vNouv" class="on">Nouvel inventaire</button>
+    <button data-t="vListe">Inventaires créés</button>
+  </nav>
   <div class="src" id="src">Aucun stock chargé</div>
 </div></header>
 
@@ -110,7 +133,7 @@ tr.nouv td{border-top:2px solid #c7cfdc}
   <section id="vCharge">
     <div class="card">
       <div id="msgCharge" class="muted">Chargement du StockStatus, du fichier structure et de la base articles…</div>
-      <div class="row" style="margin-top:10px"><button class="btn or" id="bRecharger" hidden>Recharger depuis GDS</button></div>
+      <div class="row" style="margin-top:10px"><button class="btn or" id="bRecharger" hidden>Recharger depuis GDS</button><button class="btn" id="bForcer" hidden>Forcer quand même (admin)</button></div>
       <div id="zoneTest" hidden>
         <div class="info">Mode test hors GDS : règle des 15 min, base articles et enregistrement dans l'Archive désactivés. L'Excel est téléchargé sur ce poste.</div>
         <div class="row" style="margin-top:10px">
@@ -124,6 +147,7 @@ tr.nouv td{border-top:2px solid #c7cfdc}
   <!-- NOUVELLE FEUILLE -->
   <section id="vNouv" hidden>
     <div class="card">
+      <div class="force" id="bandeauForce" hidden>Forçage admin : le StockStatus a plus de 15 min, les quantités théoriques peuvent être fausses.</div>
       <h2>Nouvelle feuille d'inventaire</h2>
       <div class="filtres">
         <div class="f"><label for="fSect">Secteur</label><select id="fSect"></select></div>
@@ -133,9 +157,10 @@ tr.nouv td{border-top:2px solid #c7cfdc}
         <div class="f"><label>Niveaux</label><details class="multi" id="mNiv"><summary>Tous</summary><div class="menu"></div></details></div>
         <div class="f"><label for="fType">Type</label><select id="fType"><option value="PICK">Picking</option><option value="STOCK">Stockage</option></select></div>
         <div class="f"><label>Famille</label><details class="multi" id="mFam"><summary>Toutes</summary><div class="menu"></div></details></div>
+        <div class="f"><label>SA</label><details class="multi" id="mSA"><summary>Tous</summary><div class="menu"></div></details></div>
         <div class="f"><label>GA</label><details class="multi" id="mGA"><summary>Tous</summary><div class="menu"></div></details></div>
         <div class="f"><label for="fEmp">Emplacements</label><select id="fEmp"><option value="">Occupés et vides</option><option value="occ">Occupés</option><option value="vid">Vides</option></select></div>
-        <div class="f l2"><label for="fTxt">MGB ou libellé</label><input type="search" id="fTxt"></div>
+        <div class="f"><label for="fTxt">MGB ou libellé</label><input type="search" id="fTxt"></div>
         <div class="f"><label>&nbsp;</label><button class="btn lt" id="bRaz" style="width:100%">Effacer les filtres</button></div>
       </div>
       <div class="pied-f">
@@ -159,6 +184,45 @@ tr.nouv td{border-top:2px solid #c7cfdc}
     </div>
     <div class="tw"><table><colgroup id="cgN"></colgroup><thead id="thN"></thead><tbody id="tbN"></tbody></table></div>
   </section>
+  <!-- INVENTAIRES CRÉÉS -->
+  <section id="vListe" hidden>
+    <div class="card">
+      <h2>Inventaires créés</h2>
+      <div class="filtres">
+        <div class="f"><label for="lAn">Année</label><select id="lAn"></select></div>
+        <div class="f"><label for="lMois">Mois</label><select id="lMois"></select></div>
+        <div class="f"><label for="lJour">Jour</label><select id="lJour"></select></div>
+        <div class="f l2"><label for="lTxt">Rechercher dans le nom</label><input type="search" id="lTxt" placeholder="ex. A03, STOCK, GA05…"></div>
+        <div class="f"><label>&nbsp;</label><button class="btn lt" id="lMaj" style="width:100%">Actualiser</button></div>
+      </div>
+      <div class="pied-f"><span class="chiffre"><b id="lNb">0</b>inventaires</span><span class="muted" id="lInfo" style="font-size:12.5px"></span></div>
+    </div>
+    <div class="tw"><table><colgroup><col style="width:150px"><col><col style="width:140px"><col style="width:280px"></colgroup>
+      <thead><tr><th>Créé le</th><th>Inventaire</th><th>État</th><th class="c">Actions</th></tr></thead><tbody id="tbL"></tbody></table></div>
+  </section>
+
+  <!-- SAISIE DES COMPTAGES : l'Excel de l'Archive est réécrit à chaque saisie -->
+  <section id="vSaisie" hidden>
+    <div class="card">
+      <div class="barre">
+        <button class="btn lt sm" id="sRetour">‹ Inventaires créés</button>
+        <span class="nom" id="sNom"></span>
+        <span class="sv" id="sv"></span>
+      </div>
+      <div class="barre" style="margin-top:12px">
+        <span class="chiffre"><b id="sCpt">0 / 0</b>lignes comptées</span>
+        <span class="chiffre"><b id="sEc">0</b>en écart</span>
+        <span class="chiffre"><b id="sVal">—</b>écart net</span>
+        <div class="prog"><i id="sBar"></i></div>
+      </div>
+      <div class="outils">
+        <input type="search" id="sTxt" placeholder="Emplacement, MGB, libellé…" aria-label="Rechercher">
+        <select id="sVue" aria-label="Lignes affichées"><option value="">Toutes les lignes</option><option value="nc">Non comptées</option><option value="ec">En écart</option></select>
+      </div>
+    </div>
+    <div class="tw"><table><colgroup><col style="width:100px"><col style="width:118px"><col><col style="width:58px"><col style="width:76px"><col style="width:110px"><col style="width:80px"><col style="width:100px"></colgroup>
+      <thead><tr><th>Emplacement</th><th>MGB</th><th>Libellé</th><th class="n">Cond.</th><th class="n">Théo.</th><th class="n">Compté</th><th class="n">Écart</th><th class="n">Valeur</th></tr></thead><tbody id="tbS"></tbody></table></div>
+  </section>
 </main>
 
 <div class="toast" id="toast"></div>
@@ -170,8 +234,10 @@ tr.nouv td{border-top:2px solid #c7cfdc}
    L'outil sort l'inventaire choisi, rien de plus :
    - « Créer l'inventaire » : PDF téléchargé pour l'impression
                               + Excel rangé dans l'Archive, dossier INVENTAIRE_TOURNANT/
-   - l'Excel a les colonnes Compté vide et Écart / Valeur écart en formule :
-     les comptages se saisissent ensuite dans l'Excel, pas dans l'outil
+   - l'Excel a les colonnes Compté vide et Écart / Valeur écart en formule
+   - onglet « Inventaires créés » : choix année / mois / jour, puis « Ouvrir et saisir » :
+     les comptages tapés dans l'outil sont écrits dans ce même Excel de l'Archive (pas d'autre fichier)
+   - forçage des 15 min réservé au compte admin (pour les tests), signalé dans l'Excel
    - chaque ligne de l'Excel porte ses dates (jour, semaine, mois, année) pour l'appli KPI
    Sources : StockStatus déposé depuis moins de 15 min (espace courant),
              M_DEPOT report_Emplacement de stk (emplacements vides, famille, type),
@@ -186,6 +252,8 @@ var SECTEURS = [
   {id:'MAR', nom:'La Marée', a1:50, a2:57}
 ];
 var NOM_TYPE = {PICK:'Picking', STOCK:'Stockage'};
+var PRIX_PROVISOIRE = 1.01;   /* prix absent de la base articles, en attendant sa mise à jour */
+function prixE(l){ return l.vide ? null : l.prix != null ? l.prix : PRIX_PROVISOIRE; }
 
 var $ = function(id){ return document.getElementById(id); };
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
@@ -199,7 +267,10 @@ function fq(n, kg){ if(n == null) return ''; return kg ? n.toLocaleString('fr-FR
 function feur(n){ if(n == null || !isFinite(n)) return '—'; return n.toLocaleString('fr-FR',{style:'currency',currency:'EUR'}); }
 var toastT;
 function toast(m, err){ var t = $('toast'); t.textContent = m; t.className = 'toast on' + (err ? ' err' : ''); clearTimeout(toastT); toastT = setTimeout(function(){ t.className = 'toast'; }, err ? 7000 : 4000); }
-function vue(id){ ['vCharge','vNouv'].forEach(function(v){ $(v).hidden = v !== id; }); }
+function vue(id){
+  ['vCharge','vNouv','vListe','vSaisie'].forEach(function(v){ $(v).hidden = v !== id; });
+  Array.prototype.forEach.call(document.querySelectorAll('#tabs button'), function(b){ b.classList.toggle('on', b.dataset.t === id || (id === 'vSaisie' && b.dataset.t === 'vListe')); });
+}
 function telechargerBlob(nom, blob){
   var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nom;
   document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
@@ -208,7 +279,8 @@ function telechargerBlob(nom, blob){
 /* ---------- session GDS ---------- */
 var API = (window.GDS && GDS.API) || '', CLE = (window.GDS && GDS.CLE_PUBLIQUE) || '';
 function lireS(c){ try { return sessionStorage.getItem(c) || localStorage.getItem(c); } catch(e){ return null; } }
-var JETON = lireS('gds_jeton') || '', QUI = lireS('gds_nom') || lireS('gds_role') || '';
+var JETON = lireS('gds_jeton') || '', QUI = lireS('gds_nom') || lireS('gds_role') || '', ROLE = lireS('gds_role') || '';
+var ADMIN = ROLE === 'admin', FORCE = false;   /* forçage des 15 min : compte admin seulement */
 var EN_GDS = !!(API && JETON);
 function auth(sup){ var h = {'Authorization':'Bearer ' + CLE, 'apikey':CLE, 'X-GDS-Session':JETON}; if(sup) for(var k in sup) h[k] = sup[k]; return h; }
 function Refus(){ this.message = 'accès refusé par le serveur'; this.refus = true; }
@@ -272,6 +344,7 @@ function parseCSV(txt){
    enrichies donneront ces valeurs toutes faites, ce bloc se contentera de les lire. */
 function secteurDe(a){ for(var i = 0; i < SECTEURS.length; i++) if(a >= SECTEURS[i].a1 && a <= SECTEURS[i].a2) return SECTEURS[i].id; return ''; }
 function typeDe(s){ return s.stk_type === 'STORAGE' ? 'STOCK' : 'PICK'; }
+function saDe(a){ return a ? [a.saNum, a.secteur].filter(function(x){ return x != null && String(x).trim() !== ''; }).join(' ') : ''; }   /* ex. « 12 BOUCHERIE CHARCUTERIE » */
 function familleDe(s){ return (s.stk_storage_group_name || '').trim(); }
 function decoupe(code){   /* AREA-allée-travée-NiveauSousniveau-position */
   var m = /-(\d+)-(\d+)-([A-Z])(\d+)-(\d+)$/.exec(code || '');
@@ -328,12 +401,12 @@ function construire(stockRows, structRows){
   Object.keys(E).map(function(k){ return E[k]; }).sort(ordre).forEach(function(e){
     var b = {emp:e.code, pos:e.pos, al:e.al, tr:e.tr, niv:e.niv, sn:e.sn, po:e.po, type:e.type, sect:secteurDe(e.al), fam:e.fam};
     var L = parCode[e.code];
-    if(!L){ LIGNES.push(Object.assign({vide:true, mgb:'', lib:'', ga:'', cond:'', theo:null, kg:false, prix:null, inc:false}, b)); return; }
+    if(!L){ LIGNES.push(Object.assign({vide:true, mgb:'', lib:'', sa:'', ga:'', cond:'', theo:null, kg:false, prix:null, inc:false}, b)); return; }
     var parM = {}, ordreM = [];
     L.forEach(function(s){ if(!parM[s.mgb]){ parM[s.mgb] = {desc:s.desc, q:0}; ordreM.push(s.mgb); } parM[s.mgb].q += s.q; });
     ordreM.forEach(function(m){
       var s = parM[m], a = ART[m];
-      LIGNES.push(Object.assign({mgb:m, lib:(a && a.libelle) || s.desc, ga:(a && a.ga) || '', cond:(a && a.ccvm) || '',
+      LIGNES.push(Object.assign({mgb:m, lib:(a && a.libelle) || s.desc, sa:saDe(a), ga:(a && a.ga) || '', cond:(a && a.ccvm) || '',
         theo:Math.round(s.q * 1000) / 1000, kg:!!kg[m], prix:(a && num(a.prix)) || null, inc:BASE_OK && !!m && !a}, b));
     });
   });
@@ -352,7 +425,8 @@ async function chargerGDS(){
     if(!fst) throw new Error('fichier structure (M_DEPOT report_Emplacement de stk) absent de GDS.');
     var dep = new Date(fs.date);
     if(!fs.date || isNaN(dep)) throw new Error('heure de dépôt du StockStatus illisible.');
-    if(ageMin(dep) > AGE_MAX_MIN){
+    if(ageMin(dep) > AGE_MAX_MIN && !FORCE){
+      $('bForcer').hidden = !ADMIN;
       $('msgCharge').innerHTML = '<div class="alerte">StockStatus trop ancien : déposé le ' + dFr(dep) + ' à ' + hFr(dep) + ' (il y a ' + Math.round(ageMin(dep)) +
         ' min).<br>Déposez un export de moins de ' + AGE_MAX_MIN + ' min depuis le sommaire, puis rechargez.</div>';
       $('bRecharger').hidden = false;
@@ -364,7 +438,9 @@ async function chargerGDS(){
     if(tSt.indexOf('location_nr') < 0) throw new Error('le fichier structure reçu est illisible.');
     STOCK = {fichier:fs.nom, depose:dep};
     construire(parseCSV(tS), parseCSV(tSt));
-    $('src').innerHTML = 'StockStatus déposé le ' + dFr(dep) + ' à ' + hFr(dep) + '<br>' + (BASE_OK ? 'Base articles chargée' : '<b style="color:#fca5a5">Base articles injoignable</b>');
+    $('bForcer').hidden = true;
+    if(FORCE && ageMin(dep) > AGE_MAX_MIN) STOCK.force = true;
+    $('src').innerHTML = (STOCK.force ? '<b style="color:#fdba74">Forçage admin</b> · ' : '') + 'StockStatus déposé le ' + dFr(dep) + ' à ' + hFr(dep) + '<br>' + (BASE_OK ? 'Base articles chargée' : '<b style="color:#fca5a5">Base articles injoignable</b>');
     ouvrirNouv();
   } catch(e){
     $('msgCharge').innerHTML = '<div class="alerte">' + esc(e.refus ? 'Accès refusé par le serveur.' : 'Chargement impossible : ' + e.message) + '</div>';
@@ -377,6 +453,7 @@ var MULTI = {
   mAl:  {tous:'Toutes', un:'allées',  cle:'al',  lib:function(v){ return 'Allée ' + v; }},
   mNiv: {tous:'Tous',   un:'niveaux', cle:'niv', lib:function(v){ return 'Niveau ' + v; }},
   mFam: {tous:'Toutes', un:'familles',cle:'fam', lib:function(v){ return v; }},
+  mSA:  {tous:'Tous',   un:'SA',      cle:'sa',  lib:function(v){ return v; }},
   mGA:  {tous:'Tous',   un:'GA',      cle:'ga',  lib:function(v){ return v; }}
 };
 function coches(id){ return Array.prototype.map.call(document.querySelectorAll('#' + id + ' .menu input[value]:checked'), function(i){ return i.value; }); }
@@ -407,6 +484,7 @@ document.addEventListener('click', function(e){
 
 /* ---------- filtres ---------- */
 function ouvrirNouv(){
+  $('bandeauForce').hidden = !(STOCK && STOCK.force);
   $('fSect').innerHTML = '<option value="">Tous</option>' + SECTEURS.map(function(s){ return '<option value="' + s.id + '">' + s.nom + '</option>'; }).join('');
   lier(null);
   vue('vNouv'); apercu();
@@ -415,11 +493,11 @@ function filtres(){
   var t1 = parseInt($('fT1').value, 10) || null, t2 = parseInt($('fT2').value, 10) || null;
   if(t1 && t2 && t2 < t1){ var y = t1; t1 = t2; t2 = y; }
   return {sect:$('fSect').value, al:coches('mAl').map(Number), cote:$('fCote').value, t1:t1, t2:t2, niv:coches('mNiv'), type:$('fType').value,
-          fam:coches('mFam'), ga:coches('mGA'), emp:$('fEmp').value, txt:$('fTxt').value.trim().toLowerCase()};
+          fam:coches('mFam'), sa:coches('mSA'), ga:coches('mGA'), emp:$('fEmp').value, txt:$('fTxt').value.trim().toLowerCase()};
 }
 /* sauf : filtre ignoré, pour proposer dans une liste les valeurs compatibles avec les autres filtres */
 function selection(F, sauf){
-  var article = !!(F.ga.length || F.txt);
+  var article = !!(F.sa.length || F.ga.length || F.txt);
   return LIGNES.filter(function(l){
     if(F.sect && l.sect !== F.sect) return false;
     if(sauf !== 'mAl' && F.al.length && F.al.indexOf(l.al) < 0) return false;
@@ -432,8 +510,9 @@ function selection(F, sauf){
     if(sauf !== 'mFam' && F.fam.length && F.fam.indexOf(l.fam) < 0) return false;
     if(F.emp === 'occ' && l.vide) return false;
     if(F.emp === 'vid' && !l.vide) return false;
-    /* GA et recherche portent sur l'article : un emplacement vide sort de la sélection */
+    /* SA, GA et recherche portent sur l'article : un emplacement vide sort de la sélection */
     if(article && l.vide) return false;
+    if(sauf !== 'mSA' && F.sa.length && F.sa.indexOf(l.sa) < 0) return false;
     if(sauf !== 'mGA' && F.ga.length && F.ga.indexOf(l.ga) < 0) return false;
     if(F.txt && (l.mgb + ' ' + l.lib).toLowerCase().indexOf(F.txt) < 0) return false;
     return true;
@@ -489,7 +568,7 @@ function apercu(){
   L.forEach(function(l){
     e[l.emp] = 1;
     if(l.vide){ nv++; return; }
-    if(l.prix) val += l.prix * l.theo;
+    val += prixE(l) * l.theo;
     if(l.inc) inc[l.mgb] = 1; else if(BASE_OK && l.prix == null) sp[l.mgb] = 1;
   });
   var ni = Object.keys(inc).length, ns = Object.keys(sp).length;
@@ -512,7 +591,7 @@ function apercu(){
     return '<tr' + (nouv ? ' class="nouv"' : '') + '><td class="m">' + (nouv ? esc(l.pos) : '') + '</td><td>' + (nouv ? NOM_TYPE[l.type] : '') + '</td>' +
       '<td class="m">' + esc(l.mgb) + '</td><td title="' + esc(l.lib) + '">' + lib + '</td><td title="' + esc(l.fam) + '">' + (nouv ? esc(l.fam) : '') + '</td><td>' + esc(l.ga) + '</td>' +
       '<td class="n">' + esc(l.cond) + '</td><td class="n">' + (l.theo == null ? '' : fq(l.theo, l.kg)) + '</td>' +
-      (prix ? '<td class="n">' + (l.vide ? '' : l.prix == null ? '<span class="muted">—</span>' : feur(l.prix)) + '</td>' : '') + '</tr>';
+      (prix ? '<td class="n"' + (l.prix == null && !l.vide ? ' title="Prix provisoire : absent de la base articles"' : '') + '>' + (l.vide ? '' : l.prix == null ? '<span class="neg">' + feur(PRIX_PROVISOIRE) + '</span>' : feur(l.prix)) + '</td>' : '') + '</tr>';
   }).join('');
 }
 
@@ -523,6 +602,23 @@ function inventaire(){
 }
 
 /* ---------- PDF : A4 paysage, une ligne par article, seulement pour imprimer ---------- */
+/* filtres en clair pour l'en-tête de la feuille */
+function perimetre(F){
+  var p = [NOM_TYPE[F.type]], cont = function(a){ return a.length > 1 && a[a.length-1] - a[0] === a.length - 1; };
+  if(F.sect) p.push('Secteur ' + SECTEURS.filter(function(s){ return s.id === F.sect; })[0].nom);
+  var al = F.al.slice().sort(function(a,b){ return a-b; });
+  if(al.length) p.push(al.length === 1 ? 'Allée ' + al[0] : cont(al) ? 'Allées ' + al[0] + ' à ' + al[al.length-1] : 'Allées ' + al.join(', '));
+  if(F.cote) p.push('Côté ' + (F.cote === 'IMP' ? 'impair' : 'pair'));
+  if(F.t1 || F.t2) p.push('Travées ' + (F.t1 || 1) + ' à ' + (F.t2 || 'fin'));
+  if(F.niv.length) p.push((F.niv.length > 1 ? 'Niveaux ' : 'Niveau ') + F.niv.join(', '));
+  if(F.fam.length) p.push('Famille : ' + F.fam.join(', '));
+  if(F.sa.length) p.push('SA : ' + F.sa.join(', '));
+  if(F.ga.length) p.push('GA : ' + F.ga.join(', '));
+  if(F.emp) p.push(F.emp === 'occ' ? 'Emplacements occupés' : 'Emplacements vides');
+  if(F.txt) p.push('Recherche : « ' + F.txt + ' »');
+  if(p.length === 1) p.push('Tout le dépôt');
+  return p;
+}
 function pdfFeuille(I){
   var J = window.jspdf && window.jspdf.jsPDF;
   if(!J || !J.API.autoTable) return null;
@@ -530,9 +626,9 @@ function pdfFeuille(I){
   var doc = new J({orientation:'landscape', unit:'mm', format:'a4'}), W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
   var prev = '', corps = I.lignes.map(function(l){
     var nv = l.emp !== prev; prev = l.emp;
-    return [nv ? l.pos : '', nv ? NOM_TYPE[l.type] : '', l.mgb, l.vide ? 'Emplacement vide' : l.lib,
+    return [nv ? l.pos : '', l.mgb, l.vide ? 'Emplacement vide' : l.lib,
             l.cond === '' || l.cond == null ? '' : String(l.cond), l.theo == null ? '' : fq(l.theo, l.kg)]
-      .concat(I.prix ? [l.vide ? '' : l.prix == null ? '—' : feur(l.prix)] : []).concat(['']);
+      .concat(I.prix ? [l.vide ? '' : feur(prixE(l))] : []).concat(['']);
   });
   doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(27,42,74);
   doc.text('Inventaire tournant', 8, 10);
@@ -542,21 +638,28 @@ function pdfFeuille(I){
   doc.text('Date : ____ / ____ / ________', 118, 16);
   doc.text('Stock au ' + dFr(dep) + ' ' + hFr(dep), W - 8, 10, {align:'right'});
   doc.text(I.lignes.length + ' lignes', W - 8, 16, {align:'right'});
+  /* périmètre en clair, plus précis que le nom du fichier */
+  doc.setFontSize(9.5); doc.setTextColor(60);
+  var per = doc.splitTextToSize(perimetre(I.filtres).join('  ·  '), W - 16);
+  doc.text(per, 8, 22);
+  var y0 = 22 + per.length * 4.2;
   doc.autoTable({
-    startY:21, margin:{left:8, right:8, bottom:12},
-    head:[['Emplacement','Type','MGB','Libellé','Cond.','Théo.'].concat(I.prix ? ['Prix u.'] : []).concat(['Compté'])],
+    startY:y0, margin:{left:8, right:8, bottom:12},
+    head:[['Emplacement','MGB','Libellé','Cond.','Théo.'].concat(I.prix ? ['Prix u.'] : []).concat(['Compté'])],
     body:corps, theme:'grid',
     styles:{font:'helvetica', fontSize:9.5, cellPadding:1.6, overflow:'ellipsize', lineColor:[150,150,150], lineWidth:.15, textColor:[0,0,0], minCellHeight:7, valign:'middle'},
     headStyles:{fillColor:[27,42,74], textColor:255, fontStyle:'bold', fontSize:9.5},
-    columnStyles:{0:{cellWidth:28}, 1:{cellWidth:21}, 2:{cellWidth:28}, 3:{cellWidth:'auto'},
-                  4:{cellWidth:15, halign:'right'}, 5:{cellWidth:20, halign:'right'}, 6:{cellWidth:I.prix ? 23 : 32, halign:I.prix ? 'right' : 'left'}, 7:{cellWidth:32}},
-    didParseCell:function(d){ if(d.section === 'body' && d.column.index === 3 && d.cell.raw === 'Emplacement vide') d.cell.styles.fontStyle = 'bolditalic'; },
+    columnStyles:{0:{cellWidth:28}, 1:{cellWidth:28}, 2:{cellWidth:'auto'},
+                  3:{cellWidth:15, halign:'right'}, 4:{cellWidth:20, halign:'right'}, 5:{cellWidth:I.prix ? 23 : 34, halign:I.prix ? 'right' : 'left'}, 6:{cellWidth:34}},
+    didParseCell:function(d){ if(d.section === 'body' && d.column.index === 2 && d.cell.raw === 'Emplacement vide') d.cell.styles.fontStyle = 'bolditalic'; },
     didDrawPage:function(){
       doc.setFontSize(8.5); doc.setTextColor(90);
       doc.text('GDS · ' + I.nom + ' · créé le ' + dFr(cree) + ' ' + hFr(cree) + ' · stock au ' + dFr(dep) + ' ' + hFr(dep), 8, H - 5);
-      doc.text('Page ' + doc.internal.getNumberOfPages(), W - 8, H - 5, {align:'right'});
+      doc.setFontSize(10); doc.setTextColor(27,42,74);
+      doc.text('Page ' + doc.internal.getNumberOfPages() + ' / {total}', W - 8, H - 5, {align:'right'});
     }
   });
+  doc.putTotalPages('{total}');
   return doc;
 }
 
@@ -605,15 +708,15 @@ function semaineIso(d){
 function classeur(I){
   var d = I.cree, dep = I.stock.depose, w = semaineIso(d), F = I.filtres;
   var tete = ['Inventaire','Date inventaire','Année','Mois','Semaine','Jour','Heure stock','Type','Emplacement','Allée','Travée','Côté','Niveau','Position',
-              'Famille','MGB','Libellé','GA','Cond.','Théorique','Compté','Écart','Prix unitaire','Valeur théorique','Valeur écart','Ligne','Réf. inconnue'];
+              'Famille','MGB','Libellé','SA','GA','Cond.','Théorique','Compté','Écart','Prix unitaire','Prix provisoire','Valeur théorique','Valeur écart','Ligne','Réf. inconnue'];
   var C = {}; tete.forEach(function(h, i){ C[h] = XLSX.utils.encode_col(i); });
   var rows = [tete];
   I.lignes.forEach(function(l){
     var r4 = function(x){ return x == null ? null : Math.round(x * 10000) / 10000; };
     rows.push([I.nom, isoJour(d), d.getFullYear(), d.getMonth() + 1, w.an + '-S' + pad2(w.s), ['dim.','lun.','mar.','mer.','jeu.','ven.','sam.'][d.getDay()],
       isoJour(dep) + ' ' + hFr(dep), NOM_TYPE[l.type], l.pos, l.al, l.tr, l.tr % 2 ? 'IMPAIR' : 'PAIR', l.niv + l.sn, l.po,
-      l.fam, l.mgb, l.vide ? 'Emplacement vide' : l.lib, l.ga, l.cond === '' ? null : l.cond,
-      l.vide ? 0 : r4(l.theo), null, null, r4(l.prix), l.prix == null || l.vide ? null : r4(l.prix * l.theo), null,
+      l.fam, l.mgb, l.vide ? 'Emplacement vide' : l.lib, l.sa, l.ga, l.cond === '' ? null : l.cond,
+      l.vide ? 0 : r4(l.theo), null, null, r4(prixE(l)), l.vide ? '' : l.prix == null ? 'oui' : 'non', l.vide ? null : r4(prixE(l) * l.theo), null,
       l.vide ? 'vide' : 'stock', l.inc ? 'oui' : 'non']);
   });
   var ws = XLSX.utils.aoa_to_sheet(rows);
@@ -629,13 +732,13 @@ function classeur(I){
   var liste = function(v, tous){ return v && v.length ? v.join(', ') : tous; };
   var inf = XLSX.utils.aoa_to_sheet([
     ['Inventaire', I.nom], ['Créé le', isoJour(d) + ' ' + hFr(d)], ['Créé par', I.par || ''], ['Stock au', isoJour(dep) + ' ' + hFr(dep)],
-    ['Fichier StockStatus', I.stock.fichier], ['Type', NOM_TYPE[F.type]],
+    ['Fichier StockStatus', I.stock.fichier], ['Règle des 15 min', I.stock.force ? 'forcée par ' + (I.par || 'admin') : 'respectée'], ['Type', NOM_TYPE[F.type]],
     ['Secteur', F.sect ? SECTEURS.filter(function(s){ return s.id === F.sect; })[0].nom : 'Tous'], ['Allées', liste(F.al, 'Toutes')],
     ['Côté', F.cote === 'IMP' ? 'Impair' : F.cote === 'PAIR' ? 'Pair' : 'Les deux'],
     ['Travées', F.t1 || F.t2 ? (F.t1 || 1) + ' à ' + (F.t2 || 'fin') : 'Toutes'], ['Niveaux', liste(F.niv, 'Tous')],
-    ['Familles', liste(F.fam, 'Toutes')], ['GA', liste(F.ga, 'Tous')],
+    ['Familles', liste(F.fam, 'Toutes')], ['SA', liste(F.sa, 'Tous')], ['GA', liste(F.ga, 'Tous')],
     ['Emplacements', F.emp === 'occ' ? 'Occupés' : F.emp === 'vid' ? 'Vides' : 'Occupés et vides'], ['Recherche', F.txt || ''],
-    ['Prix affichés sur la feuille', I.prix ? 'oui' : 'non'], ['Lignes', I.lignes.length]
+    ['Prix affichés sur la feuille', I.prix ? 'oui' : 'non'], ['Prix provisoire', feur(PRIX_PROVISOIRE) + ' quand le prix manque dans la base articles'], ['Lignes', I.lignes.length]
   ]);
   inf['!cols'] = [{wch:26}, {wch:60}];
   var wb = XLSX.utils.book_new();
@@ -646,7 +749,7 @@ function classeur(I){
 
 /* ---------- créer l'inventaire : PDF pour imprimer + Excel dans l'Archive ---------- */
 async function creer(){
-  if(EN_GDS && ageMin(STOCK.depose) > AGE_MAX_MIN){
+  if(EN_GDS && ageMin(STOCK.depose) > AGE_MAX_MIN && !FORCE){
     toast('Le StockStatus a plus de ' + AGE_MAX_MIN + ' min : déposez un export récent puis rechargez la page.', true); return;
   }
   if(!window.XLSX){ toast('Le module Excel n\'a pas pu se charger sur ce réseau.', true); return; }
@@ -671,9 +774,203 @@ function apercuPdf(){
   if(!w) toast('Autorisez l\'ouverture de fenêtres pour voir l\'aperçu.', true);
 }
 
+/* ---------- inventaires créés : choix année / mois / jour ----------
+   La date se lit dans le nom (…_JJMMAA-HHMM.xlsx). « Ouvrir et saisir » : les comptages se tapent
+   dans l'outil et l'Excel de l'Archive se met à jour tout seul. */
+var MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+var FICHIERS = [];
+function dateDuNom(n){
+  var m = /_(\d{2})(\d{2})(\d{2})-(\d{2})(\d{2})\.xlsx$/.exec(n);
+  return m ? {an:'20' + m[3], mois:m[2], jour:m[1], h:m[4] + ':' + m[5], cle:'20' + m[3] + m[2] + m[1] + m[4] + m[5]} : null;
+}
+async function chargerListe(){
+  $('lInfo').textContent = 'Lecture de l\'Archive…';
+  if(!EN_GDS){ FICHIERS = []; $('lInfo').textContent = 'Hors GDS : la liste de l\'Archive n\'est pas accessible.'; remplirDates(); return; }
+  try {
+    FICHIERS = (await listeArchive(DOSSIER)).filter(function(f){ return /\.xlsx$/i.test(f.nom); }).map(function(f){
+      var n = f.nom.slice(DOSSIER.length), d = dateDuNom(n), o = {chemin:f.nom, nom:n, d:d, maj:f.date};
+      /* déposé plus de 10 min après sa création : c'est la version saisie qui est dans l'Archive */
+      if(d && f.date) o.depose = f.date - new Date(+d.an, +d.mois - 1, +d.jour, +d.h.slice(0,2), +d.h.slice(3)).getTime() > 10 * 60000;
+      return o;
+    }).filter(function(f){ return f.d && f.nom.indexOf('/') < 0; })
+      .sort(function(a,b){ return a.d.cle < b.d.cle ? 1 : -1; });
+    $('lInfo').textContent = '';
+  } catch(e){ FICHIERS = []; $('lInfo').textContent = e.refus ? 'Archive : accès refusé.' : 'Archive injoignable.'; }
+  remplirDates();
+}
+function remplirDates(){
+  var an = $('lAn').value, mo = $('lMois').value, jo = $('lJour').value;
+  var uniq = function(t){ return t.filter(function(x, i){ return t.indexOf(x) === i; }); };
+  var A = uniq(FICHIERS.map(function(f){ return f.d.an; }));
+  if(an === '' && A.length) an = A[0];                      /* par défaut : l'année la plus récente */
+  $('lAn').innerHTML = '<option value="*">Toutes</option>' + A.map(function(a){ return '<option>' + a + '</option>'; }).join('');
+  $('lAn').value = A.indexOf(an) >= 0 || an === '*' ? an : (A[0] || '*');
+  var M = uniq(FICHIERS.filter(function(f){ return $('lAn').value === '*' || f.d.an === $('lAn').value; }).map(function(f){ return f.d.mois; }));
+  $('lMois').innerHTML = '<option value="">Tous</option>' + M.map(function(m){ return '<option value="' + m + '">' + MOIS[+m - 1] + '</option>'; }).join('');
+  $('lMois').value = M.indexOf(mo) >= 0 ? mo : '';
+  var J = uniq(FICHIERS.filter(function(f){ return ($('lAn').value === '*' || f.d.an === $('lAn').value) && (!$('lMois').value || f.d.mois === $('lMois').value); }).map(function(f){ return f.d.jour; }));
+  $('lJour').innerHTML = '<option value="">Tous</option>' + J.map(function(j){ return '<option value="' + j + '">' + (+j) + '</option>'; }).join('');
+  $('lJour').value = J.indexOf(jo) >= 0 ? jo : '';
+  dessinerListe();
+}
+var VISIBLES = [];
+function dessinerListe(){
+  var an = $('lAn').value, mo = $('lMois').value, jo = $('lJour').value, t = $('lTxt').value.trim().toUpperCase();
+  VISIBLES = FICHIERS.filter(function(f){
+    return (an === '*' || f.d.an === an) && (!mo || f.d.mois === mo) && (!jo || f.d.jour === jo) && (!t || f.nom.toUpperCase().indexOf(t) >= 0);
+  });
+  $('lNb').textContent = VISIBLES.length;
+  $('tbL').innerHTML = VISIBLES.map(function(f, i){
+    return '<tr><td class="m">' + f.d.jour + '/' + f.d.mois + '/' + f.d.an + ' ' + f.d.h + '</td><td class="m" title="' + esc(f.nom) + '">' + esc(f.nom.replace(/\.xlsx$/,'')) + '</td>' +
+      '<td>' + (f.depose ? '<span class="st ok">Saisie commencée</span>' : '<span class="st">À saisir</span>') + '</td>' +
+      '<td><div class="acts"><button class="btn or sm" data-ouv="' + i + '">Ouvrir et saisir</button><button class="btn lt sm" data-dl="' + i + '">Télécharger</button></div></td></tr>';
+  }).join('') || '<tr><td colspan="4" class="muted">Aucun inventaire pour cette période.</td></tr>';
+}
+$('tbL').addEventListener('click', async function(e){
+  var b = e.target.closest('button'); if(!b) return;
+  if(b.dataset.dl != null){
+    var f = VISIBLES[+b.dataset.dl]; b.disabled = true;
+    try { var buf = await lireArchive(f.chemin); if(!buf) throw new Error('fichier introuvable');
+          telechargerBlob(f.nom, new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})); }
+    catch(err){ toast(err.refus ? 'Accès refusé par GDS.' : 'Téléchargement impossible : ' + err.message, true); }
+    b.disabled = false;
+  } else if(b.dataset.ouv != null){
+    ouvrirSaisie(VISIBLES[+b.dataset.ouv], b);
+  }
+});
+
+/* ---------- saisie en temps réel ----------
+   On ouvre l'Excel de l'Archive, on tape les quantités ; seules les cellules « Compté » changent
+   (formules d'écart et onglet Infos gardés) et le fichier de l'Archive est réécrit 2 s après la dernière saisie.
+   Une copie des quantités reste sur le poste tant que l'enregistrement n'a pas réussi. */
+var SAI = null;
+var CLE_LOC = 'gds_invt_saisie_';
+async function ouvrirSaisie(f, b){
+  if(!window.XLSX){ toast('Le module Excel n\'a pas pu se charger sur ce réseau.', true); return; }
+  if(b) b.disabled = true;
+  try {
+    var buf = await lireArchive(f.chemin); if(!buf) throw new Error('fichier introuvable');
+    var wb = XLSX.read(buf, {type:'array', cellFormula:true, cellStyles:true}), ws = wb.Sheets['Inventaire'];
+    if(!ws) throw new Error('onglet « Inventaire » absent');
+    var tete = XLSX.utils.sheet_to_json(ws, {header:1})[0] || [], col = {};
+    tete.forEach(function(h, k){ col[h] = k; });
+    ['Emplacement','MGB','Libellé','Théorique','Compté'].forEach(function(h){ if(col[h] == null) throw new Error('colonne « ' + h + ' » absente'); });
+    var fin = XLSX.utils.decode_range(ws['!ref']).e.r;
+    var v = function(r, h){ var c = col[h] == null ? null : ws[XLSX.utils.encode_cell({r:r, c:col[h]})]; return c ? c.v : null; };
+    var L = [];
+    for(var r = 1; r <= fin; r++){
+      var pos = v(r, 'Emplacement'); if(pos == null) continue;
+      var c = v(r, 'Compté');
+      L.push({r:r, pos:String(pos), mgb:v(r, 'MGB') == null ? '' : String(v(r, 'MGB')), lib:v(r, 'Libellé') || '', cond:v(r, 'Cond.'),
+              theo:num(v(r, 'Théorique')) || 0, prix:num(v(r, 'Prix unitaire')), c:c === '' || c == null ? null : num(c)});
+    }
+    /* quantités restées sur le poste (enregistrement pas encore passé) */
+    var loc = null; try { loc = JSON.parse(localStorage.getItem(CLE_LOC + f.nom) || 'null'); } catch(e){}
+    if(loc && loc.c) Object.keys(loc.c).forEach(function(k){ var l = L[+k]; if(l) l.c = loc.c[k]; });
+    SAI = {f:f, wb:wb, ws:ws, col:col, lignes:L};
+    $('sNom').textContent = f.nom.replace(/\.xlsx$/, '');
+    $('sTxt').value = ''; $('sVue').value = '';
+    vue('vSaisie'); dessinerSaisie(); totaux();
+    if(loc && loc.c){ etatSv('Saisies du poste à enregistrer…', 'att'); planifier(); } else etatSv('À jour', 'ok');
+  } catch(e){ toast(e.refus ? 'Accès refusé par GDS.' : 'Ouverture impossible : ' + e.message, true); }
+  if(b) b.disabled = false;
+}
+function ecart(l){ if(l.c == null) return {e:null, v:null}; var e = l.c - l.theo; if(Math.abs(e) < 0.0005) e = 0; return {e:e, v:l.prix == null ? null : e * l.prix}; }
+function etatQ(l){ return l.c == null ? '' : ecart(l).e !== 0 ? ' ec' : ' ok'; }
+function cellulesEcart(l){
+  var r = ecart(l), c = r.e > 0 ? 'pos' : r.e < 0 ? 'neg' : '';
+  return '<td class="n ce ' + c + '">' + (r.e == null ? '' : (r.e > 0 ? '+' : '') + fq(r.e, false)) + '</td><td class="n cv ' + c + '">' + (r.v == null ? '' : feur(r.v)) + '</td>';
+}
+function dessinerSaisie(){
+  var t = $('sTxt').value.trim().toLowerCase(), vu = $('sVue').value, prev = '';
+  $('tbS').innerHTML = SAI.lignes.map(function(l, i){
+    if(t && (l.pos + ' ' + l.mgb + ' ' + l.lib).toLowerCase().indexOf(t) < 0) return '';
+    if(vu === 'nc' && l.c != null) return '';
+    if(vu === 'ec' && !(l.c != null && ecart(l).e !== 0)) return '';
+    var nv = l.pos !== prev; prev = l.pos;
+    return '<tr' + (nv ? ' class="nouv"' : '') + '><td class="m">' + (nv ? esc(l.pos) : '') + '</td><td class="m">' + esc(l.mgb) + '</td>' +
+      '<td title="' + esc(l.lib) + '">' + (l.lib === 'Emplacement vide' ? '<span class="vide">Emplacement vide</span>' : esc(l.lib)) + '</td>' +
+      '<td class="n">' + esc(l.cond == null ? '' : l.cond) + '</td><td class="n">' + fq(l.theo, false) + '</td>' +
+      '<td class="n"><input class="q' + etatQ(l) + '" data-i="' + i + '" inputmode="decimal" autocomplete="off" aria-label="Compté" value="' + (l.c == null ? '' : String(l.c).replace('.', ',')) + '"></td>' +
+      cellulesEcart(l) + '</tr>';
+  }).join('') || '<tr><td colspan="8" class="muted">Aucune ligne.</td></tr>';
+}
+function totaux(){
+  var L = SAI.lignes, c = 0, ne = 0, v = 0;
+  L.forEach(function(l){ if(l.c == null) return; c++; var r = ecart(l); if(r.e !== 0){ ne++; if(r.v != null) v += r.v; } });
+  $('sCpt').textContent = c + ' / ' + L.length; $('sEc').textContent = ne;
+  $('sVal').textContent = feur(v); $('sVal').className = v < 0 ? 'neg' : v > 0 ? 'pos' : '';
+  $('sBar').style.width = (L.length ? 100 * c / L.length : 0) + '%';
+}
+function etatSv(t, c){ $('sv').textContent = t; $('sv').className = 'sv ' + (c || ''); }
+function garderPoste(){
+  var o = {}; SAI.lignes.forEach(function(l, i){ if(l.c != null) o[i] = l.c; });
+  try { localStorage.setItem(CLE_LOC + SAI.f.nom, JSON.stringify({c:o, le:new Date().toISOString()})); } catch(e){}
+}
+var tSave = null, enCours = false, encore = false;
+function planifier(){ etatSv('Enregistrement…', 'att'); clearTimeout(tSave); tSave = setTimeout(enregistrer, 2000); }
+async function enregistrer(){
+  tSave = null;
+  if(!SAI) return;
+  if(enCours){ encore = true; return; }
+  enCours = true;
+  var S = SAI, ws = S.ws, cc = S.col['Compté'];
+  S.lignes.forEach(function(l){
+    var a = XLSX.utils.encode_cell({r:l.r, c:cc});
+    if(l.c == null) delete ws[a]; else ws[a] = {t:'n', v:l.c};
+  });
+  try {
+    if(!EN_GDS) throw new Error('hors GDS');
+    var out = XLSX.write(S.wb, {bookType:'xlsx', type:'array', cellStyles:true});
+    await ecrireArchive(S.f.chemin, new Blob([out]), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    try { localStorage.removeItem(CLE_LOC + S.f.nom); } catch(e){}
+    S.f.depose = true;
+    var n = new Date(); if(SAI === S) etatSv('Enregistré dans GDS · ' + hFr(n) + ':' + pad2(n.getSeconds()), 'ok');
+  } catch(e){
+    if(SAI === S){ etatSv(e.refus ? 'Refusé par GDS · gardé sur ce poste' : 'Hors ligne · gardé sur ce poste, nouvel essai…', 'err'); tSave = setTimeout(enregistrer, 15000); }
+  }
+  enCours = false;
+  if(encore){ encore = false; enregistrer(); }
+}
+window.addEventListener('online', function(){ if(SAI) enregistrer(); });
+document.addEventListener('visibilitychange', function(){ if(document.visibilityState === 'hidden' && SAI && tSave){ clearTimeout(tSave); enregistrer(); } });
+window.addEventListener('beforeunload', function(e){ if(SAI && /att|err/.test($('sv').className)){ e.preventDefault(); e.returnValue = ''; } });
+
+$('tbS').addEventListener('input', function(e){
+  var t = e.target; if(!t.classList.contains('q')) return;
+  var l = SAI.lignes[+t.dataset.i], v = t.value.trim(), n = v === '' ? null : num(v);
+  if(v !== '' && (n == null || n < 0)){ t.className = 'q ec'; return; }
+  l.c = n; t.className = 'q' + etatQ(l);
+  var tr = t.closest('tr'); tr.querySelector('.cv').remove(); tr.querySelector('.ce').outerHTML = cellulesEcart(l);
+  totaux(); garderPoste(); planifier();
+});
+$('tbS').addEventListener('keydown', function(e){
+  if(e.key !== 'Enter' || !e.target.classList.contains('q')) return;
+  e.preventDefault();
+  var T = Array.prototype.slice.call(document.querySelectorAll('#tbS .q')), n = T[T.indexOf(e.target) + 1];
+  if(n){ n.focus(); n.select(); }
+});
+$('sTxt').addEventListener('input', dessinerSaisie);
+$('sVue').addEventListener('change', dessinerSaisie);
+$('sRetour').addEventListener('click', async function(){
+  if(tSave){ clearTimeout(tSave); await enregistrer(); }
+  SAI = null; vue('vListe'); dessinerListe();
+});
+
+['lAn','lMois','lJour'].forEach(function(id){ $(id).addEventListener('change', remplirDates); });
+$('lTxt').addEventListener('input', dessinerListe);
+$('lMaj').addEventListener('click', chargerListe);
+$('tabs').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if(!b) return;
+  if(SAI && tSave){ clearTimeout(tSave); enregistrer(); }
+  SAI = null;
+  if(b.dataset.t === 'vListe'){ vue('vListe'); chargerListe(); }
+  else vue(LIGNES.length ? 'vNouv' : 'vCharge');
+});
+
 /* ---------- événements ---------- */
 $('fSect').addEventListener('change', function(){
-  ['mAl','mNiv','mFam','mGA'].forEach(function(id){ Array.prototype.forEach.call(document.querySelectorAll('#' + id + ' input[value]'), function(i){ i.checked = false; }); });
+  ['mAl','mNiv','mFam','mSA','mGA'].forEach(function(id){ Array.prototype.forEach.call(document.querySelectorAll('#' + id + ' input[value]'), function(i){ i.checked = false; }); });
   lier(null); apercu();
 });
 ['fCote','fType','fEmp'].forEach(function(id){ $(id).addEventListener('change', function(){ lier(null); apercu(); }); });
@@ -689,6 +986,11 @@ $('bCreer').addEventListener('click', creer);
 $('bApercu').addEventListener('click', apercuPdf);
 $('bQual').addEventListener('click', rapportQualite);
 $('bRecharger').addEventListener('click', chargerGDS);
+$('bForcer').addEventListener('click', function(){
+  if(!ADMIN) return;
+  if(!confirm('Forcer l\'utilisation d\'un StockStatus de plus de ' + AGE_MAX_MIN + ' min ?\nLes quantités théoriques peuvent être fausses.\nLe forçage sera noté dans l\'Excel.')) return;
+  FORCE = true; chargerGDS();
+});
 
 /* mode test hors GDS */
 var charge = {};
