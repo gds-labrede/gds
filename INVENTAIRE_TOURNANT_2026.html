@@ -127,7 +127,7 @@ tr.nouv td{border-top:2px solid #c7cfdc}
 <body>
 <header><div class="wrap">
   <h1>Inventaire <span>tournant</span></h1>
-  <span class="ver">v3.6</span>
+  <span class="ver">v3.7</span>
   <nav class="tabs" id="tabs">
     <button data-t="vNouv" class="on">Nouvel inventaire</button>
     <button data-t="vListe">Saisir les écarts</button>
@@ -260,7 +260,7 @@ tr.nouv td{border-top:2px solid #c7cfdc}
              M_DEPOT report_Emplacement de stk (emplacements vides, famille, type),
              BASE_ARTICLES/base_articles.json.gz (+ saisies.json) : libellé, GA, cond., prix
    ═══════════════════════════════════════════════════════════ */
-var VERSION = 'v3.6', AGE_MAX_MIN = 15;
+var VERSION = 'v3.7', AGE_MAX_MIN = 15;
 var DOSSIER = 'INVENTAIRE_TOURNANT/';
 var P_STOCK = 'StockStatus_FR_STOREDEPOT_', P_STRUCT = 'M_DEPOT report_Emplacement de stk';
 var SECTEURS = [
@@ -853,20 +853,29 @@ async function chargerListe(){
   } catch(e){ FICHIERS = []; $('lInfo').textContent = e.refus ? 'Archive : accès refusé.' : 'Archive injoignable.'; }
   remplirDates();
 }
+/* Année / mois / jour : par défaut aujourd'hui, jamais « Tous » tout seul.
+   La date du jour est toujours proposée, même sans inventaire ; les autres dates sont celles des inventaires existants. */
 function remplirDates(){
-  var an = $('lAn').value, mo = $('lMois').value, jo = $('lJour').value;
+  var auj = new Date(), aA = String(auj.getFullYear()), aM = pad2(auj.getMonth() + 1), aJ = pad2(auj.getDate());
+  var an = $('lAn').value || aA, mo = $('lMois').dataset.init ? $('lMois').value : aM, jo = $('lJour').dataset.init ? $('lJour').value : aJ;
+  $('lMois').dataset.init = $('lJour').dataset.init = '1';
   var uniq = function(t){ return t.filter(function(x, i){ return t.indexOf(x) === i; }); };
-  var A = uniq(FICHIERS.map(function(f){ return f.d.an; }));
-  /* à l'ouverture : le jour du dernier inventaire exporté (en général aujourd'hui), pas « Tous » */
-  if(an === '' && FICHIERS.length){ an = FICHIERS[0].d.an; mo = FICHIERS[0].d.mois; jo = FICHIERS[0].d.jour; }
-  $('lAn').innerHTML = '<option value="*">Toutes</option>' + A.map(function(a){ return '<option>' + a + '</option>'; }).join('');
-  $('lAn').value = A.indexOf(an) >= 0 || an === '*' ? an : (A[0] || '*');
-  var M = uniq(FICHIERS.filter(function(f){ return $('lAn').value === '*' || f.d.an === $('lAn').value; }).map(function(f){ return f.d.mois; }));
-  $('lMois').innerHTML = '<option value="">Tous</option>' + M.map(function(m){ return '<option value="' + m + '">' + MOIS[+m - 1] + '</option>'; }).join('');
-  $('lMois').value = M.indexOf(mo) >= 0 ? mo : '';
-  var J = uniq(FICHIERS.filter(function(f){ return ($('lAn').value === '*' || f.d.an === $('lAn').value) && (!$('lMois').value || f.d.mois === $('lMois').value); }).map(function(f){ return f.d.jour; }));
-  $('lJour').innerHTML = '<option value="">Tous</option>' + J.map(function(j){ return '<option value="' + j + '">' + (+j) + '</option>'; }).join('');
-  $('lJour').value = J.indexOf(jo) >= 0 ? jo : '';
+  var tri = function(t){ return t.sort(function(x, y){ return x < y ? 1 : -1; }); };
+  var A = tri(uniq([aA].concat(FICHIERS.map(function(f){ return f.d.an; }))));
+  $('lAn').innerHTML = A.map(function(a){ return '<option>' + a + '</option>'; }).join('') + '<option value="*">Toutes</option>';
+  $('lAn').value = A.indexOf(an) >= 0 || an === '*' ? an : aA;
+  var ceAn = $('lAn').value;
+  var M = uniq(FICHIERS.filter(function(f){ return ceAn === '*' || f.d.an === ceAn; }).map(function(f){ return f.d.mois; }));
+  if(ceAn === aA && M.indexOf(aM) < 0) M.push(aM);
+  M = tri(M);
+  $('lMois').innerHTML = M.map(function(m){ return '<option value="' + m + '">' + MOIS[+m - 1] + '</option>'; }).join('') + '<option value="">Tous</option>';
+  $('lMois').value = M.indexOf(mo) >= 0 || mo === '' ? mo : (M[0] || '');
+  var ceMois = $('lMois').value;
+  var J = uniq(FICHIERS.filter(function(f){ return (ceAn === '*' || f.d.an === ceAn) && (!ceMois || f.d.mois === ceMois); }).map(function(f){ return f.d.jour; }));
+  if(ceAn === aA && ceMois === aM && J.indexOf(aJ) < 0) J.push(aJ);
+  J = tri(J);
+  $('lJour').innerHTML = J.map(function(j){ return '<option value="' + j + '">' + (+j) + (ceAn === aA && ceMois === aM && j === aJ ? ' (aujourd\'hui)' : '') + '</option>'; }).join('') + '<option value="">Tous</option>';
+  $('lJour').value = J.indexOf(jo) >= 0 || jo === '' ? jo : (J[0] || '');
   dessinerListe();
 }
 var VISIBLES = [];
@@ -900,7 +909,7 @@ function dessinerListe(){
     return '<tr><td class="m">' + f.d.jour + '/' + f.d.mois + '/' + f.d.an + ' ' + f.d.h + '</td><td class="m" title="' + esc(f.nom) + '">' + esc(f.nom.replace(/\.xlsx$/,'')) + '</td>' +
       '<td>' + etiquette(f) + '</td>' +
       '<td><div class="acts"><button class="btn or sm" data-ouv="' + i + '">Ouvrir et saisir</button><button class="btn lt sm" data-dl="' + i + '">Télécharger</button><button class="btn sm sup" data-sup="' + i + '" title="Supprimer cet inventaire">Supprimer</button></div></td></tr>';
-  }).join('') || '<tr><td colspan="4" class="muted">Aucun inventaire pour cette période.</td></tr>';
+  }).join('') || '<tr><td colspan="4" class="muted">Aucun inventaire exporté ' + ($('lJour').value ? 'ce jour-là' : 'sur cette période') + '.</td></tr>';
   lireEtats();
 }
 $('tbL').addEventListener('click', async function(e){
