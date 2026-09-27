@@ -127,7 +127,7 @@ tr.nouv td{border-top:2px solid #c7cfdc}
 <body>
 <header><div class="wrap">
   <h1>Inventaire <span>tournant</span></h1>
-  <span class="ver">v3.2</span>
+  <span class="ver">v3.3</span>
   <nav class="tabs" id="tabs">
     <button data-t="vNouv" class="on">Nouvel inventaire</button>
     <button data-t="vListe">Saisir les écarts</button>
@@ -257,7 +257,7 @@ tr.nouv td{border-top:2px solid #c7cfdc}
              M_DEPOT report_Emplacement de stk (emplacements vides, famille, type),
              BASE_ARTICLES/base_articles.json.gz (+ saisies.json) : libellé, GA, cond., prix
    ═══════════════════════════════════════════════════════════ */
-var VERSION = 'v3.2', AGE_MAX_MIN = 15;
+var VERSION = 'v3.3', AGE_MAX_MIN = 15;
 var DOSSIER = 'INVENTAIRE_TOURNANT/';
 var P_STOCK = 'StockStatus_FR_STOREDEPOT_', P_STRUCT = 'M_DEPOT report_Emplacement de stk';
 var SECTEURS = [
@@ -549,10 +549,12 @@ function lier(sauf){
    - allées : seulement si des allées sont cochées (sinon le secteur s'il est choisi)
    - avec un ou plusieurs GA : ni allées ni côté (nom trop long)
    - plusieurs valeurs : les premières puis +N (ex. GA05-12-18+4)
-   ex. INV_SPIRITUEUX-UNITAIRE_PICK_270926-1516 · INV_A03-05_STOCK_PAIR_270926-1516
+   ex. INV_SPIRITUEUX-UNITE_PICK_270926-1516 · INV_SA55-SPIRITUEUX_PICK_270926-1516 · INV_A03-05_STOCK_PAIR_270926-1516
    Compatible Windows / archive : lettres, chiffres, _ - + ; 100 caractères au plus. */
 var MAX_NOM = 100;
 function court(v, n){ return String(v).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9]+/g,'').toUpperCase().slice(0, n || 8); }
+/* texte en clair pour un nom de fichier : sans accents, mots reliés par - */
+function mots(v, n){ return String(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0, n).replace(/-$/,''); }
 function plusieurs(t, n){ return t.slice(0, n).join('-') + (t.length > n ? '+' + (t.length - n) : ''); }
 function blocAllees(F){
   var a = F.al.slice().sort(function(x,y){ return x-y; });
@@ -564,9 +566,9 @@ function blocAllees(F){
 function nomFichier(F, L, d){
   var ga = F.ga.length > 0, p = ['INV'];
   /* famille en toutes lettres (mots reliés par -) ; plusieurs familles : la première puis +N */
-  if(F.fam.length){ var fa = String(F.fam[0]).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0, 24).replace(/-$/,'');
-    p.push(fa + (F.fam.length > 1 ? '+' + (F.fam.length - 1) : '')); }
-  if(F.sa.length) p.push('SA' + plusieurs(F.sa.map(function(x){ return court(x.split(' ')[0], 4); }), 3));
+  if(F.fam.length) p.push(mots(F.fam[0], 24) + (F.fam.length > 1 ? '+' + (F.fam.length - 1) : ''));
+  /* SA : numéro + nom en clair (ex. SA55-SPIRITUEUX) ; plusieurs SA : le premier puis +N */
+  if(F.sa.length) p.push('SA' + mots(F.sa[0], 28) + (F.sa.length > 1 ? '+' + (F.sa.length - 1) : ''));
   if(ga) p.push('GA' + plusieurs(F.ga.map(function(x){ return court(x.split(' ')[0]).replace(/^GA/, ''); }), 3));
   if(!ga){ var al = blocAllees(F); if(al) p.push(al); else if(F.sect) p.push(F.sect); }
   if(F.t1 || F.t2) p.push('T' + pad2(F.t1 || 1) + '-' + (F.t2 ? pad2(F.t2) : 'FIN'));
