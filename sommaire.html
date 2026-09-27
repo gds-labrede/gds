@@ -932,11 +932,14 @@ function afficherListe(){
   var teinte = espace === 'archive' ? '#a8452f' : '#2d5a9e';
   zone.innerHTML = '';
 
+  /* Un fichier caché (nom commençant par un point, ex. .bzEmpty) sert seulement à garder
+     un dossier permanent dans l'Archive : il n'est jamais affiché ni compté. */
+  var cache = function(f){ return /(^|\/)\.[^\/]*$/.test(f.nom); };
   var tous = listes[espace];
 
   /* Une recherche porte sur tout, dossiers compris : on affiche à plat. */
   if(q){
-    var trouves = tous.filter(function(f){ return f.nom.toLowerCase().indexOf(q) !== -1; });
+    var trouves = tous.filter(function(f){ return !cache(f) && f.nom.toLowerCase().indexOf(q) !== -1; });
     if(!trouves.length){
       zone.innerHTML = '<div class="charge">Aucun fichier pour cette recherche.</div>';
       return;
@@ -947,7 +950,7 @@ function afficherListe(){
 
   /* Dans un dossier : fil d'Ariane puis son contenu. */
   if(dossier){
-    var dedans = tous.filter(function(f){ return f.nom.indexOf(dossier + '/') === 0; });
+    var dedans = tous.filter(function(f){ return !cache(f) && f.nom.indexOf(dossier + '/') === 0; });
 
     var fil = document.createElement('div');
     fil.className = 'fic fil';
@@ -969,10 +972,11 @@ function afficherListe(){
     if(i > 0){
       var d = f.nom.slice(0, i);
       if(!dossiers[d]) dossiers[d] = { nb:0, taille:0, date:0 };
+      if(cache(f)) return;
       dossiers[d].nb++;
       dossiers[d].taille += f.taille;
       if(f.date > dossiers[d].date) dossiers[d].date = f.date;
-    } else racine.push(f);
+    } else if(!cache(f)) racine.push(f);
   });
 
   var noms = Object.keys(dossiers).sort();
