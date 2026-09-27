@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GDS · Inventaire tournant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+if(!window.XLSX) document.write('<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"><\/script>');
+if(!window.jspdf){
+  document.write('<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"><\/script>');
+  document.write('<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"><\/script>');
+}
+</script>
+<style>
+:root{
+  --navy:#1B2A4A; --orange:#F28C28; --orange-soft:#fde8d2;
+  --bg:#f3f5f9; --card:#fff; --ink:#1B2A4A; --muted:#66728a; --line:#dde2eb;
+  --red:#b91c1c; --red-soft:#fde2e2; --green:#15803d; --green-soft:#e9f8ee;
+  --sans:'DM Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:'DM Mono',ui-monospace,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:13.5px}
+.wrap{max-width:1320px;margin:0 auto;padding:0 20px}
+header{background:var(--navy);color:#fff}
+header .wrap{display:flex;align-items:center;gap:14px;flex-wrap:wrap;min-height:58px;padding-top:8px;padding-bottom:8px}
+header h1{margin:0;font-size:19px}
+header h1 span{color:var(--orange)}
+.ver{font-family:var(--mono);font-size:11px;color:#9fb0cc;border:1px solid #3a4f7a;border-radius:6px;padding:1px 6px}
+.src{margin-left:auto;font-size:12px;color:#c9d2e3;text-align:right;line-height:1.4}
+main{padding-top:18px;padding-bottom:40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:14px;box-shadow:0 1px 2px rgba(27,42,74,.04)}
+.card h2{margin:0 0 14px;font-size:15px}
+.muted{color:var(--muted)}
+.btn{font-family:var(--sans);font-size:13.5px;font-weight:700;border:0;border-radius:9px;padding:0 18px;cursor:pointer;background:var(--navy);color:#fff;height:40px;white-space:nowrap}
+.btn.or{background:var(--orange);color:var(--navy)} .btn.lt{background:#e8ecf3;color:var(--navy)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--orange);outline-offset:1px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.alerte{border-left:5px solid var(--red);background:var(--red-soft);border-radius:10px;padding:11px 14px;margin:10px 0;font-weight:500}
+.info{border-left:5px solid var(--orange);background:var(--orange-soft);border-radius:10px;padding:9px 14px;margin:10px 0 0;font-size:13px}
+.drop{border:2px dashed #b7c1d3;border-radius:12px;padding:16px;text-align:center;cursor:pointer;flex:1;min-width:240px;background:#fff}
+.drop.ok{border-color:var(--green);background:var(--green-soft)}
+.drop b{display:block;margin-bottom:3px}
+
+/* filtres : grille régulière */
+.filtres{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px 14px}
+.f label{display:block;font-size:11.5px;font-weight:500;color:var(--muted);margin-bottom:4px}
+.f select,.f input{font-family:var(--sans);font-size:13.5px;border:1px solid var(--line);border-radius:8px;padding:0 9px;color:var(--ink);background:#fff;height:38px;width:100%}
+.f input[type=number]{font-family:var(--mono)}
+.f .two{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center}
+.f .two span{color:var(--muted);font-size:12px}
+.f.l2{grid-column:span 2} .f.l3{grid-column:span 3}
+@media (max-width:1000px){ .f.l3{grid-column:span 2} }
+@media (max-width:1000px){ .filtres{grid-template-columns:repeat(3,minmax(0,1fr))} }
+@media (max-width:620px){ .filtres{grid-template-columns:repeat(2,minmax(0,1fr))} }
+.pied-f{display:flex;align-items:center;gap:22px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.chiffre{font-size:11.5px;color:var(--muted);line-height:1.2}
+.chiffre b{display:block;font-family:var(--mono);font-size:19px;font-weight:500;color:var(--ink)}
+.nom{font-family:var(--mono);font-size:12px;background:#f0f3f8;border-radius:7px;padding:6px 10px;word-break:break-all}
+.coche{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;border:1px solid var(--line);border-radius:999px;padding:7px 12px}
+.coche input{accent-color:var(--orange);width:16px;height:16px}
+.pied-f .fin{margin-left:auto;display:flex;gap:10px;align-items:center}
+
+/* tableaux */
+.tw{overflow:auto;max-height:calc(100vh - 330px);border:1px solid var(--line);border-radius:14px;background:#fff}
+table{border-collapse:collapse;width:100%;font-size:12.5px;table-layout:fixed}
+th{position:sticky;top:0;z-index:1;background:var(--navy);color:#fff;text-align:left;padding:8px;font-weight:500;white-space:nowrap}
+td{padding:5px 8px;border-top:1px solid #eef1f5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+td.n,th.n{text-align:right;font-family:var(--mono)}
+th.c,td.c{text-align:center}
+td.m{font-family:var(--mono)}
+tr.nouv td{border-top:2px solid #c7cfdc}
+.vide{font-weight:700;font-style:italic}
+.pos{color:var(--green)} .neg{color:var(--red)}
+.st{font-size:11.5px;border-radius:6px;padding:2px 8px;background:#fde8d2;color:#7a4a12}
+.chiffre b.warn{color:var(--red)}
+
+.toast{white-space:pre-line;position:fixed;right:16px;bottom:16px;z-index:50;background:var(--navy);color:#fff;border-left:5px solid var(--orange);border-radius:10px;padding:10px 16px;font-size:13.5px;box-shadow:0 6px 20px rgba(27,42,74,.25);opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;pointer-events:none;max-width:420px}
+.toast.on{opacity:1;transform:none} .toast.err{border-left-color:#ef4444}
+/* listes à cocher (allées, niveaux, famille, GA) */
+.multi{position:relative}
+.multi summary{list-style:none;cursor:pointer;border:1px solid var(--line);border-radius:8px;padding:0 28px 0 9px;height:38px;line-height:36px;background:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative}
+.multi summary::-webkit-details-marker{display:none}
+.multi summary::after{content:'';position:absolute;right:11px;top:15px;border:5px solid transparent;border-top-color:var(--ink)}
+.multi .menu{position:absolute;z-index:30;left:0;top:42px;min-width:100%;max-height:300px;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(27,42,74,.15);padding:6px}
+.multi .menu label{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;font-size:13px;color:var(--ink);margin:0;cursor:pointer;white-space:nowrap}
+.multi .menu label:hover{background:#f3f5f9}
+.multi .menu input{accent-color:var(--orange);width:16px;height:16px}
+.multi .menu .tous{border-bottom:1px solid var(--line);margin-bottom:4px;font-weight:700}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>Inventaire <span>tournant</span></h1>
+  <span class="ver">v3</span>
+  <div class="src" id="src">Aucun stock chargé</div>
+</div></header>
+
+<main class="wrap">
+  <!-- CHARGEMENT -->
+  <section id="vCharge">
+    <div class="card">
+      <div id="msgCharge" class="muted">Chargement du StockStatus, du fichier structure et de la base articles…</div>
+      <div class="row" style="margin-top:10px"><button class="btn or" id="bRecharger" hidden>Recharger depuis GDS</button></div>
+      <div id="zoneTest" hidden>
+        <div class="info">Mode test hors GDS : règle des 15 min, base articles et enregistrement dans l'Archive désactivés. L'Excel est téléchargé sur ce poste.</div>
+        <div class="row" style="margin-top:10px">
+          <label class="drop" id="dStock"><b>StockStatus</b><span class="muted">StockStatus_FR_STOREDEPOT_…csv</span><input type="file" accept=".csv" id="fStock" hidden></label>
+          <label class="drop" id="dStruct"><b>Structure</b><span class="muted">M_DEPOT report_Emplacement de stk…csv</span><input type="file" accept=".csv" id="fStruct" hidden></label>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NOUVELLE FEUILLE -->
+  <section id="vNouv" hidden>
+    <div class="card">
+      <h2>Nouvelle feuille d'inventaire</h2>
+      <div class="filtres">
+        <div class="f"><label for="fSect">Secteur</label><select id="fSect"></select></div>
+        <div class="f"><label>Allées</label><details class="multi" id="mAl"><summary>Toutes</summary><div class="menu"></div></details></div>
+        <div class="f"><label for="fCote">Côté</label><select id="fCote"><option value="">Les deux</option><option value="IMP">Impair</option><option value="PAIR">Pair</option></select></div>
+        <div class="f"><label>Travées</label><div class="two"><input type="number" id="fT1" min="1" inputmode="numeric" aria-label="Travée de"><span>à</span><input type="number" id="fT2" min="1" inputmode="numeric" aria-label="Travée à"></div></div>
+        <div class="f"><label>Niveaux</label><details class="multi" id="mNiv"><summary>Tous</summary><div class="menu"></div></details></div>
+        <div class="f"><label for="fType">Type</label><select id="fType"><option value="PICK">Picking</option><option value="STOCK">Stockage</option></select></div>
+        <div class="f"><label>Famille</label><details class="multi" id="mFam"><summary>Toutes</summary><div class="menu"></div></details></div>
+        <div class="f"><label>GA</label><details class="multi" id="mGA"><summary>Tous</summary><div class="menu"></div></details></div>
+        <div class="f"><label for="fEmp">Emplacements</label><select id="fEmp"><option value="">Occupés et vides</option><option value="occ">Occupés</option><option value="vid">Vides</option></select></div>
+        <div class="f l2"><label for="fTxt">MGB ou libellé</label><input type="search" id="fTxt"></div>
+        <div class="f"><label>&nbsp;</label><button class="btn lt" id="bRaz" style="width:100%">Effacer les filtres</button></div>
+      </div>
+      <div class="pied-f">
+        <span class="chiffre"><b id="rLig">0</b>lignes</span>
+        <span class="chiffre"><b id="rEmp">0</b>emplacements</span>
+        <span class="chiffre"><b id="rVid">0</b>vides</span>
+        <span class="chiffre"><b id="rInc">0</b>réf. inconnues</span>
+        <span class="chiffre"><b id="rSp">0</b>prix manquants</span>
+        <span class="chiffre" id="rValB" hidden><b id="rVal">—</b>valeur théorique</span>
+        <label class="coche"><input type="checkbox" id="fPrix"> Afficher les prix</label>
+      </div>
+      <div class="pied-f" style="border-top:0;margin-top:8px;padding-top:0">
+        <span class="nom" id="rNom"></span>
+        <div class="fin">
+          <button class="btn lt" id="bQual">Rapport qualité (PDF)</button>
+          <button class="btn lt" id="bApercu">Aperçu</button>
+          <button class="btn or" id="bCreer">Créer l'inventaire</button>
+        </div>
+      </div>
+      <div class="muted" id="rCap" style="margin-top:8px;font-size:12px"></div>
+    </div>
+    <div class="tw"><table><colgroup id="cgN"></colgroup><thead id="thN"></thead><tbody id="tbN"></tbody></table></div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+/* ═══════════════════════════════════════════════════════════
+   GDS · Inventaire tournant · v3
+   L'outil sort l'inventaire choisi, rien de plus :
+   - « Créer l'inventaire » : PDF téléchargé pour l'impression
+                              + Excel rangé dans l'Archive, dossier INVENTAIRE_TOURNANT/
+   - l'Excel a les colonnes Compté vide et Écart / Valeur écart en formule :
+     les comptages se saisissent ensuite dans l'Excel, pas dans l'outil
+   - chaque ligne de l'Excel porte ses dates (jour, semaine, mois, année) pour l'appli KPI
+   Sources : StockStatus déposé depuis moins de 15 min (espace courant),
+             M_DEPOT report_Emplacement de stk (emplacements vides, famille, type),
+             BASE_ARTICLES/base_articles.json.gz (+ saisies.json) : libellé, GA, cond., prix
+   ═══════════════════════════════════════════════════════════ */
+var VERSION = 'v3', AGE_MAX_MIN = 15;
+var DOSSIER = 'INVENTAIRE_TOURNANT/';
+var P_STOCK = 'StockStatus_FR_STOREDEPOT_', P_STRUCT = 'M_DEPOT report_Emplacement de stk';
+var SECTEURS = [
+  {id:'AMB', nom:'Ambiant', a1:1, a2:18}, {id:'FRA', nom:'Frais', a1:19, a2:29},
+  {id:'FL', nom:'Fruits et légumes', a1:30, a2:37}, {id:'SUR', nom:'Surgelé', a1:38, a2:49},
+  {id:'MAR', nom:'La Marée', a1:50, a2:57}
+];
+var NOM_TYPE = {PICK:'Picking', STOCK:'Stockage'};
+
+var $ = function(id){ return document.getElementById(id); };
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function pad2(n){ return String(n).padStart(2,'0'); }
+function dFr(d){ return pad2(d.getDate()) + '/' + pad2(d.getMonth()+1) + '/' + d.getFullYear(); }
+function hFr(d){ return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
+function isoJour(d){ return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate()); }
+function mgb12(v){ var s = String(v == null ? '' : v).trim().replace(/\.0+$/,''); return /^\d{1,12}$/.test(s) ? s.padStart(12,'0') : ''; }
+function num(v){ if(v == null || v === '') return null; var n = parseFloat(String(v).replace(/\s/g,'').replace(',','.')); return isFinite(n) ? n : null; }
+function fq(n, kg){ if(n == null) return ''; return kg ? n.toLocaleString('fr-FR',{minimumFractionDigits:3,maximumFractionDigits:3}) : n.toLocaleString('fr-FR',{maximumFractionDigits:3}); }
+function feur(n){ if(n == null || !isFinite(n)) return '—'; return n.toLocaleString('fr-FR',{style:'currency',currency:'EUR'}); }
+var toastT;
+function toast(m, err){ var t = $('toast'); t.textContent = m; t.className = 'toast on' + (err ? ' err' : ''); clearTimeout(toastT); toastT = setTimeout(function(){ t.className = 'toast'; }, err ? 7000 : 4000); }
+function vue(id){ ['vCharge','vNouv'].forEach(function(v){ $(v).hidden = v !== id; }); }
+function telechargerBlob(nom, blob){
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nom;
+  document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+
+/* ---------- session GDS ---------- */
+var API = (window.GDS && GDS.API) || '', CLE = (window.GDS && GDS.CLE_PUBLIQUE) || '';
+function lireS(c){ try { return sessionStorage.getItem(c) || localStorage.getItem(c); } catch(e){ return null; } }
+var JETON = lireS('gds_jeton') || '', QUI = lireS('gds_nom') || lireS('gds_role') || '';
+var EN_GDS = !!(API && JETON);
+function auth(sup){ var h = {'Authorization':'Bearer ' + CLE, 'apikey':CLE, 'X-GDS-Session':JETON}; if(sup) for(var k in sup) h[k] = sup[k]; return h; }
+function Refus(){ this.message = 'accès refusé par le serveur'; this.refus = true; }
+async function gds(chemin, opt){
+  var r = await fetch(API + chemin, Object.assign({headers:auth()}, opt || {}));
+  if(r.status === 401 || r.status === 403) throw new Refus();   /* on affiche le refus, la session reste */
+  return r;
+}
+async function listeCourant(){
+  var r = await gds('/fichiers', {method:'POST', headers:auth({'Content-Type':'application/json'}), body:JSON.stringify({prefix:''})});
+  if(!r.ok) throw new Error('liste des fichiers indisponible');
+  var d = await r.json(), t = Array.isArray(d) ? d : (d && (d.files || d.data)) || [];
+  return t.filter(function(f){ return f && f.name; }).map(function(f){ return {nom:f.name.split('/').pop(), date:f.created_at || f.updated_at || ''}; });
+}
+async function lireCourant(nom){
+  var r = await gds('/fichier/' + encodeURIComponent(nom));
+  if(!r.ok) throw new Error('téléchargement de « ' + nom + ' » impossible');
+  return await r.text();
+}
+async function listeArchive(prefixe){
+  var r = await gds('/archive', {method:'POST', headers:auth({'Content-Type':'application/json'}), body:JSON.stringify({prefix:prefixe})});
+  if(!r.ok) throw new Error('archive indisponible');
+  return ((await r.json()).files || []).map(function(f){ return {nom:f.fileName, date:+f.uploadTimestamp || 0}; });
+}
+async function lireArchive(chemin){
+  var r = await gds('/archive/' + encodeURIComponent(chemin));
+  if(r.status === 404) return null;
+  if(!r.ok) throw new Error('lecture impossible');
+  return await r.arrayBuffer();
+}
+async function ecrireArchive(chemin, corps, type){
+  var r = await gds('/archive/' + encodeURIComponent(chemin), {method:'POST', headers:auth({'Content-Type':type}), body:corps});
+  if(!r.ok) throw new Error('écriture impossible');
+}
+async function decompresser(buf){
+  var u = new Uint8Array(buf);
+  if(u[0] === 0x1f && u[1] === 0x8b) return await new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+  return new TextDecoder().decode(buf);
+}
+
+/* ---------- CSV en texte brut (les MGB gardent leurs zéros) ---------- */
+function parseCSV(txt){
+  txt = txt.replace(/^﻿/, '');
+  var l1 = txt.slice(0, txt.indexOf('\n')), sep = l1.split(';').length > l1.split(',').length ? ';' : ',';
+  var rows = [], row = [], f = '', q = false, i, c, n = txt.length;
+  for(i = 0; i < n; i++){
+    c = txt[i];
+    if(q){ if(c === '"'){ if(txt[i+1] === '"'){ f += '"'; i++; } else q = false; } else f += c; }
+    else if(c === '"') q = true;
+    else if(c === sep){ row.push(f); f = ''; }
+    else if(c === '\n'){ row.push(f.replace(/\r$/,'')); rows.push(row); row = []; f = ''; }
+    else f += c;
+  }
+  if(f !== '' || row.length){ row.push(f.replace(/\r$/,'')); rows.push(row); }
+  var h = rows.shift().map(function(x){ return x.trim(); });
+  return rows.filter(function(r){ return r.length > 1; }).map(function(r){ var o = {}; h.forEach(function(k, j){ o[k] = (r[j] || '').trim(); }); return o; });
+}
+
+/* ---------- règles du dépôt ----------
+   Toutes les déductions sont ici, et seulement ici. Quand la structure et la base articles
+   enrichies donneront ces valeurs toutes faites, ce bloc se contentera de les lire. */
+function secteurDe(a){ for(var i = 0; i < SECTEURS.length; i++) if(a >= SECTEURS[i].a1 && a <= SECTEURS[i].a2) return SECTEURS[i].id; return ''; }
+function typeDe(s){ return s.stk_type === 'STORAGE' ? 'STOCK' : 'PICK'; }
+function familleDe(s){ return (s.stk_storage_group_name || '').trim(); }
+function decoupe(code){   /* AREA-allée-travée-NiveauSousniveau-position */
+  var m = /-(\d+)-(\d+)-([A-Z])(\d+)-(\d+)$/.exec(code || '');
+  return m ? {al:+m[1], tr:+m[2], niv:m[3], sn:+m[4], po:+m[5], pos:m[1]+'-'+m[2]+'-'+m[3]+m[4]+'-'+m[5]} : null;
+}
+function ordre(a, b){ return a.al - b.al || a.tr - b.tr || (a.niv < b.niv ? -1 : a.niv > b.niv ? 1 : 0) || a.sn - b.sn || a.po - b.po; }
+
+/* ---------- base articles ---------- */
+var ART = {}, BASE_OK = false;
+var DB = null;
+function idb(){ return new Promise(function(ok){
+  if(DB) return ok(DB);
+  try { var r = indexedDB.open('gds-base-articles', 1); r.onupgradeneeded = function(){ r.result.createObjectStore('k'); };
+        r.onsuccess = function(){ DB = r.result; ok(DB); }; r.onerror = function(){ ok(null); }; } catch(e){ ok(null); }
+}); }
+async function idbLire(k){ var d = await idb(); if(!d) return null; return new Promise(function(ok){ var t = d.transaction('k').objectStore('k').get(k); t.onsuccess = function(){ ok(t.result || null); }; t.onerror = function(){ ok(null); }; }); }
+async function idbEcrire(k, v){ var d = await idb(); if(!d) return; return new Promise(function(ok){ var t = d.transaction('k','readwrite'); t.objectStore('k').put(v, k); t.oncomplete = ok; t.onerror = ok; }); }
+async function chargerBase(){
+  var F = 'BASE_ARTICLES/base_articles.json.gz';
+  var fb = (await listeArchive('BASE_ARTICLES/')).filter(function(f){ return f.nom === F; })[0];
+  if(!fb) throw new Error('base articles absente');
+  var base = null, c = await idbLire('base');
+  if(c && String(c.date) === String(fb.date) && c.json) base = c.json;
+  else { base = JSON.parse(await decompresser(await lireArchive(F))); await idbEcrire('base', {date:String(fb.date), json:base}); }
+  var S = null;
+  try { var b = await lireArchive('BASE_ARTICLES/saisies.json'); if(b) S = JSON.parse(new TextDecoder().decode(b)); } catch(e){}
+  Object.keys(base.articles || {}).forEach(function(m){
+    var a = Object.assign({}, base.articles[m]), C = S && S.champs && S.champs[m];
+    if(C) Object.keys(C).forEach(function(k){
+      if(k === 'prix'){ if(!(a.prixDate && C.prix.le < a.prixDate)) a.prix = C.prix.v; }   /* un prix plus récent du data l'emporte */
+      else a[k] = C[k].v;
+    });
+    ART[mgb12(m)] = a;
+  });
+  BASE_OK = true;
+}
+
+/* ---------- lignes : une par position et par article (quantités additionnées) ---------- */
+var STOCK = null, LIGNES = [];
+function construire(stockRows, structRows){
+  var kg = {}, parCode = {};
+  stockRows.forEach(function(r){
+    var q = num(r.Quantity) || 0, m = mgb12(r.MGB);
+    if(q % 1 !== 0) kg[m] = true;    /* une quantité décimale : toute la référence est au kg */
+    (parCode[r['Location Code']] = parCode[r['Location Code']] || []).push({mgb:m, desc:r.Description, q:q});
+  });
+  var E = {};
+  structRows.forEach(function(s){ var d = decoupe(s.location_nr); if(d){ d.code = s.location_nr; d.type = typeDe(s); d.fam = familleDe(s); E[d.code] = d; } });
+  Object.keys(parCode).forEach(function(c){       /* occupés hors structure ; quai IN et litige INSPECTION exclus : hors stock */
+    if(E[c] || /^(IN|INSPECTION)-/.test(c)) return;
+    var d = decoupe(c); if(d){ d.code = c; d.type = d.niv === 'A' ? 'PICK' : 'STOCK'; d.fam = ''; E[c] = d; }
+  });
+  LIGNES = [];
+  Object.keys(E).map(function(k){ return E[k]; }).sort(ordre).forEach(function(e){
+    var b = {emp:e.code, pos:e.pos, al:e.al, tr:e.tr, niv:e.niv, sn:e.sn, po:e.po, type:e.type, sect:secteurDe(e.al), fam:e.fam};
+    var L = parCode[e.code];
+    if(!L){ LIGNES.push(Object.assign({vide:true, mgb:'', lib:'', ga:'', cond:'', theo:null, kg:false, prix:null, inc:false}, b)); return; }
+    var parM = {}, ordreM = [];
+    L.forEach(function(s){ if(!parM[s.mgb]){ parM[s.mgb] = {desc:s.desc, q:0}; ordreM.push(s.mgb); } parM[s.mgb].q += s.q; });
+    ordreM.forEach(function(m){
+      var s = parM[m], a = ART[m];
+      LIGNES.push(Object.assign({mgb:m, lib:(a && a.libelle) || s.desc, ga:(a && a.ga) || '', cond:(a && a.ccvm) || '',
+        theo:Math.round(s.q * 1000) / 1000, kg:!!kg[m], prix:(a && num(a.prix)) || null, inc:BASE_OK && !!m && !a}, b));
+    });
+  });
+}
+
+/* ---------- chargement ---------- */
+function plusRecent(L, p){ return L.filter(function(f){ return f.nom.indexOf(p) === 0 && /\.csv$/i.test(f.nom); }).sort(function(a,b){ return a.date < b.date ? 1 : -1; })[0]; }
+function ageMin(d){ return (Date.now() - d.getTime()) / 60000; }
+async function chargerGDS(){
+  $('msgCharge').textContent = 'Chargement du StockStatus, du fichier structure et de la base articles…';
+  $('bRecharger').hidden = true;
+  try {
+    var L = await listeCourant();
+    var fs = plusRecent(L, P_STOCK), fst = plusRecent(L, P_STRUCT);
+    if(!fs) throw new Error('aucun StockStatus dans GDS. Déposez un export depuis le sommaire.');
+    if(!fst) throw new Error('fichier structure (M_DEPOT report_Emplacement de stk) absent de GDS.');
+    var dep = new Date(fs.date);
+    if(!fs.date || isNaN(dep)) throw new Error('heure de dépôt du StockStatus illisible.');
+    if(ageMin(dep) > AGE_MAX_MIN){
+      $('msgCharge').innerHTML = '<div class="alerte">StockStatus trop ancien : déposé le ' + dFr(dep) + ' à ' + hFr(dep) + ' (il y a ' + Math.round(ageMin(dep)) +
+        ' min).<br>Déposez un export de moins de ' + AGE_MAX_MIN + ' min depuis le sommaire, puis rechargez.</div>';
+      $('bRecharger').hidden = false;
+      return;
+    }
+    try { await chargerBase(); } catch(e){ BASE_OK = false; }
+    var tS = await lireCourant(fs.nom), tSt = await lireCourant(fst.nom);
+    if(tS.indexOf('Location Code') < 0) throw new Error('le StockStatus reçu est illisible.');
+    if(tSt.indexOf('location_nr') < 0) throw new Error('le fichier structure reçu est illisible.');
+    STOCK = {fichier:fs.nom, depose:dep};
+    construire(parseCSV(tS), parseCSV(tSt));
+    $('src').innerHTML = 'StockStatus déposé le ' + dFr(dep) + ' à ' + hFr(dep) + '<br>' + (BASE_OK ? 'Base articles chargée' : '<b style="color:#fca5a5">Base articles injoignable</b>');
+    ouvrirNouv();
+  } catch(e){
+    $('msgCharge').innerHTML = '<div class="alerte">' + esc(e.refus ? 'Accès refusé par le serveur.' : 'Chargement impossible : ' + e.message) + '</div>';
+    $('bRecharger').hidden = false;
+  }
+}
+
+/* ---------- listes à cocher ---------- */
+var MULTI = {
+  mAl:  {tous:'Toutes', un:'allées',  cle:'al',  lib:function(v){ return 'Allée ' + v; }},
+  mNiv: {tous:'Tous',   un:'niveaux', cle:'niv', lib:function(v){ return 'Niveau ' + v; }},
+  mFam: {tous:'Toutes', un:'familles',cle:'fam', lib:function(v){ return v; }},
+  mGA:  {tous:'Tous',   un:'GA',      cle:'ga',  lib:function(v){ return v; }}
+};
+function coches(id){ return Array.prototype.map.call(document.querySelectorAll('#' + id + ' .menu input[value]:checked'), function(i){ return i.value; }); }
+function remplirMulti(id, valeurs){
+  var c = coches(id), menu = document.querySelector('#' + id + ' .menu');
+  c.forEach(function(v){ if(valeurs.indexOf(v) < 0) valeurs.push(v); });   /* une valeur cochée reste visible */
+  valeurs.sort(function(a,b){ return String(a).localeCompare(String(b), 'fr', {numeric:true}); });
+  menu.innerHTML = '<label class="tous"><input type="checkbox" data-tous' + (c.length ? '' : ' checked') + '> ' + MULTI[id].tous + '</label>' +
+    (valeurs.length ? valeurs.map(function(v){ return '<label><input type="checkbox" value="' + esc(v) + '"' + (c.indexOf(String(v)) >= 0 ? ' checked' : '') + '> ' + esc(MULTI[id].lib(v)) + '</label>'; }).join('')
+                    : '<div class="muted" style="padding:6px 8px">Aucune valeur</div>');
+  titreMulti(id);
+}
+function titreMulti(id){
+  var c = coches(id), s = document.querySelector('#' + id + ' summary');
+  s.textContent = !c.length ? MULTI[id].tous : c.length <= 3 ? c.map(MULTI[id].lib).join(', ').replace(/Allée |Niveau /g, id === 'mAl' ? 'A' : '') : c.length + ' ' + MULTI[id].un;
+  if(id === 'mNiv' && c.length && c.length <= 3) s.textContent = 'Niveau ' + c.join(', ');
+}
+Object.keys(MULTI).forEach(function(id){
+  document.querySelector('#' + id + ' .menu').addEventListener('change', function(e){
+    if(e.target.dataset.tous != null) Array.prototype.forEach.call(this.querySelectorAll('input[value]'), function(i){ i.checked = false; });
+    var t = this.querySelector('[data-tous]'); if(t) t.checked = !coches(id).length;
+    titreMulti(id); lier(id); apercu();
+  });
+});
+document.addEventListener('click', function(e){
+  Object.keys(MULTI).forEach(function(id){ if(!e.target.closest('#' + id)) $(id).open = false; });
+});
+
+/* ---------- filtres ---------- */
+function ouvrirNouv(){
+  $('fSect').innerHTML = '<option value="">Tous</option>' + SECTEURS.map(function(s){ return '<option value="' + s.id + '">' + s.nom + '</option>'; }).join('');
+  lier(null);
+  vue('vNouv'); apercu();
+}
+function filtres(){
+  var t1 = parseInt($('fT1').value, 10) || null, t2 = parseInt($('fT2').value, 10) || null;
+  if(t1 && t2 && t2 < t1){ var y = t1; t1 = t2; t2 = y; }
+  return {sect:$('fSect').value, al:coches('mAl').map(Number), cote:$('fCote').value, t1:t1, t2:t2, niv:coches('mNiv'), type:$('fType').value,
+          fam:coches('mFam'), ga:coches('mGA'), emp:$('fEmp').value, txt:$('fTxt').value.trim().toLowerCase()};
+}
+/* sauf : filtre ignoré, pour proposer dans une liste les valeurs compatibles avec les autres filtres */
+function selection(F, sauf){
+  var article = !!(F.ga.length || F.txt);
+  return LIGNES.filter(function(l){
+    if(F.sect && l.sect !== F.sect) return false;
+    if(sauf !== 'mAl' && F.al.length && F.al.indexOf(l.al) < 0) return false;
+    if(F.cote === 'IMP' && l.tr % 2 === 0) return false;
+    if(F.cote === 'PAIR' && l.tr % 2 === 1) return false;
+    if(F.t1 && l.tr < F.t1) return false;
+    if(F.t2 && l.tr > F.t2) return false;
+    if(sauf !== 'mNiv' && F.niv.length && F.niv.indexOf(l.niv) < 0) return false;
+    if(l.type !== F.type) return false;
+    if(sauf !== 'mFam' && F.fam.length && F.fam.indexOf(l.fam) < 0) return false;
+    if(F.emp === 'occ' && l.vide) return false;
+    if(F.emp === 'vid' && !l.vide) return false;
+    /* GA et recherche portent sur l'article : un emplacement vide sort de la sélection */
+    if(article && l.vide) return false;
+    if(sauf !== 'mGA' && F.ga.length && F.ga.indexOf(l.ga) < 0) return false;
+    if(F.txt && (l.mgb + ' ' + l.lib).toLowerCase().indexOf(F.txt) < 0) return false;
+    return true;
+  });
+}
+/* filtres liés : chaque liste ne propose que les valeurs possibles avec les autres choix */
+function lier(sauf){
+  var F = filtres();
+  Object.keys(MULTI).forEach(function(id){
+    if(id === sauf) return;
+    var v = {}, k = MULTI[id].cle;
+    selection(F, id).forEach(function(l){ if(l[k] !== '' && l[k] != null) v[l[k]] = 1; });
+    remplirMulti(id, Object.keys(v));
+  });
+}
+
+/* ---------- nom du fichier ----------
+   INV[_allées]_<PICK|STOCK>[_PAIR|_IMPAIR][_GA…]_<JJMMAA-HHMM>
+   - allées : seulement si l'on ne compte pas tout le dépôt ; suite continue A03-05, sinon A03-05-09+2
+   - côté : seulement s'il est choisi
+   - avec un ou plusieurs GA : ni allées ni côté
+   Compatible Windows / archive : lettres, chiffres, _ - + ; 100 caractères au plus. */
+var MAX_NOM = 100;
+function court(v, n){ return String(v).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9]+/g,'').slice(0, n || 8); }
+function blocAllees(L){
+  var A = {}; L.forEach(function(l){ A[l.al] = 1; });
+  var a = Object.keys(A).map(Number).sort(function(x,y){ return x-y; });
+  var tout = {}; LIGNES.forEach(function(l){ if(l.type === $('fType').value) tout[l.al] = 1; });
+  if(!a.length || a.length === Object.keys(tout).length) return '';
+  var suite = a[a.length-1] - a[0] === a.length - 1;
+  if(a.length === 1) return 'A' + pad2(a[0]);
+  if(suite) return 'A' + pad2(a[0]) + '-' + pad2(a[a.length-1]);
+  return 'A' + a.slice(0, 3).map(pad2).join('-') + (a.length > 3 ? '+' + (a.length - 3) : '');
+}
+function nomFichier(F, L, d){
+  var ga = F.ga.length > 0, p = ['INV'], al = ga ? '' : blocAllees(L);
+  if(al) p.push(al);
+  p.push(F.type);   /* jamais Picking et Stockage dans le même inventaire */
+  if(!ga && F.cote) p.push(F.cote === 'IMP' ? 'IMPAIR' : 'PAIR');
+  if(ga){
+    var g = F.ga.map(function(x){ return court(x.split(' ')[0]).replace(/^GA/i, ''); });
+    p.push('GA' + g.slice(0, 3).join('-') + (g.length > 3 ? '+' + (g.length - 3) : ''));
+  }
+  p.push(pad2(d.getDate()) + pad2(d.getMonth()+1) + String(d.getFullYear()).slice(2) + '-' + pad2(d.getHours()) + pad2(d.getMinutes()));
+  var nom = p.join('_');
+  return nom.length > MAX_NOM ? nom.slice(0, MAX_NOM) : nom;
+}
+
+/* ---------- aperçu à l'écran ---------- */
+var CAP = 1500;
+function apercu(){
+  var F = filtres(), L = selection(F), prix = $('fPrix').checked, e = {}, nv = 0, val = 0, inc = {}, sp = {};
+  L.forEach(function(l){
+    e[l.emp] = 1;
+    if(l.vide){ nv++; return; }
+    if(l.prix) val += l.prix * l.theo;
+    if(l.inc) inc[l.mgb] = 1; else if(BASE_OK && l.prix == null) sp[l.mgb] = 1;
+  });
+  var ni = Object.keys(inc).length, ns = Object.keys(sp).length;
+  $('rLig').textContent = L.length.toLocaleString('fr-FR');
+  $('rEmp').textContent = Object.keys(e).length.toLocaleString('fr-FR');
+  $('rVid').textContent = nv.toLocaleString('fr-FR');
+  $('rInc').textContent = BASE_OK ? ni : '—'; $('rInc').className = BASE_OK && ni ? 'warn' : '';
+  $('rSp').textContent = BASE_OK ? ns : '—'; $('rSp').className = BASE_OK && ns ? 'warn' : '';
+  $('rValB').hidden = !prix; $('rVal').textContent = BASE_OK ? feur(val) : '—';
+  $('rNom').textContent = nomFichier(F, L, new Date()) + '.xlsx';
+  ['bCreer','bApercu','bQual'].forEach(function(b){ $(b).disabled = !L.length; });
+  $('rCap').textContent = L.length > CAP ? 'Aperçu limité aux ' + CAP.toLocaleString('fr-FR') + ' premières lignes ; l\'inventaire contiendra tout.' : '';
+  var w = [100, 74, 112, null, 150, 110, 58, 76].concat(prix ? [90] : []);
+  $('cgN').innerHTML = w.map(function(x){ return x ? '<col style="width:' + x + 'px">' : '<col>'; }).join('');
+  $('thN').innerHTML = '<tr><th>Emplacement</th><th>Type</th><th>MGB</th><th>Libellé</th><th>Famille</th><th>GA</th><th class="n">Cond.</th><th class="n">Théo.</th>' + (prix ? '<th class="n">Prix u.</th>' : '') + '</tr>';
+  var prev = '';
+  $('tbN').innerHTML = L.slice(0, CAP).map(function(l){
+    var nouv = l.emp !== prev; prev = l.emp;
+    var lib = l.vide ? '<span class="vide">Emplacement vide</span>' : esc(l.lib) + (l.inc ? ' <span class="st">inconnue</span>' : '');
+    return '<tr' + (nouv ? ' class="nouv"' : '') + '><td class="m">' + (nouv ? esc(l.pos) : '') + '</td><td>' + (nouv ? NOM_TYPE[l.type] : '') + '</td>' +
+      '<td class="m">' + esc(l.mgb) + '</td><td title="' + esc(l.lib) + '">' + lib + '</td><td title="' + esc(l.fam) + '">' + (nouv ? esc(l.fam) : '') + '</td><td>' + esc(l.ga) + '</td>' +
+      '<td class="n">' + esc(l.cond) + '</td><td class="n">' + (l.theo == null ? '' : fq(l.theo, l.kg)) + '</td>' +
+      (prix ? '<td class="n">' + (l.vide ? '' : l.prix == null ? '<span class="muted">—</span>' : feur(l.prix)) + '</td>' : '') + '</tr>';
+  }).join('');
+}
+
+/* ---------- l'inventaire du moment (rien n'est gardé en mémoire après la création) ---------- */
+function inventaire(){
+  var F = filtres(), L = selection(F), d = new Date();
+  return {nom:nomFichier(F, L, d), cree:d, par:QUI, stock:STOCK, filtres:F, prix:$('fPrix').checked, lignes:L};
+}
+
+/* ---------- PDF : A4 paysage, une ligne par article, seulement pour imprimer ---------- */
+function pdfFeuille(I){
+  var J = window.jspdf && window.jspdf.jsPDF;
+  if(!J || !J.API.autoTable) return null;
+  var dep = I.stock.depose, cree = I.cree;
+  var doc = new J({orientation:'landscape', unit:'mm', format:'a4'}), W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
+  var prev = '', corps = I.lignes.map(function(l){
+    var nv = l.emp !== prev; prev = l.emp;
+    return [nv ? l.pos : '', nv ? NOM_TYPE[l.type] : '', l.mgb, l.vide ? 'Emplacement vide' : l.lib,
+            l.cond === '' || l.cond == null ? '' : String(l.cond), l.theo == null ? '' : fq(l.theo, l.kg)]
+      .concat(I.prix ? [l.vide ? '' : l.prix == null ? '—' : feur(l.prix)] : []).concat(['']);
+  });
+  doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(27,42,74);
+  doc.text('Inventaire tournant', 8, 10);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10.5);
+  doc.text(I.nom, 8, 16);
+  doc.text('Opérateur : ______________________', 118, 10);
+  doc.text('Date : ____ / ____ / ________', 118, 16);
+  doc.text('Stock au ' + dFr(dep) + ' ' + hFr(dep), W - 8, 10, {align:'right'});
+  doc.text(I.lignes.length + ' lignes', W - 8, 16, {align:'right'});
+  doc.autoTable({
+    startY:21, margin:{left:8, right:8, bottom:12},
+    head:[['Emplacement','Type','MGB','Libellé','Cond.','Théo.'].concat(I.prix ? ['Prix u.'] : []).concat(['Compté'])],
+    body:corps, theme:'grid',
+    styles:{font:'helvetica', fontSize:9.5, cellPadding:1.6, overflow:'ellipsize', lineColor:[150,150,150], lineWidth:.15, textColor:[0,0,0], minCellHeight:7, valign:'middle'},
+    headStyles:{fillColor:[27,42,74], textColor:255, fontStyle:'bold', fontSize:9.5},
+    columnStyles:{0:{cellWidth:28}, 1:{cellWidth:21}, 2:{cellWidth:28}, 3:{cellWidth:'auto'},
+                  4:{cellWidth:15, halign:'right'}, 5:{cellWidth:20, halign:'right'}, 6:{cellWidth:I.prix ? 23 : 32, halign:I.prix ? 'right' : 'left'}, 7:{cellWidth:32}},
+    didParseCell:function(d){ if(d.section === 'body' && d.column.index === 3 && d.cell.raw === 'Emplacement vide') d.cell.styles.fontStyle = 'bolditalic'; },
+    didDrawPage:function(){
+      doc.setFontSize(8.5); doc.setTextColor(90);
+      doc.text('GDS · ' + I.nom + ' · créé le ' + dFr(cree) + ' ' + hFr(cree) + ' · stock au ' + dFr(dep) + ' ' + hFr(dep), 8, H - 5);
+      doc.text('Page ' + doc.internal.getNumberOfPages(), W - 8, H - 5, {align:'right'});
+    }
+  });
+  return doc;
+}
+
+/* ---------- rapport qualité : références inconnues et prix manquants ---------- */
+function rapportQualite(){
+  var J = window.jspdf && window.jspdf.jsPDF;
+  if(!J || !J.API.autoTable){ toast('Le module PDF n\'a pas pu se charger sur ce réseau.', true); return; }
+  if(!BASE_OK){ toast('Base articles non chargée : rapport impossible.', true); return; }
+  var I = inventaire(), inc = {}, sp = {};
+  I.lignes.forEach(function(l){
+    if(l.vide) return;
+    var T = l.inc ? inc : l.prix == null ? sp : null; if(!T) return;
+    var o = T[l.mgb] = T[l.mgb] || {mgb:l.mgb, lib:l.lib, pos:[], q:0, kg:l.kg};
+    o.pos.push(l.pos); o.q += l.theo || 0;
+  });
+  var lignes = function(T){ return Object.keys(T).sort().map(function(m){ var o = T[m]; return [o.mgb, o.lib, o.pos.length > 3 ? o.pos.slice(0, 3).join(', ') + ' +' + (o.pos.length - 3) : o.pos.join(', '), fq(o.q, o.kg)]; }); };
+  var doc = new J({orientation:'portrait', unit:'mm', format:'a4'}), W = doc.internal.pageSize.getWidth();
+  doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(27,42,74);
+  doc.text('Rapport qualité · base articles', 10, 12);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10);
+  doc.text(I.nom + ' · ' + dFr(I.cree) + ' ' + hFr(I.cree), 10, 18);
+  var y = 24, bloc = function(titre, rows){
+    doc.setFont('helvetica','bold'); doc.setFontSize(11.5); doc.setTextColor(27,42,74);
+    doc.text(titre + ' : ' + rows.length, 10, y);
+    doc.autoTable({startY:y + 3, margin:{left:10, right:10},
+      head:[['MGB','Libellé','Emplacements','Qté']], body:rows.length ? rows : [['', 'Aucune', '', '']], theme:'grid',
+      styles:{font:'helvetica', fontSize:9, cellPadding:1.4, overflow:'ellipsize', lineColor:[170,170,170], lineWidth:.15, textColor:[0,0,0]},
+      headStyles:{fillColor:[27,42,74], textColor:255},
+      columnStyles:{0:{cellWidth:27}, 1:{cellWidth:'auto'}, 2:{cellWidth:52}, 3:{cellWidth:18, halign:'right'}}});
+    y = doc.lastAutoTable.finalY + 10;
+  };
+  bloc('Références inconnues de la base articles', lignes(inc));
+  bloc('Références sans prix', lignes(sp));
+  telechargerBlob('QUALITE_' + I.nom + '.pdf', doc.output('blob'));
+}
+
+/* ---------- Excel rangé dans l'Archive (lu par l'appli KPI) ----------
+   Une ligne par position/article ; Compté vide à remplir, Écart et Valeur écart en formule.
+   Chaque ligne porte ses dates pour regrouper par jour, semaine, mois, année sans recalcul. */
+function semaineIso(d){
+  var t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())), j = t.getUTCDay() || 7;
+  t.setUTCDate(t.getUTCDate() + 4 - j);
+  var a = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+  return {an:t.getUTCFullYear(), s:Math.ceil(((t - a) / 86400000 + 1) / 7)};
+}
+function classeur(I){
+  var d = I.cree, dep = I.stock.depose, w = semaineIso(d), F = I.filtres;
+  var tete = ['Inventaire','Date inventaire','Année','Mois','Semaine','Jour','Heure stock','Type','Emplacement','Allée','Travée','Côté','Niveau','Position',
+              'Famille','MGB','Libellé','GA','Cond.','Théorique','Compté','Écart','Prix unitaire','Valeur théorique','Valeur écart','Ligne','Réf. inconnue'];
+  var C = {}; tete.forEach(function(h, i){ C[h] = XLSX.utils.encode_col(i); });
+  var rows = [tete];
+  I.lignes.forEach(function(l){
+    var r4 = function(x){ return x == null ? null : Math.round(x * 10000) / 10000; };
+    rows.push([I.nom, isoJour(d), d.getFullYear(), d.getMonth() + 1, w.an + '-S' + pad2(w.s), ['dim.','lun.','mar.','mer.','jeu.','ven.','sam.'][d.getDay()],
+      isoJour(dep) + ' ' + hFr(dep), NOM_TYPE[l.type], l.pos, l.al, l.tr, l.tr % 2 ? 'IMPAIR' : 'PAIR', l.niv + l.sn, l.po,
+      l.fam, l.mgb, l.vide ? 'Emplacement vide' : l.lib, l.ga, l.cond === '' ? null : l.cond,
+      l.vide ? 0 : r4(l.theo), null, null, r4(l.prix), l.prix == null || l.vide ? null : r4(l.prix * l.theo), null,
+      l.vide ? 'vide' : 'stock', l.inc ? 'oui' : 'non']);
+  });
+  var ws = XLSX.utils.aoa_to_sheet(rows);
+  for(var i = 2; i <= rows.length; i++){
+    var mg = ws[C['MGB'] + i]; if(mg){ mg.t = 's'; mg.v = String(mg.v); }           /* MGB en texte : zéros de tête gardés */
+    ws[C['Écart'] + i] = {t:'n', f:'IF(' + C['Compté'] + i + '="","",' + C['Compté'] + i + '-' + C['Théorique'] + i + ')'};
+    ws[C['Valeur écart'] + i] = {t:'n', f:'IF(OR(' + C['Écart'] + i + '="",' + C['Prix unitaire'] + i + '=""),"",' + C['Écart'] + i + '*' + C['Prix unitaire'] + i + ')', z:'#,##0.00 €'};
+    var pu = ws[C['Prix unitaire'] + i]; if(pu) pu.z = '#,##0.00 €';
+    var vt = ws[C['Valeur théorique'] + i]; if(vt) vt.z = '#,##0.00 €';
+  }
+  ws['!cols'] = tete.map(function(h){ return {wch: h === 'Libellé' ? 42 : h === 'Inventaire' ? 34 : h === 'Famille' ? 22 : Math.max(9, h.length + 2)}; });
+  ws['!autofilter'] = {ref: XLSX.utils.encode_range({s:{r:0, c:0}, e:{r:rows.length - 1, c:tete.length - 1}})};
+  var liste = function(v, tous){ return v && v.length ? v.join(', ') : tous; };
+  var inf = XLSX.utils.aoa_to_sheet([
+    ['Inventaire', I.nom], ['Créé le', isoJour(d) + ' ' + hFr(d)], ['Créé par', I.par || ''], ['Stock au', isoJour(dep) + ' ' + hFr(dep)],
+    ['Fichier StockStatus', I.stock.fichier], ['Type', NOM_TYPE[F.type]],
+    ['Secteur', F.sect ? SECTEURS.filter(function(s){ return s.id === F.sect; })[0].nom : 'Tous'], ['Allées', liste(F.al, 'Toutes')],
+    ['Côté', F.cote === 'IMP' ? 'Impair' : F.cote === 'PAIR' ? 'Pair' : 'Les deux'],
+    ['Travées', F.t1 || F.t2 ? (F.t1 || 1) + ' à ' + (F.t2 || 'fin') : 'Toutes'], ['Niveaux', liste(F.niv, 'Tous')],
+    ['Familles', liste(F.fam, 'Toutes')], ['GA', liste(F.ga, 'Tous')],
+    ['Emplacements', F.emp === 'occ' ? 'Occupés' : F.emp === 'vid' ? 'Vides' : 'Occupés et vides'], ['Recherche', F.txt || ''],
+    ['Prix affichés sur la feuille', I.prix ? 'oui' : 'non'], ['Lignes', I.lignes.length]
+  ]);
+  inf['!cols'] = [{wch:26}, {wch:60}];
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Inventaire');
+  XLSX.utils.book_append_sheet(wb, inf, 'Infos');
+  return new Blob([XLSX.write(wb, {bookType:'xlsx', type:'array'})], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+
+/* ---------- créer l'inventaire : PDF pour imprimer + Excel dans l'Archive ---------- */
+async function creer(){
+  if(EN_GDS && ageMin(STOCK.depose) > AGE_MAX_MIN){
+    toast('Le StockStatus a plus de ' + AGE_MAX_MIN + ' min : déposez un export récent puis rechargez la page.', true); return;
+  }
+  if(!window.XLSX){ toast('Le module Excel n\'a pas pu se charger sur ce réseau.', true); return; }
+  var I = inventaire(), b = $('bCreer');
+  b.disabled = true;
+  try {
+    var x = classeur(I);
+    if(EN_GDS) await ecrireArchive(DOSSIER + I.nom + '.xlsx', x, x.type);
+    else telechargerBlob(I.nom + '.xlsx', x);
+    var doc = pdfFeuille(I);
+    if(doc) telechargerBlob(I.nom + '.pdf', doc.output('blob'));
+    toast((EN_GDS ? 'Excel rangé dans Inventaire tournant.\n' : 'Mode test : Excel téléchargé.\n') + (doc ? 'PDF téléchargé pour l\'impression.' : 'PDF indisponible : module PDF non chargé.'), !doc);
+  } catch(e){
+    toast(e.refus ? 'Enregistrement refusé par GDS.' : 'Création impossible : ' + e.message, true);
+  }
+  b.disabled = false;
+}
+function apercuPdf(){
+  var doc = pdfFeuille(inventaire());
+  if(!doc){ toast('Le module PDF n\'a pas pu se charger sur ce réseau.', true); return; }
+  var w = window.open(doc.output('bloburl'), '_blank');
+  if(!w) toast('Autorisez l\'ouverture de fenêtres pour voir l\'aperçu.', true);
+}
+
+/* ---------- événements ---------- */
+$('fSect').addEventListener('change', function(){
+  ['mAl','mNiv','mFam','mGA'].forEach(function(id){ Array.prototype.forEach.call(document.querySelectorAll('#' + id + ' input[value]'), function(i){ i.checked = false; }); });
+  lier(null); apercu();
+});
+['fCote','fType','fEmp'].forEach(function(id){ $(id).addEventListener('change', function(){ lier(null); apercu(); }); });
+['fT1','fT2','fTxt'].forEach(function(id){ $(id).addEventListener('input', function(){ lier(null); apercu(); }); });
+$('fPrix').addEventListener('change', apercu);
+$('bRaz').addEventListener('click', function(){
+  ['fSect','fCote','fEmp'].forEach(function(id){ $(id).value = ''; });
+  $('fT1').value = ''; $('fT2').value = ''; $('fTxt').value = '';
+  Array.prototype.forEach.call(document.querySelectorAll('.multi input[value]'), function(i){ i.checked = false; });
+  lier(null); apercu();
+});
+$('bCreer').addEventListener('click', creer);
+$('bApercu').addEventListener('click', apercuPdf);
+$('bQual').addEventListener('click', rapportQualite);
+$('bRecharger').addEventListener('click', chargerGDS);
+
+/* mode test hors GDS */
+var charge = {};
+function lireFichier(input, cle, zone){
+  input.addEventListener('change', function(){
+    var f = input.files[0]; if(!f) return;
+    var r = new FileReader();
+    r.onload = function(){ charge[cle] = {nom:f.name, txt:r.result, date:new Date(f.lastModified)}; $(zone).classList.add('ok'); $(zone).querySelector('span').textContent = f.name; testPret(); };
+    r.readAsText(f, 'UTF-8');
+  });
+}
+function testPret(){
+  if(!charge.stock || !charge.struct) return;
+  if(charge.stock.txt.indexOf('Location Code') < 0){ toast('Ce fichier n\'est pas un StockStatus', true); return; }
+  if(charge.struct.txt.indexOf('location_nr') < 0){ toast('Ce fichier n\'est pas le fichier structure', true); return; }
+  STOCK = {fichier:charge.stock.nom, depose:charge.stock.date};
+  construire(parseCSV(charge.stock.txt), parseCSV(charge.struct.txt));
+  $('src').innerHTML = 'Mode test · ' + esc(charge.stock.nom);
+  ouvrirNouv();
+}
+lireFichier($('fStock'), 'stock', 'dStock');
+lireFichier($('fStruct'), 'struct', 'dStruct');
+
+/* ---------- démarrage ---------- */
+if(EN_GDS) chargerGDS();
+else { $('msgCharge').textContent = 'Outil ouvert hors GDS.'; $('zoneTest').hidden = false; }
+</script>
+</body>
+</html>

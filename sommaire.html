@@ -118,10 +118,12 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
 .vide .t-ref{display:none}
 
 /* ══ OUTILS ══ */
-.retour{display:inline-flex;align-items:center;gap:7px;background:transparent;border:none;
-  color:var(--text-mid);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;
-  padding:0;margin-bottom:16px;transition:color .18s}
-.retour:hover{color:var(--text)}
+.retour{display:inline-flex;align-items:center;gap:8px;background:var(--navy);border:none;border-radius:10px;
+  color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;
+  padding:10px 18px 10px 12px;margin-bottom:18px;box-shadow:0 2px 8px rgba(26,46,85,.18);transition:background .18s,transform .18s}
+.retour svg{width:18px;height:18px;flex:none}
+.retour:hover{background:var(--orange);transform:translateX(-2px)}
+.retour:focus-visible{outline:2px solid var(--orange);outline-offset:3px}
 .liste{display:grid;grid-template-columns:repeat(auto-fill,minmax(292px,1fr));gap:12px}
 .outil{--c:var(--navy);position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;
   padding:14px 16px;background:linear-gradient(180deg,#fff,#fbfcfe);
@@ -381,7 +383,7 @@ h1{font-size:25px;font-weight:700;letter-spacing:-.5px}
       <div class="grille" id="grille"></div>
     </div>
     <div id="vue-outils" style="display:none">
-      <button class="retour" onclick="retour()">← Retour au tableau de bord</button>
+      <button class="retour" onclick="retour()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Retour au tableau de bord</button>
       <h1 id="fam-nom">—</h1>
       <p class="accroche" id="fam-desc">—</p>
       <div class="liste" id="liste"></div>
@@ -555,7 +557,7 @@ var I = {
 
 var FAMILLES = [
   { id:'inventaire', nom:'Inventaire', ico:'presse', c:'#2d5a9e', desc:'Gestion et suivi des inventaires', admin:false, outils:[
-    { nom:'Inventaire 2026 v1.2',      f:'INVENTAIRE_2026_v1_2.html',      ico:'presse' },
+    { nom:'Inventaire tournant',       f:'INVENTAIRE_TOURNANT_2026.html',  ico:'presse' },
     { nom:'Dashboard Inventaire 2026', f:'dashboard_inventaire_2026.html', ico:'tableau' },
     { nom:'Couverture Inventaire',     f:'couverture_inventaire.html',     ico:'check' }
   ]},
