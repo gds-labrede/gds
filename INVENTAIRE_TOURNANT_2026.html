@@ -101,6 +101,8 @@ tr.nouv td{border-top:2px solid #c7cfdc}
 .tabs button:focus-visible{outline:2px solid #fff;outline-offset:1px}
 .acts{display:flex;gap:6px;justify-content:flex-end}
 .btn.sm{height:32px;padding:0 12px;font-size:12.5px}
+.btn.sup{background:#fff;color:var(--red);border:1px solid #f1b8b8}
+.btn.sup:hover{background:var(--red-soft)}
 .st.ok{background:#dcfce7;color:#1f5f3a}
 .barre{display:flex;gap:10px 24px;flex-wrap:wrap;align-items:center}
 .prog{height:6px;background:#e1e6ef;border-radius:99px;overflow:hidden;flex:1;min-width:140px}
@@ -113,6 +115,11 @@ tr.nouv td{border-top:2px solid #c7cfdc}
 .q{font-family:var(--mono);font-size:14px;width:100%;border:1.5px solid #b7c1d3;border-radius:7px;padding:0 7px;text-align:right;height:32px;background:#fff;color:var(--ink)}
 .q.ok{border-color:var(--green);background:var(--green-soft)} .q.ec{border-color:var(--red);background:#fff5f5}
 .pos{color:var(--green)} .neg{color:var(--red)}
+.notif{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid #9fd4b0;background:var(--green-soft);border-radius:12px;padding:10px 12px;margin-bottom:14px}
+.notif .ok-ico{width:28px;height:28px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;font-weight:700;flex:none}
+.notif .txt{flex:1;min-width:220px;display:flex;flex-direction:column;gap:3px}
+.notif .txt .nom{align-self:flex-start;background:#fff}
+.notif .fermer{border:0;background:none;font-size:20px;line-height:1;cursor:pointer;color:var(--muted);padding:4px 6px}
 .force{border-left:5px solid var(--orange);background:var(--orange-soft);border-radius:10px;padding:9px 14px;margin-bottom:12px;font-size:13px;font-weight:500}
 [hidden]{display:none!important}
 </style>
@@ -123,7 +130,7 @@ tr.nouv td{border-top:2px solid #c7cfdc}
   <span class="ver">v3</span>
   <nav class="tabs" id="tabs">
     <button data-t="vNouv" class="on">Nouvel inventaire</button>
-    <button data-t="vListe">Inventaires créés</button>
+    <button data-t="vListe">Saisir les écarts</button>
   </nav>
   <div class="src" id="src">Aucun stock chargé</div>
 </div></header>
@@ -147,6 +154,13 @@ tr.nouv td{border-top:2px solid #c7cfdc}
   <!-- NOUVELLE FEUILLE -->
   <section id="vNouv" hidden>
     <div class="card">
+      <div class="notif" id="notif" hidden role="status">
+        <span class="ok-ico" aria-hidden="true">✓</span>
+        <div class="txt"><b>Inventaire exporté dans GDS</b><span class="nom" id="notifNom"></span></div>
+        <button class="btn lt sm" id="notifPdf">Aperçu / imprimer</button>
+        <button class="btn or sm" id="notifSaisir">Saisir les écarts</button>
+        <button class="fermer" id="notifFermer" aria-label="Fermer">×</button>
+      </div>
       <div class="force" id="bandeauForce" hidden>Forçage admin : le StockStatus a plus de 15 min, les quantités théoriques peuvent être fausses.</div>
       <h2>Nouvelle feuille d'inventaire</h2>
       <div class="filtres">
@@ -177,7 +191,7 @@ tr.nouv td{border-top:2px solid #c7cfdc}
         <div class="fin">
           <button class="btn lt" id="bQual">Rapport qualité (PDF)</button>
           <button class="btn lt" id="bApercu">Aperçu</button>
-          <button class="btn or" id="bCreer">Créer l'inventaire</button>
+          <button class="btn or" id="bCreer">Exporter l'inventaire</button>
         </div>
       </div>
       <div class="muted" id="rCap" style="margin-top:8px;font-size:12px"></div>
@@ -187,7 +201,7 @@ tr.nouv td{border-top:2px solid #c7cfdc}
   <!-- INVENTAIRES CRÉÉS -->
   <section id="vListe" hidden>
     <div class="card">
-      <h2>Inventaires créés</h2>
+      <h2>Saisir les écarts · inventaires exportés</h2>
       <div class="filtres">
         <div class="f"><label for="lAn">Année</label><select id="lAn"></select></div>
         <div class="f"><label for="lMois">Mois</label><select id="lMois"></select></div>
@@ -197,7 +211,7 @@ tr.nouv td{border-top:2px solid #c7cfdc}
       </div>
       <div class="pied-f"><span class="chiffre"><b id="lNb">0</b>inventaires</span><span class="muted" id="lInfo" style="font-size:12.5px"></span></div>
     </div>
-    <div class="tw"><table><colgroup><col style="width:150px"><col><col style="width:140px"><col style="width:280px"></colgroup>
+    <div class="tw"><table><colgroup><col style="width:150px"><col><col style="width:140px"><col style="width:370px"></colgroup>
       <thead><tr><th>Créé le</th><th>Inventaire</th><th>État</th><th class="c">Actions</th></tr></thead><tbody id="tbL"></tbody></table></div>
   </section>
 
@@ -205,7 +219,7 @@ tr.nouv td{border-top:2px solid #c7cfdc}
   <section id="vSaisie" hidden>
     <div class="card">
       <div class="barre">
-        <button class="btn lt sm" id="sRetour">‹ Inventaires créés</button>
+        <button class="btn lt sm" id="sRetour">‹ Inventaires exportés</button>
         <span class="nom" id="sNom"></span>
         <span class="sv" id="sv"></span>
       </div>
@@ -232,10 +246,10 @@ tr.nouv td{border-top:2px solid #c7cfdc}
 /* ═══════════════════════════════════════════════════════════
    GDS · Inventaire tournant · v3
    L'outil sort l'inventaire choisi, rien de plus :
-   - « Créer l'inventaire » : PDF téléchargé pour l'impression
-                              + Excel rangé dans l'Archive, dossier INVENTAIRE_TOURNANT/
+   - « Exporter l'inventaire » : l'Excel est rangé dans l'Archive, dossier INVENTAIRE_TOURNANT/
+     (l'impression se fait depuis l'aperçu PDF, rien n'est téléchargé)
    - l'Excel a les colonnes Compté vide et Écart / Valeur écart en formule
-   - onglet « Inventaires créés » : choix année / mois / jour, puis « Ouvrir et saisir » :
+   - onglet « Saisir les écarts » : choix année / mois / jour, puis « Ouvrir et saisir » :
      les comptages tapés dans l'outil sont écrits dans ce même Excel de l'Archive (pas d'autre fichier)
    - forçage des 15 min réservé au compte admin (pour les tests), signalé dans l'Excel
    - chaque ligne de l'Excel porte ses dates (jour, semaine, mois, année) pour l'appli KPI
@@ -748,6 +762,9 @@ function classeur(I){
 }
 
 /* ---------- créer l'inventaire : PDF pour imprimer + Excel dans l'Archive ---------- */
+/* « Exporter l'inventaire » : l'Excel part dans l'Archive (INVENTAIRE_TOURNANT/), rien n'est téléchargé.
+   La notification propose l'aperçu PDF de CET inventaire (même nom) et l'ouverture pour saisir les écarts. */
+var DERNIER = null;
 async function creer(){
   if(EN_GDS && ageMin(STOCK.depose) > AGE_MAX_MIN && !FORCE){
     toast('Le StockStatus a plus de ' + AGE_MAX_MIN + ' min : déposez un export récent puis rechargez la page.', true); return;
@@ -759,14 +776,30 @@ async function creer(){
     var x = classeur(I);
     if(EN_GDS) await ecrireArchive(DOSSIER + I.nom + '.xlsx', x, x.type);
     else telechargerBlob(I.nom + '.xlsx', x);
-    var doc = pdfFeuille(I);
-    if(doc) telechargerBlob(I.nom + '.pdf', doc.output('blob'));
-    toast((EN_GDS ? 'Excel rangé dans Inventaire tournant.\n' : 'Mode test : Excel téléchargé.\n') + (doc ? 'PDF téléchargé pour l\'impression.' : 'PDF indisponible : module PDF non chargé.'), !doc);
+    DERNIER = I;
+    $('notifNom').textContent = I.nom + '.xlsx';
+    $('notif').querySelector('b').textContent = EN_GDS ? 'Inventaire exporté dans GDS' : 'Mode test : Excel téléchargé sur ce poste';
+    $('notifSaisir').hidden = !EN_GDS;
+    $('notif').hidden = false; window.scrollTo({top:0, behavior:'smooth'});
+    toast(EN_GDS ? 'Inventaire exporté dans GDS.' : 'Mode test : Excel téléchargé.');
   } catch(e){
-    toast(e.refus ? 'Enregistrement refusé par GDS.' : 'Création impossible : ' + e.message, true);
+    toast(e.refus ? 'Export refusé par GDS.' : 'Export impossible : ' + e.message, true);
   }
   b.disabled = false;
 }
+function ouvrirPdf(I){
+  var doc = pdfFeuille(I);
+  if(!doc){ toast('Le module PDF n\'a pas pu se charger sur ce réseau.', true); return; }
+  var w = window.open(doc.output('bloburl'), '_blank');
+  if(!w) toast('Autorisez l\'ouverture de fenêtres pour voir l\'aperçu.', true);
+}
+$('notifPdf').addEventListener('click', function(){ if(DERNIER) ouvrirPdf(DERNIER); });
+$('notifFermer').addEventListener('click', function(){ $('notif').hidden = true; });
+$('notifSaisir').addEventListener('click', async function(){
+  if(!DERNIER) return;
+  var n = DERNIER.nom + '.xlsx', d = dateDuNom(n);
+  ouvrirSaisie({chemin:DERNIER.nom ? DOSSIER + n : '', nom:n, d:d}, this);
+});
 function apercuPdf(){
   var doc = pdfFeuille(inventaire());
   if(!doc){ toast('Le module PDF n\'a pas pu se charger sur ce réseau.', true); return; }
@@ -823,7 +856,7 @@ function dessinerListe(){
   $('tbL').innerHTML = VISIBLES.map(function(f, i){
     return '<tr><td class="m">' + f.d.jour + '/' + f.d.mois + '/' + f.d.an + ' ' + f.d.h + '</td><td class="m" title="' + esc(f.nom) + '">' + esc(f.nom.replace(/\.xlsx$/,'')) + '</td>' +
       '<td>' + (f.depose ? '<span class="st ok">Saisie commencée</span>' : '<span class="st">À saisir</span>') + '</td>' +
-      '<td><div class="acts"><button class="btn or sm" data-ouv="' + i + '">Ouvrir et saisir</button><button class="btn lt sm" data-dl="' + i + '">Télécharger</button></div></td></tr>';
+      '<td><div class="acts"><button class="btn or sm" data-ouv="' + i + '">Ouvrir et saisir</button><button class="btn lt sm" data-dl="' + i + '">Télécharger</button><button class="btn sm sup" data-sup="' + i + '" title="Supprimer cet inventaire">Supprimer</button></div></td></tr>';
   }).join('') || '<tr><td colspan="4" class="muted">Aucun inventaire pour cette période.</td></tr>';
 }
 $('tbL').addEventListener('click', async function(e){
@@ -834,10 +867,28 @@ $('tbL').addEventListener('click', async function(e){
           telechargerBlob(f.nom, new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})); }
     catch(err){ toast(err.refus ? 'Accès refusé par GDS.' : 'Téléchargement impossible : ' + err.message, true); }
     b.disabled = false;
+  } else if(b.dataset.sup != null){
+    supprimer(VISIBLES[+b.dataset.sup], b);
   } else if(b.dataset.ouv != null){
     ouvrirSaisie(VISIBLES[+b.dataset.ouv], b);
   }
 });
+
+/* suppression d'un inventaire : protégée par mot de passe contre les fausses manœuvres */
+var MDP_SUPPR = '1234';
+async function supprimer(f, b){
+  var m = prompt('Supprimer définitivement « ' + f.nom + ' » ?\nSaisies comprises, sans retour possible.\n\nMot de passe :');
+  if(m === null) return;
+  if(m !== MDP_SUPPR){ toast('Mot de passe incorrect : rien n\'a été supprimé.', true); return; }
+  b.disabled = true;
+  try {
+    var r = await gds('/archive/' + encodeURIComponent(f.chemin), {method:'DELETE'});
+    if(!r.ok) throw new Error('le serveur n\'a pas supprimé le fichier');
+    try { localStorage.removeItem(CLE_LOC + f.nom); } catch(e){}
+    toast('« ' + f.nom + ' » supprimé.');
+    await chargerListe();
+  } catch(e){ toast(e.refus ? 'Suppression refusée par GDS.' : 'Suppression impossible : ' + e.message, true); b.disabled = false; }
+}
 
 /* ---------- saisie en temps réel ----------
    On ouvre l'Excel de l'Archive, on tape les quantités ; seules les cellules « Compté » changent
@@ -954,7 +1005,7 @@ $('sTxt').addEventListener('input', dessinerSaisie);
 $('sVue').addEventListener('change', dessinerSaisie);
 $('sRetour').addEventListener('click', async function(){
   if(tSave){ clearTimeout(tSave); await enregistrer(); }
-  SAI = null; vue('vListe'); dessinerListe();
+  SAI = null; vue('vListe'); chargerListe();
 });
 
 ['lAn','lMois','lJour'].forEach(function(id){ $(id).addEventListener('change', remplirDates); });
