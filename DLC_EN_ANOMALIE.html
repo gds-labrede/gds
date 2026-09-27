@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GDS — DLC en anomalie</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+:root{
+  --bg:#eef1f6; --white:#fff;
+  --border:#e2e7ef; --border-hi:#c9d2e0;
+  --text:#16203a; --text-mid:#5c6883; --text-low:#98a1b5;
+  --navy:#1a2e55; --orange:#d46c1a; --rouge:#b8342f; --vert:#1d7a5f;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+.bar{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:14px;
+  padding:0 28px;height:60px;background:var(--white);
+  border-bottom:1px solid var(--border);box-shadow:0 1px 3px rgba(20,32,60,.07)}
+.logo{display:flex;align-items:baseline;gap:10px}
+.logo b{font-size:18px;font-weight:700;letter-spacing:-.4px}
+.logo span{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--text-low)}
+.titre{font-size:15px;font-weight:700;padding-left:14px;border-left:1px solid var(--border)}
+.version{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:1px;color:var(--text-low);
+  border:1px solid var(--border);border-radius:5px;padding:3px 7px}
+.sp{flex:1}
+.fic-date{font-family:'DM Mono',monospace;font-size:11.5px;color:var(--text-mid);
+  padding:6px 11px;border:1px solid var(--border);border-radius:7px;background:var(--bg)}
+.btn{display:inline-flex;align-items:center;gap:8px;border:none;border-radius:9px;cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;padding:9px 15px;
+  color:#fff;background:linear-gradient(180deg,#2a4576,var(--navy));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 2px 6px rgba(20,32,60,.18);transition:background .18s}
+.btn:hover{background:linear-gradient(180deg,#d9782a,var(--orange))}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.clair{background:var(--white);color:var(--text-mid);border:1px solid var(--border);box-shadow:none;font-weight:600}
+.btn.clair:hover{border-color:var(--navy);color:var(--navy);background:var(--white)}
+.btn svg{width:16px;height:16px}
+
+.page{max-width:1480px;margin:0 auto;padding:24px 28px 60px}
+
+.depot{background:linear-gradient(180deg,#fff,#fbfcfe);border:2px dashed var(--border-hi);border-radius:14px;
+  padding:34px 22px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s}
+.depot:hover,.depot.survol{border-color:var(--navy);background:#f7f9fd}
+.depot svg{width:44px;height:44px;margin-bottom:10px}
+.depot .a{fill:#cbd8ea}.depot .b{fill:var(--navy)}
+.depot-t{font-size:15px;font-weight:700}
+.depot-s{font-size:12.5px;color:var(--text-mid);margin-top:5px}
+.depot-ou{margin-top:16px}
+.depot-pc{margin-top:10px;font-size:12.5px;color:var(--text-mid)}
+.depot-pc a{color:var(--navy);font-weight:600}
+.refus{display:none;max-width:560px;margin:16px auto 0;padding:11px 14px;border-radius:9px;
+  background:#fdeaea;border:1px solid #f0a8a8;color:#7a2420;font-size:13px;line-height:1.5}
+.refus.on{display:block}
+.admin-zone{display:none;margin-top:20px;padding-top:16px;border-top:1px dashed var(--border-hi);gap:10px;justify-content:center;flex-wrap:wrap}
+.admin-zone.on{display:flex}
+.admin-t{width:100%;font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:1.4px;color:#c2701c;text-transform:uppercase}
+.force{background:#fff5e8;border-color:#f0c48a;color:#a8641c}
+
+/* Filtres */
+.filtres{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;background:var(--white);
+  border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:14px;
+  box-shadow:0 1px 2px rgba(20,32,60,.05)}
+.f{display:flex;flex-direction:column;gap:5px}
+.f label{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:1.2px;color:var(--text-low);text-transform:uppercase}
+.champ{font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);padding:8px 11px;
+  border:1px solid var(--border-hi);border-radius:8px;background:#fff;min-width:0}
+.champ:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 3px rgba(26,46,85,.1)}
+.champ.num{width:70px}
+.coche{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-mid);cursor:pointer;padding:8px 0}
+.coche input{accent-color:var(--navy);width:15px;height:15px}
+
+
+.aide{font-size:12.5px;color:var(--text-mid);margin:-2px 0 12px 2px}
+
+.apercu{display:none;position:fixed;inset:0;z-index:50;background:rgba(16,24,44,.55);padding:24px}
+.apercu.on{display:flex}
+.ap-boite{flex:1;display:flex;flex-direction:column;background:var(--white);border-radius:14px;overflow:hidden;
+  box-shadow:0 30px 60px -20px rgba(0,0,0,.5)}
+.ap-tete{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border)}
+.ap-tete b{font-size:14px}
+.ap-tete span{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-low)}
+.ap-boite iframe{flex:1;border:none;background:#525659}
+
+/* Tableau */
+.cadre{background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:auto;
+  max-height:calc(100vh - 330px);min-height:220px;box-shadow:0 1px 2px rgba(20,32,60,.05)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+thead th{position:sticky;top:0;z-index:1;background:#f5f7fb;text-align:left;font-weight:600;
+  font-size:11px;letter-spacing:.3px;color:var(--text-mid);padding:10px 10px;border-bottom:1px solid var(--border);
+  white-space:nowrap;cursor:pointer;user-select:none}
+thead th:hover{color:var(--navy)}
+thead th .tri{color:var(--orange);margin-left:3px}
+tbody td{padding:8px 10px;border-bottom:1px solid #f0f2f6;vertical-align:top}
+tbody tr:hover td{background:#f9fafd}
+.mono{font-family:'DM Mono',monospace;font-size:11.5px;white-space:nowrap}
+.lib{min-width:240px}
+.droite{text-align:right}
+.sect{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:5px;white-space:nowrap}
+.s-Ambiant{background:#f4ecdf;color:#8a5a1c}
+.s-Frais{background:#fbe6e1;color:#9a3a26}
+.s-FL{background:#e2f2e6;color:#23703d}
+.s-Surgele{background:#e1eef9;color:#265f8f}
+.s-Maree{background:#dff3f2;color:#16706b}
+.s-Autre{background:var(--bg);color:var(--text-mid)}
+.pas{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:5px;margin:0 4px 3px 0;white-space:nowrap}
+.p-rouge{background:#fbe4e3;color:#9f2b27}
+.p-orange{background:#fdeedd;color:#a4521a}
+.p-bleu{background:#e3ebf7;color:#284b86}
+.p-gris{background:var(--bg);color:var(--text-mid)}
+.p-vert{background:#e0f2ea;color:#1d6b52}
+.det{font-size:11.5px;color:var(--text-mid)}
+.vide-t{padding:40px;text-align:center;color:var(--text-low);font-size:13px}
+
+.resume{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.kpi{background:var(--white);border:1px solid var(--border);border-radius:11px;padding:11px 15px;min-width:150px}
+.kpi b{display:block;font-size:20px;font-weight:700;letter-spacing:-.4px}
+.kpi span{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:1px;color:var(--text-low);text-transform:uppercase}
+
+.toasts{position:fixed;bottom:22px;right:22px;z-index:100;display:flex;flex-direction:column;gap:9px;align-items:flex-end}
+.toast{background:var(--navy);color:#fff;padding:12px 17px;border-radius:10px;font-size:13px;
+  box-shadow:0 10px 30px -8px rgba(20,32,60,.5)}
+.toast.ok{background:#1d7a5f}.toast.err{background:#b8342f}
+
+@media(max-width:760px){
+  .bar{padding:0 14px;gap:8px}.titre,.version,.fic-date{display:none}
+  .page{padding:16px 14px 40px}
+}
+@media print{.bar,.filtres,.depot,.toasts{display:none}.cadre{max-height:none;overflow:visible;border:none}}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="logo"><b>GDS</b><span>LA BRÈDE</span></div>
+  <div class="titre">DLC en anomalie</div>
+  <span class="version">v1.4</span>
+  <div class="sp"></div>
+  <span class="fic-date" id="fic-date">Aucun fichier</span>
+  <button class="btn clair" id="bt-jour" onclick="chargerServeur(false)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 21h16"/></svg>Stock du jour</button>
+  <button class="btn" onclick="location.href='sommaire.html'">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Sommaire</button>
+</header>
+
+<main class="page">
+
+  <div id="zone-depot">
+    <div class="depot" style="cursor:default">
+      <svg viewBox="0 0 48 48"><path class="a" d="M6 30v9a5 5 0 0 0 5 5h26a5 5 0 0 0 5-5v-9h-5v9H11v-9z"/><path class="b" d="M24 3l-11 11h7v18h8V14h7z"/></svg>
+      <div class="depot-t">StockStatus du jour</div>
+      <div class="depot-s">Le StockStatus doit avoir été déposé dans GDS il y a moins de 15 minutes.</div>
+      <div class="depot-ou"><button class="btn" onclick="chargerServeur(false)">Charger le StockStatus de GDS</button></div>
+      <div class="depot-pc">ou <a href="#" onclick="document.getElementById('choix').click();return false">choisir le fichier sur le PC</a></div>
+      <input type="file" id="choix" accept=".csv,.txt" style="display:none">
+      <div class="refus" id="refus"></div>
+      <div class="admin-zone" id="admin-zone">
+        <div class="admin-t">Administrateur — tests</div>
+        <label class="coche"><input type="checkbox" id="forcer"> Forcer la règle des 15 min</label>
+      </div>
+    </div>
+  </div>
+
+  <div id="zone-res" style="display:none">
+    <div class="resume" id="resume"></div>
+
+    <div class="filtres">
+      <div class="f"><label>Anomalie</label>
+        <select class="champ" id="f-ano" style="min-width:250px"></select></div>
+      <div class="f"><label>Secteur</label>
+        <select class="champ" id="f-sect">
+          <option value="">Tous</option><option>Ambiant</option><option>Frais</option>
+          <option value="FL">Fruits &amp; légumes</option><option value="Surgele">Surgelé</option>
+          <option value="Maree">La Marée</option>
+        </select></div>
+      <div class="f"><label>Type DLC F&amp;L</label>
+        <select class="champ" id="f-type">
+          <option value="">Tous</option><option>Fictive</option><option>Retour client</option><option>Vraie DLC</option>
+        </select></div>
+      <div class="f" style="flex:1;min-width:180px"><label>Recherche</label>
+        <input class="champ" id="f-rech" placeholder="MGB, libellé, position…"></div>
+      <div class="f"><label>DLC proche (j)</label><input class="champ num" id="p-dlc" type="number" min="0" value="7"></div>
+      <div class="f"><label>MDD proche (j)</label><input class="champ num" id="p-mdd" type="number" min="0" value="3"></div>
+      <label class="coche"><input type="checkbox" id="f-sans" checked> Masquer les produits sans DLC</label>
+      <div class="sp"></div>
+      <button class="btn clair" onclick="exporterExcel()">Excel</button>
+      <button class="btn" onclick="apercuPdf()">PDF</button>
+    </div>
+
+    <p class="aide" id="aide"></p>
+    <div class="cadre"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+  </div>
+
+</main>
+
+<div class="apercu" id="apercu">
+  <div class="ap-boite">
+    <div class="ap-tete">
+      <b>Aperçu PDF</b><span id="ap-nom"></span><div class="sp"></div>
+      <button class="btn clair" onclick="fermerApercu()">Fermer</button>
+      <button class="btn clair" onclick="imprimerPdf()">Imprimer</button>
+      <button class="btn" onclick="telechargerPdf()">Télécharger</button>
+    </div>
+    <iframe id="ap-cadre" title="Aperçu PDF"></iframe>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script src="config.js"></script>
+
+<!-- ══════════ MOTEUR D'ANALYSE (pur, sans affichage) ══════════ -->
+<script id="moteur">
+var JOUR = 86400000;
+
+/* Secteur déduit de l'allée (même découpage que l'outil Ruptures). */
+function secteurDe(position){
+  var a = parseInt(String(position || '').split('-')[0], 10);
+  if(isNaN(a)) return 'Autre';
+  if(a >= 1  && a <= 14) return 'Ambiant';
+  if(a >= 19 && a <= 28) return 'Frais';
+  if(a >= 30 && a <= 35) return 'FL';
+  if(a >= 38 && a <= 45) return 'Surgele';
+  if(a >= 50 && a <= 57) return 'Maree';
+  return 'Autre';
+}
+
+/* JJ-MM-AAAA → date locale à minuit (null si vide ou illisible). */
+function dateFr(t){
+  var m = String(t || '').trim().match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})$/);
+  if(!m) return null;
+  var d = new Date(+m[3], +m[2] - 1, +m[1]);
+  return d.getMonth() === +m[2] - 1 ? d : null;
+}
+/* AAAA-MM-JJThh:mm… → date locale à minuit (seul le jour compte). */
+function dateIso(t){
+  var m = String(t || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null;
+}
+function jours(a, b){ return Math.round((a - b) / JOUR); }
+function plusMois(d, n){ return new Date(d.getFullYear(), d.getMonth() + n, d.getDate()); }
+function memeJour(a, b){ return a && b && a.getTime() === b.getTime(); }
+function mediane(t){
+  var s = t.slice().sort(function(a, b){ return a - b; }), m = s.length >> 1;
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+
+/* rows : lignes du CSV lues en texte brut (en-têtes d'origine).
+   ref  : date de référence (jour du fichier), à minuit.
+   p    : { dlc: jours DLC proche, mdd: jours MDD proche }            */
+function analyser(rows, ref, p){
+  var L = [];
+  rows.forEach(function(r){
+    var pos = String(r['Position'] || '').trim();
+    if(!pos || /^INSPECTION/i.test(pos) || /^INSPECTION/i.test(r['Location Code'] || '')) return;  /* litige : hors stock */
+    var mgb = String(r['MGB'] || '').trim();
+    if(!mgb) return;
+    var l = {
+      pos: pos, mgb: mgb,
+      lib: String(r['Description'] || '').trim(),
+      qte: parseFloat(String(r['Quantity'] || '0').replace(',', '.')) || 0,
+      sect: secteurDe(pos),
+      dlc: dateFr(r['BBD']), dlcTxt: String(r['BBD'] || '').trim(),
+      mdd: dateFr(r['Max Delivery Date']), mddTxt: String(r['Max Delivery Date'] || '').trim(),
+      cree: dateIso(r['DateCreated']),
+      retourLot: /retour/i.test(r['Lot'] || ''),   /* le Lot n'est jamais affiché : il contient des prénoms */
+      an: [], vie: null, typeFL: null
+    };
+    if(l.dlc && l.cree) l.vie = jours(l.dlc, l.cree);
+    L.push(l);
+  });
+
+  /* ── F&L : pas de vraie DLC, astuce à la réception ──
+     Fictive       : DLC = création + 1 an (350 à 366 j si la ligne a été recréée après un déplacement)
+     Retour client : DLC = création + 1 mois
+     Vraie DLC     : tout le reste                                       */
+  L.forEach(function(l){
+    if(l.sect !== 'FL' || !l.dlc) return;
+    if(l.cree && memeJour(l.dlc, plusMois(l.cree, 1)) || l.retourLot) l.typeFL = 'Retour client';
+    else if(l.vie !== null && l.vie >= 350 && l.vie <= 366) l.typeFL = 'Fictive';
+    else l.typeFL = 'Vraie DLC';
+  });
+  function fictive(l){ return l.typeFL === 'Fictive'; }
+
+  /* Regroupements par MGB */
+  var parMgb = {};
+  L.forEach(function(l){ (parMgb[l.mgb] = parMgb[l.mgb] || []).push(l); });
+
+  function ajoute(l, code, det){ l.an.push({ c: code, d: det || '' }); }
+
+  Object.keys(parMgb).forEach(function(k){
+    var g = parMgb[k];
+    var dates = g.filter(function(l){ return l.dlc; });
+
+    /* 1. DLC manquante / produit sans DLC */
+    g.forEach(function(l){
+      if(l.dlc) return;
+      if(dates.length) ajoute(l, 'manq', 'daté ailleurs : ' + dates.slice(0, 3).map(function(x){
+        return x.pos + ' (' + x.dlcTxt.replace(/-/g, '/') + ')'; }).join(', ') + (dates.length > 3 ? '…' : ''));
+      else if(l.sect !== 'Ambiant') ajoute(l, 'manq', 'aucune DLC en secteur ' + NOMS_SECT[l.sect]);
+      else ajoute(l, 'sans', 'jamais daté');
+    });
+
+    /* 2. Écart DLC–MDD : le même pour toutes les lignes d'un MGB */
+    var ec = {};
+    dates.forEach(function(l){ if(l.mdd && !fictive(l)){ var e = jours(l.dlc, l.mdd); ec[e] = (ec[e] || 0) + 1; } });
+    var cles = Object.keys(ec);
+    if(cles.length > 1){
+      var mode = +cles.sort(function(a, b){ return ec[b] - ec[a]; })[0];
+      dates.forEach(function(l){
+        if(!l.mdd || fictive(l)) return;
+        var e = jours(l.dlc, l.mdd);
+        if(e !== mode) ajoute(l, 'ecart', 'écart DLC–MDD ' + e + ' j au lieu de ' + mode + ' j');
+      });
+    }
+
+    /* 3. Durée de vie (DLC − création) anormale par rapport au même MGB */
+    var vies = dates.filter(function(l){ return l.vie !== null && !l.typeFL || l.typeFL === 'Vraie DLC'; })
+                    .filter(function(l){ return l.vie !== null; });
+    if(vies.length >= 2){
+      var med = mediane(vies.map(function(l){ return l.vie; }));
+      vies.forEach(function(l){
+        var dev = Math.abs(l.vie - med);
+        if(dev > 60 && dev > med * 0.5) ajoute(l, 'vie', 'vie ' + l.vie + ' j, habituelle ' + Math.round(med) + ' j');
+      });
+    }
+
+    /* 4. F&L : un même MGB tantôt en DLC fictive, tantôt en vraie DLC */
+    var types = {};
+    g.forEach(function(l){ if(l.typeFL && l.typeFL !== 'Retour client') types[l.typeFL] = 1; });
+    if(types['Fictive'] && types['Vraie DLC'])
+      g.forEach(function(l){ if(l.typeFL && l.typeFL !== 'Retour client')
+        ajoute(l, 'flmix', l.typeFL === 'Fictive' ? 'ici DLC fictive (+1 an), vraie DLC sur une autre ligne'
+                                                 : 'ici vraie DLC, DLC fictive (+1 an) sur une autre ligne'); });
+  });
+
+  /* 5. Plusieurs DLC sur une même position pour un même MGB */
+  var parPos = {};
+  L.forEach(function(l){ if(l.dlc && !fictive(l)){ var k = l.pos + '|' + l.mgb; (parPos[k] = parPos[k] || []).push(l); } });
+  Object.keys(parPos).forEach(function(k){
+    var g = parPos[k], d = {};
+    g.forEach(function(l){ d[l.dlcTxt] = 1; });
+    var n = Object.keys(d).length;
+    if(n > 1) g.forEach(function(l){ ajoute(l, 'multi', n + ' DLC différentes sur la position'); });
+  });
+
+  /* 6. Contrôles ligne par ligne */
+  L.forEach(function(l){
+    if(l.dlc && !fictive(l)){
+      var r = jours(l.dlc, ref);
+      if(r < 0) ajoute(l, 'dlc', 'DLC dépassée de ' + (-r) + ' j');
+      else if(r <= p.dlc) ajoute(l, 'dlc', r === 0 ? 'DLC aujourd\'hui' : 'DLC dans ' + r + ' j');
+    }
+    if(l.mdd && !fictive(l)){
+      var m = jours(l.mdd, ref);
+      if(m < 0) ajoute(l, 'mdd', 'MDD dépassée de ' + (-m) + ' j : plus livrable');
+      else if(m <= p.mdd) ajoute(l, 'mdd', m === 0 ? 'MDD aujourd\'hui' : 'MDD dans ' + m + ' j');
+    }
+    if(l.dlc && l.mdd && l.mdd > l.dlc) ajoute(l, 'ecart', 'MDD après la DLC');
+    if(l.dlcTxt && !l.dlc) ajoute(l, 'manq', 'DLC illisible « ' + l.dlcTxt + ' »');
+    if(l.vie !== null && l.vie <= 0 && !l.typeFL) ajoute(l, 'vie', 'DLC antérieure à la création de la ligne');
+  });
+
+  return L;
+}
+
+var NOMS_SECT = { Ambiant:'Ambiant', Frais:'Frais', FL:'Fruits & légumes', Surgele:'Surgelé', Maree:'La Marée', Autre:'Autre' };
+if(typeof module !== 'undefined') module.exports = { analyser: analyser };
+</script>
+
+<!-- ══════════ AFFICHAGE ══════════ -->
+<script>
+var CFG = (typeof GDS !== 'undefined') ? GDS : null;
+
+function lire(c){ try { return sessionStorage.getItem(c) || localStorage.getItem(c); } catch(e){ return null; } }
+var jeton = lire('gds_jeton');
+if(!CFG || !jeton) document.getElementById('bt-jour').disabled = true;
+
+function auth(sup){
+  var h = { 'Authorization':'Bearer ' + CFG.CLE_PUBLIQUE, 'apikey':CFG.CLE_PUBLIQUE, 'X-GDS-Session':jeton };
+  if(sup) for(var k in sup) h[k] = sup[k];
+  return h;
+}
+function dire(t, type){
+  var d = document.createElement('div');
+  d.className = 'toast' + (type ? ' ' + type : ''); d.textContent = t;
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){ d.remove(); }, 3800);
+}
+function echap(t){ return String(t).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+/* ── Catégories d'anomalie ── */
+var CAT = {
+  manq:  { nom:'DLC manquante',          c:'#b8342f', p:'p-rouge',  aide:'Ligne sans DLC alors que le même MGB est daté ailleurs, ou sans DLC hors Ambiant.' },
+  dlc:   { nom:'DLC dépassée / proche',  c:'#b8342f', p:'p-rouge',  aide:'DLC dépassée ou atteinte dans le délai choisi. Les DLC fictives F&L sont ignorées.' },
+  mdd:   { nom:'MDD atteinte / proche',  c:'#c2701c', p:'p-orange', aide:'Date max de livraison dépassée ou proche : le produit ne peut plus partir en livraison.' },
+  multi: { nom:'Plusieurs DLC / position', c:'#2d5a9e', p:'p-bleu', aide:'Un même MGB avec des DLC différentes sur la même position : risque FIFO.' },
+  vie:   { nom:'Durée de vie anormale',  c:'#6d5bab', p:'p-bleu',   aide:'Durée de vie (DLC − date de création) très éloignée de celle des autres lignes du même MGB (plus de 60 j et plus de 50 %). Erreur de saisie probable.' },
+  ecart: { nom:'Écart DLC/MDD incohérent', c:'#5f6b78', p:'p-gris', aide:'L\'écart entre DLC et MDD d\'un MGB est normalement fixe : cette ligne s\'en écarte.' },
+  flmix: { nom:'F&L : fictive et vraie DLC', c:'#23703d', p:'p-vert', aide:'Même article F&L avec une ligne en DLC fictive (+1 an) et une autre en vraie DLC : vérifier laquelle est juste.' },
+  sans:  { nom:'Produit sans DLC',       c:'#98a1b5', p:'p-gris',   aide:'MGB jamais daté (Ambiant) : produit géré sans DLC. Décocher « Masquer » pour les voir partout.' }
+};
+var ORDRE = ['manq','dlc','mdd','multi','vie','ecart','flmix','sans'];
+
+var LIGNES = [], NOM_FIC = '', REF = null, ONGLET = 'tout', TRI = { k:'sect', s:1 };
+
+/* ── Chargement ──
+   Règle GDS : StockStatus déposé dans GDS il y a moins de 15 min.
+   Seul l'admin peut forcer (StockStatus plus ancien ou fichier du poste), pour les tests. */
+var role = lire('gds_role');
+var ADMIN = role === 'admin';
+var DELAI_MIN = 15;
+if(ADMIN) document.getElementById('admin-zone').classList.add('on');
+
+function refus(t){ var r = document.getElementById('refus'); r.textContent = t; r.classList.toggle('on', !!t); }
+function hm(d){ return d.toLocaleDateString('fr-FR') + ' à ' + d.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' }); }
+
+async function chargerServeur(force){
+  force = force || (ADMIN && document.getElementById('forcer').checked);
+  if(!CFG || !jeton){ refus('Connectez-vous depuis GDS.'); return; }
+  if(force && !ADMIN){ refus('Forçage réservé à l\'administrateur.'); return; }
+  refus('');
+  try {
+    var r = await fetch(CFG.API + '/fichiers', { method:'POST', headers: auth({ 'Content-Type':'application/json' }),
+      body: JSON.stringify({ prefix:'' }) });
+    if(!r.ok) throw new Error('liste');
+    var l = (await r.json() || []).filter(function(f){ return f.name && f.name.indexOf('StockStatus_FR_STOREDEPOT_') === 0; })
+      .sort(function(a, b){ return String(b.updated_at || b.created_at).localeCompare(String(a.updated_at || a.created_at)); });
+    if(!l.length){ refus('Aucun StockStatus dans GDS : déposez-le dans l\'onglet Fichiers du sommaire.'); return; }
+
+    var depose = new Date(l[0].updated_at || l[0].created_at);
+    var age = Math.floor((Date.now() - depose.getTime()) / 60000);
+    if(age > DELAI_MIN && !force){
+      refus('Le StockStatus de GDS a été déposé le ' + hm(depose) + ' (il y a ' + age + ' min). ' +
+            'Déposez un StockStatus de moins de ' + DELAI_MIN + ' min dans l\'onglet Fichiers du sommaire, puis rechargez.');
+      document.getElementById('zone-depot').style.display = 'block';
+      document.getElementById('zone-res').style.display = 'none';
+      return;
+    }
+    var f = await fetch(CFG.API + '/fichier/' + encodeURIComponent(l[0].name), { headers: auth() });
+    if(!f.ok) throw new Error('lecture');
+    traiter(await f.text(), l[0].name, 'Déposé le ' + hm(depose) + (age > DELAI_MIN ? ' · FORCÉ' : ''), age > DELAI_MIN);
+  } catch(e){ refus('Chargement impossible : réessayez.'); }
+}
+
+/* Fichier du PC : solution secondaire, même règle des 15 min (heure du fichier) */
+var choix = document.getElementById('choix');
+choix.addEventListener('change', function(){
+  var f = choix.files[0]; choix.value = '';
+  if(!f) return;
+  var force = ADMIN && document.getElementById('forcer').checked;
+  var age = Math.floor((Date.now() - f.lastModified) / 60000);
+  if(age > DELAI_MIN && !force){
+    refus('Ce fichier date du ' + hm(new Date(f.lastModified)) + ' (il y a ' + age + ' min). Il faut un StockStatus de moins de ' + DELAI_MIN + ' min.');
+    return;
+  }
+  var r = new FileReader();
+  r.onload = function(){ traiter(r.result, f.name, 'Fichier du PC' + (age > DELAI_MIN ? ' · FORCÉ' : ''), age > DELAI_MIN); };
+  r.readAsText(f, 'UTF-8');
+});
+
+var BRUT = null;
+function traiter(texte, nom, info, force){
+  /* Texte brut obligatoire : sinon les MGB perdent leurs zéros de tête */
+  var p = Papa.parse(texte.replace(/^﻿/, ''), { header:true, skipEmptyLines:true, dynamicTyping:false, delimiter:'' });
+  if(!p.data.length || !('BBD' in p.data[0]) || !('Position' in p.data[0])){ dire('Ce fichier n\'est pas un StockStatus', 'err'); return; }
+  BRUT = p.data; NOM_FIC = nom;
+  var m = nom.match(/(\d{2})-(\d{2})-(\d{4})/);
+  var auj = new Date(); auj = new Date(auj.getFullYear(), auj.getMonth(), auj.getDate());
+  REF = m ? new Date(+m[3], +m[2] - 1, +m[1]) : auj;
+  var fd = document.getElementById('fic-date');
+  fd.textContent = 'Stock du ' + REF.toLocaleDateString('fr-FR') + (info ? ' · ' + info : '');
+  fd.classList.toggle('force', !!force);
+  refus('');
+  document.getElementById('zone-depot').style.display = 'none';
+  document.getElementById('zone-res').style.display = 'block';
+  recalculer();
+  dire(BRUT.length + ' lignes analysées', 'ok');
+}
+
+function recalculer(){
+  if(!BRUT) return;
+  var p = { dlc: Math.max(0, +document.getElementById('p-dlc').value || 0),
+            mdd: Math.max(0, +document.getElementById('p-mdd').value || 0) };
+  LIGNES = analyser(BRUT, REF, p);
+  afficher();
+}
+['p-dlc','p-mdd'].forEach(function(id){ document.getElementById(id).addEventListener('change', recalculer); });
+['f-sect','f-sans','f-type'].forEach(function(id){ document.getElementById(id).addEventListener('change', afficher); });
+document.getElementById('f-ano').addEventListener('change', function(){ ONGLET = this.value; afficher(); });
+document.getElementById('f-rech').addEventListener('input', afficher);
+
+/* ── Filtres ── */
+function filtrees(){
+  var s = document.getElementById('f-sect').value;
+  var ty = document.getElementById('f-type').value;
+  var q = document.getElementById('f-rech').value.trim().toLowerCase();
+  var masque = document.getElementById('f-sans').checked;
+  /* Onglet DLC manquante : on montre aussi les lignes datées du même MGB, pour comparer */
+  var refs = {};
+  if(ONGLET === 'manq') LIGNES.forEach(function(l){ if(l.an.some(function(a){ return a.c === 'manq'; })) refs[l.mgb] = 1; });
+  return LIGNES.filter(function(l){
+    if(s && l.sect !== s) return false;
+    if(ty && l.typeFL !== ty) return false;
+    if(q && (l.mgb + ' ' + l.lib + ' ' + l.pos).toLowerCase().indexOf(q) === -1) return false;
+    if(ONGLET === 'stock') return !(masque && l.an.some(function(a){ return a.c === 'sans'; }));
+    if(ONGLET === 'sans') return l.an.some(function(a){ return a.c === 'sans'; });
+    var an = l.an.filter(function(a){ return a.c !== 'sans' || !masque; });
+    if(ONGLET === 'tout') return an.length > 0;
+    if(ONGLET === 'manq' && l.dlc && refs[l.mgb]) return true;
+    return l.an.some(function(a){ return a.c === ONGLET; });
+  });
+}
+
+/* ── Affichage ── */
+function afficher(){
+  var base = ONGLET, cpt = {};
+  ['tout','stock'].concat(ORDRE).forEach(function(k){ ONGLET = k; cpt[k] = filtrees().length; });
+  ONGLET = base;
+
+  var o = '<option value="tout">Toutes anomalies (' + cpt.tout + ')</option>';
+  ORDRE.forEach(function(k){ o += '<option value="' + k + '">' + CAT[k].nom + ' (' + cpt[k] + ')</option>'; });
+  o += '<option value="stock">Tout le stock (' + cpt.stock + ')</option>';
+  var sel = document.getElementById('f-ano');
+  sel.innerHTML = o; sel.value = ONGLET;
+
+  document.getElementById('aide').textContent =
+    ONGLET === 'tout'  ? 'Toutes les lignes portant au moins une anomalie.' :
+    ONGLET === 'stock' ? 'Tout le stock, anomalie ou non. F&L : Fictive = création + 1 an · Retour client = création + 1 mois · Vraie DLC = le reste.' :
+    CAT[ONGLET].aide;
+
+  /* Résumé */
+  var tot = LIGNES.length, anos = LIGNES.filter(function(l){ return l.an.some(function(a){ return a.c !== 'sans'; }); }).length;
+  var fl = LIGNES.filter(function(l){ return l.sect === 'FL'; });
+  var nb = function(t){ return fl.filter(function(l){ return l.typeFL === t; }).length; };
+  document.getElementById('resume').innerHTML =
+    kpi(tot, 'Lignes en stock') + kpi(anos, 'Lignes en anomalie') +
+    kpi(LIGNES.filter(function(l){ return l.an.some(function(a){ return a.c === 'sans'; }); }).length, 'Sans DLC') +
+    kpi(nb('Fictive') + ' / ' + nb('Retour client') + ' / ' + nb('Vraie DLC'), 'F&L fictive / retour / vraie');
+
+  dessinerTable();
+}
+function kpi(v, t){ return '<div class="kpi"><b>' + v + '</b><span>' + t + '</span></div>'; }
+
+var COLS = [
+  { k:'sect', t:'Secteur' }, { k:'pos', t:'Position' }, { k:'mgb', t:'MGB' }, { k:'lib', t:'Libellé' },
+  { k:'qte', t:'Qté' }, { k:'dlc', t:'DLC' }, { k:'mdd', t:'MDD' }, { k:'cree', t:'Créé le' },
+  { k:'vie', t:'Vie (j)' }, { k:'an', t:'Anomalie' }
+];
+function trier(k){ TRI = { k:k, s: TRI.k === k ? -TRI.s : 1 }; dessinerTable(); }
+function valTri(l, k){
+  if(k === 'dlc' || k === 'mdd' || k === 'cree') return l[k] ? l[k].getTime() : Infinity;
+  if(k === 'an') return l.an.length ? ORDRE.indexOf(l.an[0].c) : 99;
+  if(k === 'type') return l.typeFL || '';
+  return l[k] === null ? Infinity : l[k];
+}
+function fmt(d){ return d ? d.toLocaleDateString('fr-FR') : '—'; }
+
+function cellAnomalies(l){
+  var h = '';
+  if(l.typeFL){
+    var p = l.typeFL === 'Fictive' ? 'p-gris' : l.typeFL === 'Retour client' ? 'p-orange' : 'p-vert';
+    h += '<span class="pas ' + p + '">F&amp;L ' + l.typeFL.toLowerCase() + '</span><br>';
+  }
+  if(ONGLET === 'manq' && l.dlc) h += '<span class="pas p-vert">Ligne datée de référence</span><br>';
+  var masque = document.getElementById('f-sans').checked && ONGLET !== 'sans';
+  return h + l.an.filter(function(a){ return !(masque && a.c === 'sans'); }).map(function(a){
+    return '<span class="pas ' + CAT[a.c].p + '">' + CAT[a.c].nom + '</span><div class="det">' + echap(a.d) + '</div>';
+  }).join('');
+}
+
+function dessinerTable(){
+  var l = filtrees();
+  /* DLC manquante : lignes regroupées par article, la ligne datée juste après */
+  if(ONGLET === 'manq' && TRI.k === 'sect') l.sort(function(a, b){
+    return a.mgb.localeCompare(b.mgb) || (a.dlc ? 1 : 0) - (b.dlc ? 1 : 0) || a.pos.localeCompare(b.pos, 'fr', { numeric:true }); });
+  else l.sort(function(a, b){
+    var x = valTri(a, TRI.k), y = valTri(b, TRI.k);
+    var r = typeof x === 'string' ? x.localeCompare(y, 'fr', { numeric:true }) : x - y;
+    return (r || a.pos.localeCompare(b.pos, 'fr', { numeric:true })) * TRI.s;
+  });
+  document.getElementById('thead').innerHTML = '<tr>' + COLS.map(function(c){
+    return '<th onclick="trier(\'' + c.k + '\')">' + c.t +
+      (TRI.k === c.k ? '<span class="tri">' + (TRI.s > 0 ? '▲' : '▼') + '</span>' : '') + '</th>';
+  }).join('') + '</tr>';
+
+  var tb = document.getElementById('tbody');
+  if(!l.length){ tb.innerHTML = '<tr><td colspan="10" class="vide-t">Aucune ligne.</td></tr>'; return; }
+  var max = 3000, h = '';
+  l.slice(0, max).forEach(function(x){
+    h += '<tr><td><span class="sect s-' + x.sect + '">' + NOMS_SECT[x.sect] + '</span></td>' +
+      '<td class="mono">' + echap(x.pos) + '</td><td class="mono">' + echap(x.mgb) + '</td>' +
+      '<td class="lib">' + echap(x.lib) + '</td><td class="mono droite">' + x.qte + '</td>' +
+      '<td class="mono">' + (x.dlc ? fmt(x.dlc) : echap(x.dlcTxt || '—')) + '</td><td class="mono">' + fmt(x.mdd) + '</td>' +
+      '<td class="mono">' + fmt(x.cree) + '</td><td class="mono droite">' + (x.vie === null ? '—' : x.vie) + '</td>' +
+      '<td>' + cellAnomalies(x) + '</td></tr>';
+  });
+  if(l.length > max) h += '<tr><td colspan="10" class="vide-t">' + (l.length - max) + ' lignes de plus : affinez les filtres ou exportez.</td></tr>';
+  tb.innerHTML = h;
+}
+
+/* ── Exports ── */
+function lignesExport(){
+  var masque = document.getElementById('f-sans').checked && ONGLET !== 'sans';
+  var liste = filtrees();
+  if(ONGLET === 'manq') liste.sort(function(a, b){ return a.mgb.localeCompare(b.mgb) || (a.dlc ? 1 : 0) - (b.dlc ? 1 : 0); });
+  return liste.map(function(l){
+    var an = l.an.filter(function(a){ return !(masque && a.c === 'sans'); });
+    if(ONGLET === 'manq' && l.dlc && !an.length) an = [{ c:'manq', d:'ligne datée de référence' }];
+    return {
+      'Secteur': NOMS_SECT[l.sect], 'Position': l.pos, 'MGB': l.mgb, 'Libellé': l.lib, 'Quantité': l.qte,
+      'DLC': l.dlc ? fmt(l.dlc) : (l.dlcTxt || ''), 'MDD': l.mdd ? fmt(l.mdd) : '', 'Créé le': l.cree ? fmt(l.cree) : '',
+      'Vie (j)': l.vie === null ? '' : l.vie, 'Type F&L': l.typeFL || '',
+      'Anomalie': an.map(function(a){ return CAT[a.c].nom; }).join(' | '),
+      'Détail': an.map(function(a){ return a.d; }).join(' | ')
+    };
+  });
+}
+function libFiltre(){
+  return ONGLET === 'tout' ? 'Toutes anomalies' : ONGLET === 'stock' ? 'Tout le stock' : CAT[ONGLET].nom;
+}
+function nomExport(ext){
+  var s = document.getElementById('f-sect').value, ty = document.getElementById('f-type').value;
+  var net = function(t){ return t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, ''); };
+  var d = REF, j = String(d.getDate()).padStart(2,'0') + String(d.getMonth()+1).padStart(2,'0') + String(d.getFullYear()).slice(2);
+  return 'DLC_ANOMALIE_' + net(libFiltre()) + (s ? '_' + net(NOMS_SECT[s]) : '') + (ty ? '_FL_' + net(ty) : '') + '_' + j + '.' + ext;
+}
+function exporterExcel(){
+  var d = lignesExport();
+  if(!d.length){ dire('Rien à exporter', 'err'); return; }
+  var ws = XLSX.utils.json_to_sheet(d);
+  /* MGB forcé en texte */
+  var r = XLSX.utils.decode_range(ws['!ref']);
+  for(var i = 1; i <= r.e.r; i++){ var c = ws[XLSX.utils.encode_cell({ r:i, c:2 })]; if(c){ c.t = 's'; c.z = '@'; } }
+  ws['!cols'] = [{wch:14},{wch:13},{wch:14},{wch:50},{wch:9},{wch:11},{wch:11},{wch:11},{wch:8},{wch:12},{wch:30},{wch:45}];
+  ws['!autofilter'] = { ref: ws['!ref'] };
+  var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Anomalies DLC');
+  XLSX.writeFile(wb, nomExport('xlsx'));
+}
+var PDF = null;
+function apercuPdf(){
+  var d = lignesExport();
+  if(!d.length){ dire('Rien à exporter', 'err'); return; }
+  var doc = new window.jspdf.jsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
+  var s = document.getElementById('f-sect').value, ty = document.getElementById('f-type').value;
+  doc.setFontSize(14); doc.setTextColor(26, 46, 85); doc.text('DLC en anomalie — ' + libFiltre(), 12, 13);
+  doc.setFontSize(9); doc.setTextColor(92, 104, 131);
+  doc.text('Stock du ' + REF.toLocaleDateString('fr-FR') + (s ? ' · ' + NOMS_SECT[s] : '') + (ty ? ' · F&L ' + ty.toLowerCase() : '') +
+           ' · ' + d.length + ' lignes · GDS La Brède', 12, 19);
+  var cols = ['Secteur','Position','MGB','Libellé','Quantité','DLC','MDD','Créé le','Vie (j)','Type F&L','Anomalie','Détail'];
+  doc.autoTable({
+    startY: 23, head: [cols], body: d.map(function(x){ return cols.map(function(c){ return String(x[c]); }); }),
+    styles:{ fontSize:6.8, cellPadding:1.3 }, headStyles:{ fillColor:[26,46,85] },
+    alternateRowStyles:{ fillColor:[245,247,251] },
+    columnStyles:{ 3:{ cellWidth:55 }, 10:{ cellWidth:30 }, 11:{ cellWidth:48 } }, margin:{ left:10, right:10 }
+  });
+  var n = doc.internal.getNumberOfPages();
+  for(var k = 1; k <= n; k++){ doc.setPage(k); doc.setFontSize(7); doc.setTextColor(150);
+    doc.text('Page ' + k + ' / ' + n, 287, 205, { align:'right' }); }
+  if(PDF && PDF.url) URL.revokeObjectURL(PDF.url);
+  PDF = { doc: doc, nom: nomExport('pdf') };
+  PDF.url = URL.createObjectURL(doc.output('blob'));
+  document.getElementById('ap-cadre').src = PDF.url;
+  document.getElementById('ap-nom').textContent = PDF.nom;
+  document.getElementById('apercu').classList.add('on');
+}
+function fermerApercu(){
+  document.getElementById('apercu').classList.remove('on');
+  document.getElementById('ap-cadre').src = 'about:blank';
+}
+function imprimerPdf(){
+  try { var f = document.getElementById('ap-cadre'); f.contentWindow.focus(); f.contentWindow.print(); }
+  catch(e){ window.open(PDF.url, '_blank'); }
+}
+function telechargerPdf(){ if(PDF) PDF.doc.save(PDF.nom); }
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape') fermerApercu(); });
+</script>
+</body>
+</html>
