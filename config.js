@@ -24,3 +24,19 @@ var GDS = {
   DEMANDE_ACCES: false
 
 };
+
+/* ═══════════════════════════════════════════════════════════
+   Modules permanents du sommaire
+   Chargés ici pour ne jamais disparaître quand sommaire.html
+   est remplacé par une nouvelle version.
+   - gds_stockstatus.js : chaque StockStatus déposé est aussi
+     sauvegardé dans Archive/StockStatus/ (un par jour) et la
+     tuile « Seuil max stockage » est ajoutée à Implantation.
+   ═══════════════════════════════════════════════════════════ */
+window.addEventListener('load', function(){
+  if(typeof envoyer !== 'function' || typeof FAMILLES === 'undefined') return;   // pages autres que le sommaire
+  if(window.__gdsStockStatus) return;
+  var s = document.createElement('script');
+  s.src = (GDS.BASE || '') + 'gds_stockstatus.js?v=' + Date.now();
+  document.head.appendChild(s);
+});

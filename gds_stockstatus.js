@@ -7,10 +7,22 @@
    Un seul fichier par jour : le premier déposé est gardé,
    les suivants du même jour sont ignorés.
 
-   À inclure dans sommaire.html, juste avant </body> :
-     <script src="gds_stockstatus.js"></script>
+   Chargé automatiquement par config.js sur le sommaire : il
+   survit donc aux nouvelles versions de sommaire.html.
+   Il ajoute aussi la tuile « Seuil max stockage » si elle manque.
    ═══════════════════════════════════════════════════════════ */
 (function(){
+  if(window.__gdsStockStatus) return;          // déjà chargé
+  if(typeof window.envoyer !== 'function' || typeof FAMILLES === 'undefined') return;   // pas le sommaire
+  window.__gdsStockStatus = true;
+
+  /* tuile Implantation → Seuil max stockage */
+  var imp = FAMILLES.filter(function(f){ return f.id === 'implantation'; })[0];
+  if(imp && !imp.outils.some(function(o){ return o.f === 'SEUIL_MAX_2026.html'; })){
+    imp.outils.push({ nom:'Seuil max stockage', f:'SEUIL_MAX_2026.html', ico:'courbe', roles:['admin','admin_restreint'] });
+    if(location.hash === '#implantation' && typeof ouvrirVue === 'function') ouvrirVue('implantation');
+  }
+
   var DOSSIER = 'StockStatus/';
   var MOTIF = /StockStatus_FR_STOREDEPOT_(\d+)_(\d{2})-(\d{2})-(\d{4})/i;
 
@@ -38,7 +50,6 @@
     if(typeof charges !== 'undefined') charges.archive = false;
   }
 
-  if(typeof window.envoyer !== 'function') return;
   var origine = window.envoyer;
   window.envoyer = async function(f){
     var res = await origine.apply(this, arguments);
