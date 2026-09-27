@@ -362,6 +362,9 @@ var nom   = lire('gds_nom');
 if(!jeton){ location.replace('index.html'); }
 
 var peutDeposer = role === 'admin' || role === 'admin_restreint';
+/* changer le code de suppression : compte admin seulement */
+var peutChangerCode = role === 'admin';
+if(!peutChangerCode) document.getElementById('zone-cle').style.display = 'none';
 if(peutDeposer) document.getElementById('seg-depot').style.display = 'block';
 if(role !== 'admin') document.getElementById('zone-cle').style.display = 'none';
 
@@ -685,6 +688,7 @@ async function codeJuste(code){
 
 /* Poser ou changer le code. L'ancien est exigé dès qu'une clé existe. */
 function changerCode(){
+  if(!peutChangerCode){ dire('Seul l\'administrateur peut changer le code', 'err'); return; }
   var champs = [];
   if(CLE) champs.push({ id:'ancien', label:'Code actuel', mono:true, max:12, exemple:'••••',
                         erreur:'Code incorrect', attendreControle:true });

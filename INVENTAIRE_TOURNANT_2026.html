@@ -544,35 +544,39 @@ function lier(sauf){
 }
 
 /* ---------- nom du fichier ----------
-   INV[_allées]_<PICK|STOCK>[_PAIR|_IMPAIR][_GA…]_<JJMMAA-HHMM>
-   - allées : seulement si l'on ne compte pas tout le dépôt ; suite continue A03-05, sinon A03-05-09+2
-   - côté : seulement s'il est choisi
-   - avec un ou plusieurs GA : ni allées ni côté
+   Tout choix précis fait dans les filtres apparaît dans le nom, rien n'est déduit :
+   INV[_famille][_SA][_GA][_allées ou secteur][_travées][_niveaux]_<PICK|STOCK>[_PAIR|_IMPAIR]_<JJMMAA-HHMM>
+   - allées : seulement si des allées sont cochées (sinon le secteur s'il est choisi)
+   - avec un ou plusieurs GA : ni allées ni côté (nom trop long)
+   - plusieurs valeurs : les premières puis +N (ex. GA05-12-18+4)
+   ex. INV_SPIRITUEUX-UNITAIRE_PICK_270926-1516 · INV_A03-05_STOCK_PAIR_270926-1516
    Compatible Windows / archive : lettres, chiffres, _ - + ; 100 caractères au plus. */
 var MAX_NOM = 100;
-function court(v, n){ return String(v).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9]+/g,'').slice(0, n || 8); }
-function blocAllees(L){
-  var A = {}; L.forEach(function(l){ A[l.al] = 1; });
-  var a = Object.keys(A).map(Number).sort(function(x,y){ return x-y; });
-  var tout = {}; LIGNES.forEach(function(l){ if(l.type === $('fType').value) tout[l.al] = 1; });
-  if(!a.length || a.length === Object.keys(tout).length) return '';
-  var suite = a[a.length-1] - a[0] === a.length - 1;
+function court(v, n){ return String(v).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9]+/g,'').toUpperCase().slice(0, n || 8); }
+function plusieurs(t, n){ return t.slice(0, n).join('-') + (t.length > n ? '+' + (t.length - n) : ''); }
+function blocAllees(F){
+  var a = F.al.slice().sort(function(x,y){ return x-y; });
+  if(!a.length) return '';
   if(a.length === 1) return 'A' + pad2(a[0]);
-  if(suite) return 'A' + pad2(a[0]) + '-' + pad2(a[a.length-1]);
-  return 'A' + a.slice(0, 3).map(pad2).join('-') + (a.length > 3 ? '+' + (a.length - 3) : '');
+  if(a[a.length-1] - a[0] === a.length - 1) return 'A' + pad2(a[0]) + '-' + pad2(a[a.length-1]);
+  return 'A' + plusieurs(a.map(pad2), 3);
 }
 function nomFichier(F, L, d){
-  var ga = F.ga.length > 0, p = ['INV'], al = ga ? '' : blocAllees(L);
-  if(al) p.push(al);
+  var ga = F.ga.length > 0, p = ['INV'];
+  /* famille en toutes lettres (mots reliés par -) ; plusieurs familles : la première puis +N */
+  if(F.fam.length){ var fa = String(F.fam[0]).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0, 24).replace(/-$/,'');
+    p.push(fa + (F.fam.length > 1 ? '+' + (F.fam.length - 1) : '')); }
+  if(F.sa.length) p.push('SA' + plusieurs(F.sa.map(function(x){ return court(x.split(' ')[0], 4); }), 3));
+  if(ga) p.push('GA' + plusieurs(F.ga.map(function(x){ return court(x.split(' ')[0]).replace(/^GA/, ''); }), 3));
+  if(!ga){ var al = blocAllees(F); if(al) p.push(al); else if(F.sect) p.push(F.sect); }
+  if(F.t1 || F.t2) p.push('T' + pad2(F.t1 || 1) + '-' + (F.t2 ? pad2(F.t2) : 'FIN'));
+  if(F.niv.length) p.push('N' + F.niv.slice().sort().join(''));
   p.push(F.type);   /* jamais Picking et Stockage dans le même inventaire */
   if(!ga && F.cote) p.push(F.cote === 'IMP' ? 'IMPAIR' : 'PAIR');
-  if(ga){
-    var g = F.ga.map(function(x){ return court(x.split(' ')[0]).replace(/^GA/i, ''); });
-    p.push('GA' + g.slice(0, 3).join('-') + (g.length > 3 ? '+' + (g.length - 3) : ''));
-  }
-  p.push(pad2(d.getDate()) + pad2(d.getMonth()+1) + String(d.getFullYear()).slice(2) + '-' + pad2(d.getHours()) + pad2(d.getMinutes()));
+  var date = pad2(d.getDate()) + pad2(d.getMonth()+1) + String(d.getFullYear()).slice(2) + '-' + pad2(d.getHours()) + pad2(d.getMinutes());
   var nom = p.join('_');
-  return nom.length > MAX_NOM ? nom.slice(0, MAX_NOM) : nom;
+  if(nom.length + date.length + 1 > MAX_NOM) nom = nom.slice(0, MAX_NOM - date.length - 1);   /* la date reste toujours à la fin */
+  return nom + '_' + date;
 }
 
 /* ---------- aperçu à l'écran ---------- */
@@ -874,16 +878,43 @@ $('tbL').addEventListener('click', async function(e){
   }
 });
 
-/* suppression d'un inventaire : protégée par mot de passe contre les fausses manœuvres */
-var MDP_SUPPR = '1234';
+/* suppression d'un inventaire : protégée par le code de suppression commun à GDS */
+/* Code de suppression commun à GDS : le même que la page FDS.
+   Le serveur ne garde que son empreinte (FDS/cle_suppression.json) ; tant qu'aucun code n'est posé, c'est 1234.
+   Seul le compte admin peut le changer, depuis la page Fiches FDS. */
+var CODE_PROVISOIRE = '1234', CLE_SUPPR = undefined;
+async function chargerCleSuppr(){
+  if(CLE_SUPPR !== undefined) return CLE_SUPPR;
+  CLE_SUPPR = null;
+  try {
+    var r = await fetch(API + '/archive/' + encodeURIComponent('FDS/cle_suppression.json'), { headers: auth() });
+    if(r.ok){ var d = await r.json(); if(d && d.sel && d.empreinte) CLE_SUPPR = d; }
+  } catch(e){}
+  return CLE_SUPPR;
+}
+async function codeSupprJuste(code){
+  var c = await chargerCleSuppr();
+  if(!c) return code === CODE_PROVISOIRE;
+  try {
+    var o = new TextEncoder().encode(c.sel + ':' + code), h = await crypto.subtle.digest('SHA-256', o);
+    return Array.from(new Uint8Array(h)).map(function(x){ return x.toString(16).padStart(2, '0'); }).join('') === c.empreinte;
+  } catch(e){ return false; }
+}
+
 async function supprimer(f, b){
   var m = prompt('Supprimer définitivement « ' + f.nom + ' » ?\nSaisies comprises, sans retour possible.\n\nMot de passe :');
   if(m === null) return;
-  if(m !== MDP_SUPPR){ toast('Mot de passe incorrect : rien n\'a été supprimé.', true); return; }
+  if(!(await codeSupprJuste(m))){ toast('Mot de passe incorrect : rien n\'a été supprimé.', true); return; }
   b.disabled = true;
   try {
-    var r = await gds('/archive/' + encodeURIComponent(f.chemin), {method:'DELETE'});
-    if(!r.ok) throw new Error('le serveur n\'a pas supprimé le fichier');
+    /* l'Archive garde une version par enregistrement : on supprime jusqu'à ce que le fichier ait disparu de la liste */
+    for(var k = 0; k < 60; k++){
+      var r = await gds('/archive/' + encodeURIComponent(f.chemin), {method:'DELETE'});
+      if(!r.ok && r.status !== 404) throw new Error('le serveur n\'a pas supprimé le fichier');
+      var reste = (await listeArchive(DOSSIER)).some(function(x){ return x.nom === f.chemin; });
+      if(!reste) break;
+      if(k === 59) throw new Error('le fichier est toujours présent après 60 suppressions');
+    }
     try { localStorage.removeItem(CLE_LOC + f.nom); } catch(e){}
     toast('« ' + f.nom + ' » supprimé.');
     await chargerListe();

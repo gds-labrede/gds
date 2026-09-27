@@ -1091,15 +1091,50 @@ async function telecharger(nom){
   } catch(e){ dire('Téléchargement impossible', 'err'); }
 }
 
+/* ── Mot de passe demandé avant toute suppression ── */
+/* Code de suppression commun à GDS : le même que la page FDS.
+   Le serveur ne garde que son empreinte (FDS/cle_suppression.json) ; tant qu'aucun code n'est posé, c'est 1234.
+   Seul le compte admin peut le changer, depuis la page Fiches FDS. */
+var CODE_PROVISOIRE = '1234', CLE_SUPPR = undefined;
+async function chargerCleSuppr(){
+  if(CLE_SUPPR !== undefined) return CLE_SUPPR;
+  CLE_SUPPR = null;
+  try {
+    var r = await fetch(API + '/archive/' + encodeURIComponent('FDS/cle_suppression.json'), { headers: auth() });
+    if(r.ok){ var d = await r.json(); if(d && d.sel && d.empreinte) CLE_SUPPR = d; }
+  } catch(e){}
+  return CLE_SUPPR;
+}
+async function codeSupprJuste(code){
+  var c = await chargerCleSuppr();
+  if(!c) return code === CODE_PROVISOIRE;
+  try {
+    var o = new TextEncoder().encode(c.sel + ':' + code), h = await crypto.subtle.digest('SHA-256', o);
+    return Array.from(new Uint8Array(h)).map(function(x){ return x.toString(16).padStart(2, '0'); }).join('') === c.empreinte;
+  } catch(e){ return false; }
+}
+async function motDePasse(quoi){
+  var m = prompt(quoi + '\n\nMot de passe de suppression :');
+  if(m === null) return false;
+  if(!(await codeSupprJuste(m))){ dire('Mot de passe incorrect : rien n\'a été supprimé', 'err'); return false; }
+  return true;
+}
+
 /* ── Suppression ── */
 async function supprimer(nom, bouton){
-  if(!confirm('Supprimer définitivement « ' + nom + ' » ?')) return;
+  if(!(await motDePasse('Supprimer définitivement « ' + nom + ' » ?') )) return;
   bouton.disabled = true; bouton.textContent = '…';
   try {
     var r;
     if(espace === 'archive'){
-      r = await fetch(API + '/archive/' + encodeURIComponent(nom),
-                      { method:'DELETE', headers: auth() });
+      /* L'Archive garde une version par dépôt : on supprime jusqu'à ce que le fichier ait disparu. */
+      for(var k = 0; k < 60; k++){
+        r = await fetch(API + '/archive/' + encodeURIComponent(nom),
+                        { method:'DELETE', headers: auth() });
+        if(!r.ok) break;
+        var reste = (await lister('archive')).some(function(x){ return x.nom === nom; });
+        if(!reste) break;
+      }
     } else {
       r = await fetch(API + '/fichiers', {
         method:'DELETE',
@@ -1395,7 +1430,7 @@ async function ajouterAnniv(){
 }
 async function supprimerAnniv(i){
   var a = ANNIVS[i]; if(!a) return;
-  if(!confirm("Supprimer l'anniversaire de " + a.name + ' ?')) return;
+  if(!(await motDePasse("Supprimer l'anniversaire de " + a.name + ' ?') )) return;
   var avant = ANNIVS.slice();
   ANNIVS.splice(i, 1);
   try { await ecrireJson('anniversaires.json', ANNIVS); dire('Anniversaire supprimé', 'ok'); }
@@ -1478,7 +1513,7 @@ async function ajouterEvenement(){
 }
 async function supprimerEvenement(id){
   var e = EVTS.filter(function(x){ return x.id === id; })[0]; if(!e) return;
-  if(!confirm('Supprimer « ' + e.titre + ' » ?')) return;
+  if(!(await motDePasse('Supprimer « ' + e.titre + ' » ?') )) return;
   var avant = EVTS.slice();
   EVTS = EVTS.filter(function(x){ return x.id !== id; });
   try { await ecrireJson('planning.json', EVTS); dire('Événement supprimé', 'ok'); }
