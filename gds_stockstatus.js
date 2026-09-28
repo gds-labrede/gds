@@ -72,8 +72,39 @@
 
   /* ── fichiers refusés : sélectionnés par erreur dans les téléchargements ── */
   var REFUSES = [
-    { motif:/^StockChange/i, raison:'les fichiers StockChanges ne sont pas utilisés dans GDS' }
+    { motif:/^StockChange/i, raison:'Les fichiers StockChanges ne sont pas utilisés dans GDS.',
+      conseil:'Vérifie dans tes téléchargements que tu as pris le bon fichier, puis recommence.' }
   ];
+
+  /* fenêtre d'alerte : reste affichée jusqu'au clic sur « Compris » */
+  function alerteRefus(nom, x){
+    var ancien = document.getElementById('gds-refus'); if(ancien) ancien.remove();
+    var esc = function(t){ return String(t).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); };
+    var o = document.createElement('div');
+    o.id = 'gds-refus';
+    o.setAttribute('role', 'alertdialog');
+    o.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(20,32,60,.55);display:flex;align-items:center;justify-content:center;padding:16px;font-family:"DM Sans",system-ui,sans-serif';
+    o.innerHTML =
+      '<div style="background:#fff;border-radius:16px;max-width:460px;width:100%;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.35)">' +
+        '<div style="background:linear-gradient(135deg,#b8342f,#d9534f);color:#fff;padding:18px 22px;display:flex;align-items:center;gap:14px">' +
+          '<svg width="34" height="34" viewBox="0 0 48 48"><path d="M24 4 2 43h44z" fill="rgba(255,255,255,.25)"/><path d="M24 4 2 43h44z" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><path d="M22 17h4v14h-4zM22 34h4v4h-4z" fill="#fff"/></svg>' +
+          '<div><div style="font-size:18px;font-weight:700">Dépôt refusé</div>' +
+          '<div style="font-size:13px;opacity:.9">Tentative de dépôt échouée : mauvais fichier</div></div>' +
+        '</div>' +
+        '<div style="padding:18px 22px;color:#1a2e55;font-size:14px;line-height:1.5">' +
+          '<div style="font-family:\'DM Mono\',monospace;font-size:12px;background:#fdecec;color:#8f1d20;border-radius:8px;padding:8px 10px;word-break:break-all;margin-bottom:12px">' + esc(nom) + '</div>' +
+          '<div>' + esc(x.raison) + ' Il n\'a pas été envoyé.</div>' +
+          (x.conseil ? '<div style="margin-top:8px;color:#51607c">' + x.conseil + '</div>' : '') +
+          '<div style="text-align:right;margin-top:18px"><button type="button" style="border:0;border-radius:10px;padding:10px 22px;font:600 14px \'DM Sans\',sans-serif;color:#fff;cursor:pointer;background:linear-gradient(180deg,#2a4576,#1a2e55)">Compris</button></div>' +
+        '</div>' +
+      '</div>';
+    var fermer = function(){ o.remove(); document.removeEventListener('keydown', clavier); };
+    var clavier = function(e){ if(e.key === 'Escape' || e.key === 'Enter') fermer(); };
+    o.querySelector('button').onclick = fermer;
+    document.addEventListener('keydown', clavier);
+    document.body.appendChild(o);
+    o.querySelector('button').focus();
+  }
 
   function exportDe(nom){ return EXPORTS.filter(function(e){ return e.motif.test(nom || ''); })[0] || null; }
 
@@ -101,7 +132,7 @@
   window.envoyer = async function(f){
     var refus = f && REFUSES.filter(function(x){ return x.motif.test(f.name); })[0];
     if(refus){
-      dire('« ' + f.name + ' » refusé : ' + refus.raison, 'err');
+      alerteRefus(f.name, refus);
       var c = document.getElementById('choix-fichier'); if(c) c.value = '';
       return;
     }
