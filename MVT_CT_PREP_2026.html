@@ -145,7 +145,7 @@ td input.cmt{width:100%;min-width:140px;font-size:12px;padding:4px 6px}
         </select>
       </label>
       <label>Recherche
-        <input type="text" id="fSearch" placeholder="Article, code, SSCC, emplacement">
+        <input type="text" id="fSearch" placeholder="Article, Subsys, SSCC, emplacement">
       </label>
     </div>
     <div class="actions" style="margin-top:12px">
@@ -218,7 +218,7 @@ const COLS=[
   {k:'user',t:'Opérateur'},
   {k:'cellule',t:'Cellule',pill:true},
   {k:'SA',t:'Rayon'},
-  {k:'MGB',t:'MGB',cls:'mono'},
+  {k:'Subsys',t:'Subsys',cls:'mono'},
   {k:'art_name',t:'Désignation'},
   {k:'empl',t:'Emplacement',cls:'mono'},
   {k:'sscc',t:'SSCC',cls:'mono'},
@@ -281,7 +281,7 @@ function filtered(){
     (!f.m||r.stk_chg_desc===f.m)&&(!f.c||r.cellule===f.c)&&(!f.u||r.user===f.u)&&(!f.t||r.stk_mvt_type===f.t)&&(!f.p||r.sync===f.p)&&
     (!lo||r.day_id>=lo)&&(!hi||r.day_id<=hi)&&
     (!f.s||(f.s==='done')===!!SUIVI[r._key]?.done)&&
-    (!f.q||[r.art_name,r.MGB,r.art_mgb12,r.CCVM,r.CCAF,r.sscc,r.location_nr].join(' ').toLowerCase().includes(f.q)));
+    (!f.q||[r.art_name,r.Subsys,r.MGB,r.art_mgb12,r.CCVM,r.CCAF,r.sscc,r.location_nr].join(' ').toLowerCase().includes(f.q)));
   const col=COLS.find(c=>c.k===sortK);
   const byDate=(x,y)=>String(y.stk_mvt_datetime).localeCompare(x.stk_mvt_datetime);
   out.sort((x,y)=>{let a=x[sortK],b=y[sortK],r;if(col?.num){a=num(a);b=num(b);r=sortAsc?a-b:b-a;}else r=sortAsc?String(a).localeCompare(b,'fr'):String(b).localeCompare(a,'fr');return r||byDate(x,y);});
