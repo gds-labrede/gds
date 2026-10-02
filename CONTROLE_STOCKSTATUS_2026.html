@@ -216,7 +216,7 @@ tfoot td{font-weight:700;background:#eef2f8!important;position:sticky;bottom:0}
      - quantités différentes -> c'est normal (export à une autre heure) :
        le plus tôt est gardé (heure du dernier mouvement dans le fichier)
    ===================================================================== */
-const VERSION = 'v7';
+const VERSION = 'v8';
 const SECTEURS = [
   {k:'AMB', n:'Ambiant',          min:1,  max:18},
   {k:'FRA', n:'Frais',            min:19, max:29},
@@ -812,7 +812,7 @@ async function exportXlsx(){
       OV('/xl/pivotCache/pivotCacheDefinition1.xml', 'spreadsheetml.pivotCacheDefinition') + OV('/xl/pivotCache/pivotCacheRecords1.xml', 'spreadsheetml.pivotCacheRecords') + pivots.map((_, k) => OV(`/xl/pivotTables/pivotTable${k + 1}.xml`, 'spreadsheetml.pivotTable')).join('') + '</Types>');
     zip.file('_rels/.rels', RELS([REL('rId1', 'officeDocument', 'xl/workbook.xml')]));
     zip.file('xl/_rels/workbook.xml.rels', RELS([REL('rId1', 'worksheet', 'worksheets/sheet1.xml'), REL('rId2', 'worksheet', 'worksheets/sheet2.xml'), REL('rId3', 'styles', 'styles.xml'), REL('rId4', 'sharedStrings', 'sharedStrings.xml'), REL('rId5', 'pivotCacheDefinition', 'pivotCache/pivotCacheDefinition1.xml')]));
-    zip.file('xl/workbook.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView xWindow="0" yWindow="0" windowWidth="28800" windowHeight="15000" activeTab="0"/></bookViews><sheets><sheet name="${SY}" sheetId="1" r:id="rId1"/><sheet name="${DN}" sheetId="2" r:id="rId2"/></sheets><definedNames><definedName name="_xlnm._FilterDatabase" localSheetId="1" hidden="1">'${DN}'!$A$1:$J$${dFin}</definedName></definedNames><pivotCaches><pivotCache cacheId="1" r:id="rId5"/></pivotCaches><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>`);
+    zip.file('xl/workbook.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView xWindow="0" yWindow="0" windowWidth="28800" windowHeight="15000" activeTab="0"/></bookViews><sheets><sheet name="${SY}" sheetId="1" r:id="rId1"/><sheet name="${DN}" sheetId="2" r:id="rId2"/></sheets><definedNames><definedName name="_xlnm._FilterDatabase" localSheetId="1" hidden="1">'${DN}'!$A$1:$J$${dFin}</definedName></definedNames><calcPr calcId="191029" fullCalcOnLoad="1"/><pivotCaches><pivotCache cacheId="1" r:id="rId5"/></pivotCaches></workbook>`);
     // styles : 0 normal · 1 en-tête · 2 date · 3 entier · 4 décimal · 5 titre · 6 valeur orange · 7 date gras · 8 décimal orange · 9 en-tête jour
     //          10 note · 11 en-tête orange · 12 rouge clair · 13 jaune · 14 vert · 15 en-tête sur 2 lignes · 16 rubrique (rouge gras) · 17 texte gras
     const font = (o = '') => `<font>${o}<sz val="10"/><name val="Calibri"/><family val="2"/></font>`;
