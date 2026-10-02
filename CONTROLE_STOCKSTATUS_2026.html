@@ -135,7 +135,7 @@ tfoot td{font-weight:700;background:#eef2f8!important;position:sticky;bottom:0}
 <header>
   <div class="logo"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h6v6H4zM14 5h6v6h-6zM4 15h6v4H4z" fill="rgba(255,255,255,.3)"/><path d="M14 17h6M17 14v6"/></svg></div>
   <div>
-    <h1>Contrôle StockStatus <span class="ver">v6</span></h1>
+    <h1>Contrôle StockStatus <span class="ver">v7</span></h1>
     <div class="sub">Contrôle tous les StockStatus d'un dossier, écarte les doublons et range un fichier par jour dans l'Archive · Dépôt 171 La Brède</div>
   </div>
   <div class="sp"></div>
@@ -184,7 +184,7 @@ tfoot td{font-weight:700;background:#eef2f8!important;position:sticky;bottom:0}
         <div class="info" id="infoX"></div>
       </div>
       <p class="note"><b>Fichier de l'année (CSV)</b> : tous les produits, une ligne par produit, une colonne par jour.<br>
-      <b>Excel</b> : <b>une seule feuille</b>. Les produits dangereux / ICPE, les alcools forts et les huiles sont en haut, colorés. Pour chaque produit : le <b>seuil max</b> dans une colonne orange, la date du pic, et le jour du pic surligné en orange dans les colonnes de jours. Tout en haut, le <b>volume total par rubrique ICPE en dm³</b> (1 dm³ = 1 litre), jour par jour, avec son pic. Formules visibles : MAX, date du pic, moyenne, volume. Le litige (INSPECTION) n'est pas compté.</p>
+      <b>Excel</b> : deux onglets. <b>Données</b> : une ligne par produit et par jour (dangereux / ICPE, alcools forts, huiles), toutes les cellules remplies. <b>Synthèse</b> : le pic par rubrique en dm³, en formules qui lisent l'onglet Données, et deux tableaux croisés (seuil max et volume max par produit). Un double-clic sur un chiffre d'un tableau croisé ouvre la liste du détail dans un nouvel onglet. Le litige (INSPECTION) n'est pas compté.</p>
       <p class="note" id="catSrc"></p>
     </section>
 
@@ -216,7 +216,7 @@ tfoot td{font-weight:700;background:#eef2f8!important;position:sticky;bottom:0}
      - quantités différentes -> c'est normal (export à une autre heure) :
        le plus tôt est gardé (heure du dernier mouvement dans le fichier)
    ===================================================================== */
-const VERSION = 'v6';
+const VERSION = 'v7';
 const SECTEURS = [
   {k:'AMB', n:'Ambiant',          min:1,  max:18},
   {k:'FRA', n:'Frais',            min:19, max:29},
@@ -663,89 +663,158 @@ async function exportCsvAnnee(){
 }
 
 /* =====================================================================
-   EXCEL : une seule feuille
-   - en haut, les produits ICPE / dangereux, les alcools forts et les huiles,
-     colorés par catégorie ; ensuite tous les autres produits
-   - tout en haut : le volume total par rubrique ICPE en dm³, jour par jour
-     (SOMMEPROD), avec son pic et sa date
-   - SEUIL MAX = MAX(jours) en colonne orange, Date du pic = INDEX/EQUIV,
-     Volume au pic = seuil max × contenance, Moyenne = MOYENNE(jours)
-   - le jour du pic est surligné dans les colonnes de jours
+   EXCEL : deux onglets
+   « Données »  : une ligne par produit et par jour (dangereux / ICPE, alcools
+                  forts, huiles). Aucune cellule vide : 0 quand le produit est
+                  absent. Volume dm³ = Quantité × Contenance (formule).
+                  À droite : total dm³ par jour et par rubrique (SOMME.SI.ENS).
+   « Synthèse » : pic par rubrique en dm³ (formules MAX / INDEX-EQUIV qui lisent
+                  l'onglet Données) + deux tableaux croisés dynamiques
+                  (seuil max et volume max par produit). Un double-clic sur un
+                  chiffre d'un tableau croisé ouvre la liste du détail dans un
+                  nouvel onglet.
    ===================================================================== */
 async function exportXlsx(){
   const btn = $('bXls'); btn.disabled = true; setMsg("Préparation de l'Excel…"); await tick();
   try {
     const D = donnees.dernier = donnees(); const {jours, nJ} = D;
     if (!nJ) throw new Error('aucun jour pour cette année');
-    const ORD = ['Dangereux', 'Alcool fort', 'Huile', ''];
-    const L = [...D.L].sort((a, b) => ORD.indexOf(a.cat) - ORD.indexOf(b.cat) || (a.cat ? b.max - a.max : 0));
-    const N = L.length, nCat = L.filter(r => r.cat).length;
-    const NOM = 'Seuils max', k0 = 11, kFin = colL(k0 + nJ - 1);                 // jours à partir de la colonne L
-    const stCat = {'Dangereux':12, 'Alcool fort':13, 'Huile':14};
-    const icpe = r => r.cat === 'Dangereux' ? r.det : (r.cat === 'Alcool fort' && r.deg > 40 ? '4755 · Alcools de bouche' : '');
-    // ----- bloc du haut : volume total par rubrique, en dm³ (1 dm³ = 1 litre) -----
-    const G1 = [];                                             // {nom, col:'D'|'C', val, q[]}
-    const grp = (nom, col, val, test) => {
-      const q = new Float64Array(nJ); let n = 0;
-      for (const r of L) if (r.cat && r.cont && test(r)){ n++; for (let j = 0; j < nJ; j++) q[j] += r.q[j] * r.cont; }
-      if (n) G1.push({nom, col, val, q});
-    };
-    [...new Set(L.filter(r => icpe(r)).map(icpe))].sort().forEach(v => grp(v, 'D', v, r => icpe(r) === v));
-    grp('Alcools forts (tous degrés)', 'C', 'Alcool fort', r => r.cat === 'Alcool fort');
-    grp('Huiles', 'C', 'Huile', r => r.cat === 'Huile');
-    const sH = 5, s0 = 6, sFin = s0 + G1.length - 1;           // en-tête du bloc ligne 5, rubriques lignes 6 à sFin
-    const T = G1.length ? sFin + 2 : 4;                        // ligne d'en-tête du tableau des produits
-    const l0 = T + 1, lFin = l0 + N - 1, cA = l0, cB = l0 + Math.max(nCat, 1) - 1;   // cA:cB = lignes des produits colorés
-    const f = [
-      '<row r="1" ht="24" customHeight="1">' + cS('A1', `Seuil maximum de stock par produit${D.an ? ' · ' + D.an : ''} · ${nJ} jour(s) du ${fr(jours[0])} au ${fr(jours[nJ - 1])}`, 5) + '</row>',
-      '<row r="2">' + cS('A2', 'Lecture : la colonne orange donne la plus grande quantité présente sur une journée. Le jour du pic est surligné en orange dans les colonnes de jours. Volumes en dm³ : 1 dm³ = 1 litre, 1 000 dm³ = 1 m³.', 10) + '</row>',
-      '<row r="3">' + cS('A3', 'Couleurs :', 10) + cS('B3', 'Dangereux / ICPE', 12) + cS('C3', 'Alcool fort', 13) + cS('D3', 'Huile', 14) + cS('E3', `Les ${nCat} produits colorés sont en haut de la liste ; le filtre de la colonne Catégorie permet de n'afficher qu'eux.`, 10) + '</row>'
-    ];
-    if (G1.length){
-      f.push(`<row r="${sH}" ht="30" customHeight="1">` + cS('A' + sH, 'VOLUME TOTAL PAR RUBRIQUE, en dm³ (somme de tous les produits de la rubrique, jour par jour)', 1) + ['B','C','D','E','F','G'].map(c => cS(c + sH, '', 1)).join('') +
-        cS('H' + sH, 'PIC en dm³\n=MAX(jours)', 11) + cS('I' + sH, 'Date du pic', 15) + cS('J' + sH, 'Pic en m³\n=dm³ / 1000', 15) + cS('K' + sH, 'Moyenne dm³\n=MOYENNE(jours)', 15) +
-        jours.map((iso, j) => cN(colL(k0 + j) + sH, serial(iso), 9)).join('') + '</row>');
-      G1.forEach((g, i) => {
-        const n = s0 + i, plage = `L${n}:${kFin}${n}`; let max = 0, dm = 0, som = 0;
-        for (let j = 0; j < nJ; j++){ g.q[j] = Math.round(g.q[j]); som += g.q[j]; if (g.q[j] > max){ max = g.q[j]; dm = j; } }
-        const crit = `($${g.col}$${cA}:$${g.col}$${cB}="${g.val.replace(/"/g, '""')}")`;
-        let x = `<row r="${n}">` + cS('A' + n, g.nom, 16) + ['B','C','D','E','F','G'].map(c => cS(c + n, '', 12)).join('') +
-          cF('H' + n, `MAX(${plage})`, max, 6) + cF('I' + n, `INDEX($L$${sH}:$${kFin}$${sH},MATCH(H${n},${plage},0))`, serial(jours[dm]), 7) +
-          cF('J' + n, `H${n}/1000`, r3(max / 1000), 4) + cF('K' + n, `AVERAGE(${plage})`, Math.round(som / nJ), 3);
-        for (let j = 0; j < nJ; j++){ const c = colL(k0 + j); x += cF(c + n, `SUMPRODUCT(${crit}*$G$${cA}:$G$${cB}*${c}$${cA}:${c}$${cB})`, g.q[j], 3); }
-        f.push(x + '</row>');
-      });
-    }
-    f.push(`<row r="${T}" ht="30" customHeight="1">` + ['MGB','Libellé','Catégorie','ICPE / détail','Secteur','Unité','Contenance\n(L = dm³)'].map((t, i) => cS(colL(i) + T, t, i === 6 ? 15 : 1)).join('') +
-        cS('H' + T, 'SEUIL MAX\n=MAX(jours)', 11) + cS('I' + T, 'Date du pic', 15) + cS('J' + T, 'Volume au pic (dm³)\n=seuil × contenance', 15) + cS('K' + T, 'Moyenne\n=MOYENNE(jours)', 15) +
-        jours.map((iso, j) => cN(colL(k0 + j) + T, serial(iso), 9)).join('') + '</row>');
-    L.forEach((r, i) => {
-      const n = l0 + i, plage = `L${n}:${kFin}${n}`, st = r.dec ? 4 : 3, sc = stCat[r.cat] || 0, ic = icpe(r);
-      let x = `<row r="${n}">` + cS('A' + n, r.mgb, sc) + cS('B' + n, r.lib, sc) + (r.cat ? cS('C' + n, r.cat, sc) : '') +
-        (r.cat ? cS('D' + n, ic || r.det, ic ? 16 : sc) : '') + cS('E' + n, r.secteur) + cS('F' + n, r.dec ? 'Kg' : 'Unités') +
-        (r.cont ? cN('G' + n, r3(r.cont), 4) : '') +
-        cF('H' + n, `MAX(${plage})`, r3(r.max), r.dec ? 8 : 6) +
-        cF('I' + n, `IF(H${n}=0,"",INDEX($L$${T}:$${kFin}$${T},MATCH(H${n},${plage},0)))`, serial(jours[r.dm]), 7) +
-        (r.cont ? cF('J' + n, `H${n}*G${n}`, r3(r.max * r.cont), 3) : '') +
-        cF('K' + n, `IFERROR(AVERAGE(${plage}),0)`, r.pres ? r3(r.som / r.pres) : 0, st);
-      for (let j = 0; j < nJ; j++){ const v = r.q[j]; if (v > 0) x += cN(colL(k0 + j) + n, r3(v), st); }
-      f.push(x + '</row>');
-    });
-    // jour du pic surligné : sur les produits colorés (en haut), pour garder un fichier fluide
-    const cfFin = l0 + Math.max(nCat, Math.min(N, 500)) - 1;
-    const cfR = (a, z) => `<conditionalFormatting sqref="L${a}:${kFin}${z}"><cfRule type="expression" dxfId="0" priority="1"><formula>AND(L${a}&lt;&gt;"",L${a}=$H${a})</formula></cfRule></conditionalFormatting>`;
-    const cf = (G1.length ? cfR(s0, sFin) : '') + cfR(l0, cfFin);
-    const sheet = feuille(f, {gel:{x:11, y:T}, filtre:`A${T}:${kFin}${lFin}`, cf,
-      cols:[[1,1,15],[2,2,46],[3,3,13],[4,4,34],[5,5,15],[6,6,8],[7,7,13],[8,8,14],[9,9,12],[10,10,20],[11,11,17],[12, 11 + nJ, 10]]});
+    const ORD = ['Dangereux', 'Alcool fort', 'Huile'];
+    const rub = r => r.cat === 'Dangereux' ? r.det : r.cat === 'Huile' ? 'Huile' : (r.deg > 40 ? '4755 · Alcools de bouche' : 'Alcool fort de 40 % ou moins');
+    const P = D.L.filter(r => r.cat).map(r => Object.assign(r, {rub: rub(r)}))
+      .sort((a, b) => ORD.indexOf(a.cat) - ORD.indexOf(b.cat) || a.rub.localeCompare(b.rub, 'fr') || b.max - a.max);
+    if (!P.length) throw new Error('aucun produit dangereux, alcool fort ou huile trouvé');
+    if (P.length * nJ > 1000000) throw new Error('trop de lignes pour Excel : choisis une seule année');
+    const DN = 'Données', SY = 'Synthèse';
+    const FIELDS = ['Date','MGB','Libellé','Catégorie','Rubrique ICPE','Secteur','Unité','Contenance (L)','Quantité','Volume dm³'];
+    const nR = P.length * nJ, dFin = nR + 1;                    // lignes de données : 2 à dFin
 
-    const zip = new JSZip();
-    zip.file('xl/worksheets/sheet1.xml', sheet);
-    zip.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>');
-    zip.file('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
-    zip.file('xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId9" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
-    zip.file('xl/workbook.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView xWindow="0" yWindow="0" windowWidth="28800" windowHeight="15000"/></bookViews><sheets><sheet name="${NOM}" sheetId="1" r:id="rId1"/></sheets><definedNames><definedName name="_xlnm._FilterDatabase" localSheetId="0" hidden="1">'${NOM}'!$A$${T}:$${kFin}$${lFin}</definedName></definedNames><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>`);
-    // styles : 0 normal · 1 en-tête · 2 date · 3 entier · 4 décimal · 5 titre · 6 SEUIL MAX entier · 7 date du pic · 8 SEUIL MAX décimal · 9 en-tête jour
-    //          10 note · 11 en-tête SEUIL MAX · 12 dangereux · 13 alcool fort · 14 huile · 15 en-tête formule · 16 rubrique ICPE
+    // ---------- chaînes partagées (fichier plus léger) ----------
+    const sst = [], sIdx = new Map();
+    const si = v => { v = String(v); let i = sIdx.get(v); if (i === undefined){ i = sst.length; sIdx.set(v, i); sst.push(v); } return i; };
+    const cT = (ref, v, st) => `<c r="${ref}"${st ? ` s="${st}"` : ''} t="s"><v>${si(v)}</v></c>`;
+
+    // ---------- onglet Données ----------
+    const rubs = [...new Set(P.map(r => r.rub))];
+    const recs = [];                                            // pour le cache des tableaux croisés
+    const fd = ['<row r="1">' + FIELDS.map((t, i) => cT(colL(i) + '1', t, 1)).join('') + cT('L1', 'Date', 1) + rubs.map((t, i) => cT(colL(12 + i) + '1', t, 1)).join('') + '</row>'];
+    const totR = rubs.map(() => new Float64Array(nJ));
+    let n = 1;
+    for (let j = 0; j < nJ; j++){
+      const iso = jours[j];
+      for (const r of P){
+        n++;
+        const q = r3(r.q[j]), cont = r3(r.cont), vol = r3(q * cont);
+        totR[rubs.indexOf(r.rub)][j] += vol;
+        recs.push([iso, r.mgb, r.lib, r.cat, r.rub, r.secteur, r.dec ? 'Kg' : 'Unités', cont, q, vol]);
+        let x = `<row r="${n}">` + cT('A' + n, iso) + cT('B' + n, r.mgb) + cT('C' + n, r.lib) + cT('D' + n, r.cat) + cT('E' + n, r.rub) + cT('F' + n, r.secteur) + cT('G' + n, r.dec ? 'Kg' : 'Unités') +
+          cN('H' + n, cont, 4) + cN('I' + n, q, r.dec ? 4 : 3) + cF('J' + n, `I${n}*H${n}`, vol, 4);
+        // à droite : total du jour par rubrique (une ligne par jour)
+        if (n - 2 < nJ){ const k = n - 2;
+          x += cT('L' + n, jours[k]) + rubs.map((t, i) => cF(colL(12 + i) + n, `SUMIFS($J$2:$J$${dFin},$A$2:$A$${dFin},$L${n},$E$2:$E$${dFin},${colL(12 + i)}$1)`, null, 3)).join('');
+        }
+        fd.push(x + '</row>');
+      }
+    }
+    // valeurs des totaux (connues une fois toutes les lignes lues) : on les inscrit dans les formules déjà écrites
+    for (let k = 0; k < nJ; k++){
+      const row = k + 1;            // index dans fd (fd[0] = en-têtes)
+      rubs.forEach((t, i) => { const ref = colL(12 + i) + (k + 2);
+        fd[row] = fd[row].replace(`<c r="${ref}" s="3"><f>`, `<c r="${ref}" s="3"><v>${Math.round(totR[i][k])}</v><f>`).replace(new RegExp(`(<c r="${ref}" s="3">)<v>(\\d+)</v>(<f>.*?</f>)`), '$1$3<v>$2</v>'); });
+    }
+    const sD = feuille(fd, {gel:{y:1}, filtre:`A1:J${dFin}`, cols:[[1,1,12],[2,2,15],[3,3,46],[4,4,13],[5,5,32],[6,6,15],[7,7,8],[8,8,13],[9,9,11],[10,10,12],[11,11,3],[12,12,12],[13, 12 + rubs.length, 22]]});
+
+    // ---------- onglet Synthèse ----------
+    const fs = [], put = (r, c, x) => { (fs[r] = fs[r] || [])[c] = x; };
+    const A1 = (c, r) => colL(c) + r;
+    put(1, 0, cS('A1', `Seuils maximum · produits dangereux / ICPE, alcools forts et huiles${D.an ? ' · ' + D.an : ''} · ${nJ} jour(s) du ${fr(jours[0])} au ${fr(jours[nJ - 1])}`, 5));
+    put(2, 0, cS('A2', 'Toutes les valeurs de cet onglet sont calculées à partir de l\'onglet « Données ». Volumes en dm³ : 1 dm³ = 1 litre, 1 000 dm³ = 1 m³.', 10));
+    ['Rubrique ICPE / catégorie', 'PIC en dm³\n=MAX des jours', 'Date du pic', 'Pic en m³\n=dm³ / 1000', 'Moyenne dm³\n=MOYENNE des jours', 'Produits'].forEach((t, c) => put(4, c, cS(A1(c, 4), t, c === 1 ? 11 : 15)));
+    rubs.forEach((t, i) => {
+      const r = 5 + i, C = colL(12 + i), pl = `'${DN}'!$${C}$2:$${C}$${nJ + 1}`;
+      let max = 0, dm = 0, som = 0; totR[i].forEach((v, j) => { v = Math.round(v); som += v; if (v > max){ max = v; dm = j; } });
+      put(r, 0, cS('A' + r, t, 16));
+      put(r, 1, cF('B' + r, `MAX(${pl})`, max, 6));
+      put(r, 2, `<c r="C${r}" s="17" t="str"><f>${xe(`INDEX('${DN}'!$L$2:$L$${nJ + 1},MATCH(B${r},${pl},0))`)}</f><v>${jours[dm]}</v></c>`);
+      put(r, 3, cF('D' + r, `B${r}/1000`, r3(max / 1000), 4));
+      put(r, 4, cF('E' + r, `AVERAGE(${pl})`, Math.round(som / nJ), 3));
+      put(r, 5, cF('F' + r, `COUNTIFS('${DN}'!$E$2:$E$${dFin},A${r},'${DN}'!$A$2:$A$${dFin},'${DN}'!$A$2)`, P.filter(x => x.rub === t).length, 3));
+    });
+    const rNote = 5 + rubs.length + 1;
+    put(rNote, 0, cS('A' + rNote, 'Tableaux croisés ci-dessous : un double-clic sur un chiffre ouvre la liste du détail (jour par jour) dans un nouvel onglet. Les filtres Catégorie, Rubrique ICPE et Secteur sont au-dessus de chaque tableau.', 10));
+
+    // tableaux croisés : lignes = Libellé, colonnes = Unité, valeur = MAX
+    const items = FIELDS.map((_, j) => j >= 7 ? null : [...new Set(recs.map(r => r[j]))].sort((a, b) => String(a).localeCompare(String(b), 'fr')));
+    const idxMap = items.map(it => it ? new Map(it.map((v, i) => [v, i])) : null);
+    const ROW = 2, COL = 6, PAGES = [3, 4, 5], nRow = items[ROW].length, nCol = items[COL].length;
+    const pTop = rNote + 2 + PAGES.length + 1;                  // ligne d'en-tête des tableaux
+    const pFin = pTop + 1 + nRow + 1, width = nCol + 2;
+    const pivots = [{fld:8, name:'TCD_Seuil_max', title:'Max de Quantité', st:3, left:0}, {fld:9, name:'TCD_Volume_max', title:'Max de Volume dm³', st:3, left:width + 1}];
+    const pf = (j, dataFld) => {
+      if (j >= 7) return `<pivotField${j === dataFld ? ' dataField="1"' : ''} showAll="0"/>`;
+      const ax = j === ROW ? ' axis="axisRow"' : j === COL ? ' axis="axisCol"' : PAGES.includes(j) ? ' axis="axisPage"' : '';
+      if (!ax) return '<pivotField showAll="0"/>';
+      return `<pivotField${ax} showAll="0"${PAGES.includes(j) ? ' multipleItemSelectionAllowed="1"' : ''}><items count="${items[j].length + 1}">${items[j].map((_, i) => `<item x="${i}"/>`).join('')}<item t="default"/></items></pivotField>`;
+    };
+    const ptXml = pv => `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><pivotTableDefinition xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" name="${pv.name}" cacheId="1" applyNumberFormats="0" applyBorderFormats="0" applyFontFormats="0" applyPatternFormats="0" applyAlignmentFormats="0" applyWidthHeightFormats="1" dataCaption="Valeurs" updatedVersion="6" minRefreshableVersion="3" useAutoFormatting="1" itemPrintTitles="1" createdVersion="6" indent="0" outline="1" outlineData="1" multipleFieldFilters="0" rowHeaderCaption="Produit" colHeaderCaption="Unité">` +
+      `<location ref="${colL(pv.left)}${pTop}:${colL(pv.left + width - 1)}${pFin}" firstHeaderRow="1" firstDataRow="2" firstDataCol="1" rowPageCount="${PAGES.length}" colPageCount="1"/>` +
+      `<pivotFields count="${FIELDS.length}">${FIELDS.map((_, j) => pf(j, pv.fld)).join('')}</pivotFields>` +
+      `<rowFields count="1"><field x="${ROW}"/></rowFields><rowItems count="${nRow + 1}">${items[ROW].map((_, i) => i ? `<i><x v="${i}"/></i>` : '<i><x/></i>').join('')}<i t="grand"><x/></i></rowItems>` +
+      `<colFields count="1"><field x="${COL}"/></colFields><colItems count="${nCol + 1}">${items[COL].map((_, i) => i ? `<i><x v="${i}"/></i>` : '<i><x/></i>').join('')}<i t="grand"><x/></i></colItems>` +
+      `<pageFields count="${PAGES.length}">${PAGES.map(j => `<pageField fld="${j}" hier="-1"/>`).join('')}</pageFields>` +
+      `<dataFields count="1"><dataField name="${xe(pv.title)}" fld="${pv.fld}" subtotal="max" baseField="0" baseItem="0" numFmtId="3"/></dataFields>` +
+      `<pivotTableStyleInfo name="PivotStyleMedium2" showRowHeaders="1" showColHeaders="1" showRowStripes="0" showColStripes="0" showLastColumn="1"/></pivotTableDefinition>`;
+    // valeurs pré-remplies (remplacées par Excel à l'ouverture, qui actualise les tableaux)
+    for (const pv of pivots){
+      const L0 = pv.left, mx = new Map();
+      for (const r of recs){ const k = r[ROW] + '\u0001' + r[COL]; const v = r[pv.fld]; if (!(mx.get(k) >= v)) mx.set(k, v); }
+      PAGES.forEach((j, i) => { const r = pTop - 1 - PAGES.length + i; put(r, L0, cS(A1(L0, r), FIELDS[j], 1)); put(r, L0 + 1, cS(A1(L0 + 1, r), '(Tous)')); });
+      put(pTop, L0, cS(A1(L0, pTop), pv.title, 1)); put(pTop, L0 + 1, cS(A1(L0 + 1, pTop), 'Unité', 1));
+      put(pTop + 1, L0, cS(A1(L0, pTop + 1), 'Produit', 1)); items[COL].forEach((v, c) => put(pTop + 1, L0 + 1 + c, cS(A1(L0 + 1 + c, pTop + 1), v, 1))); put(pTop + 1, L0 + 1 + nCol, cS(A1(L0 + 1 + nCol, pTop + 1), 'Total général', 1));
+      const colM = new Array(nCol).fill(0);
+      items[ROW].forEach((lv, i) => { const r = pTop + 2 + i; let t = 0;
+        put(r, L0, cS(A1(L0, r), lv));
+        items[COL].forEach((cv, c) => { const v = mx.get(lv + '\u0001' + cv); if (v !== undefined){ put(r, L0 + 1 + c, cN(A1(L0 + 1 + c, r), r3(v), pv.st)); t = Math.max(t, v); colM[c] = Math.max(colM[c], v); } });
+        put(r, L0 + 1 + nCol, cN(A1(L0 + 1 + nCol, r), r3(t), 6)); });
+      put(pFin, L0, cS(A1(L0, pFin), 'Total général', 1)); colM.forEach((v, c) => put(pFin, L0 + 1 + c, cN(A1(L0 + 1 + c, pFin), r3(v), 6))); put(pFin, L0 + 1 + nCol, cN(A1(L0 + 1 + nCol, pFin), r3(Math.max(0, ...colM)), 6));
+    }
+    const fsX = []; for (let r = 1; r < fs.length; r++) if (fs[r]) fsX.push(`<row r="${r}"${r === 4 ? ' ht="30" customHeight="1"' : ''}>` + fs[r].filter(Boolean).join('') + '</row>');
+    const colsS = [[1,1,46],[2,2,16],[3,3,14],[4,4,14],[5,5,18]]; for (let c = 6; c <= 2 * width + 2; c++) colsS.push([c, c, c === width + 2 ? 46 : 14]);
+    const sS = feuille(fsX, {cols: colsS});
+
+    // ---------- cache des tableaux croisés ----------
+    let cacheDef = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><pivotCacheDefinition xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:id="rId1" refreshOnLoad="1" refreshedBy="GDS" refreshedDate="45000" createdVersion="6" refreshedVersion="6" minRefreshableVersion="3" recordCount="${recs.length}"><cacheSource type="worksheet"><worksheetSource ref="A1:J${dFin}" sheet="${DN}"/></cacheSource><cacheFields count="${FIELDS.length}">`;
+    FIELDS.forEach((f, j) => {
+      if (j >= 7){
+        let mn = Infinity, mx = 0, int = true;
+        for (const r of recs){ const v = r[j]; if (v < mn) mn = v; if (v > mx) mx = v; if (int && v !== Math.floor(v)) int = false; }
+        cacheDef += `<cacheField name="${xe(f)}" numFmtId="0"><sharedItems containsSemiMixedTypes="0" containsString="0" containsNumber="1"${int ? ' containsInteger="1"' : ''} minValue="${mn}" maxValue="${mx}"/></cacheField>`;
+      } else cacheDef += `<cacheField name="${xe(f)}" numFmtId="0"><sharedItems count="${items[j].length}">${items[j].map(v => `<s v="${xe(v)}"/>`).join('')}</sharedItems></cacheField>`;
+    });
+    cacheDef += '</cacheFields></pivotCacheDefinition>';
+    const recParts = [`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><pivotCacheRecords xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" count="${recs.length}">`];
+    for (const r of recs){ let x = '<r>'; for (let j = 0; j < FIELDS.length; j++) x += j >= 7 ? `<n v="${r[j]}"/>` : `<x v="${idxMap[j].get(r[j])}"/>`; recParts.push(x + '</r>'); }
+    recParts.push('</pivotCacheRecords>');
+
+    // ---------- classeur ----------
+    const zip = new JSZip(), REL = (id, type, target) => `<Relationship Id="${id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/${type}" Target="${target}"/>`;
+    const RELS = a => `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${a.join('')}</Relationships>`;
+    zip.file('xl/worksheets/sheet1.xml', sS); zip.file('xl/worksheets/sheet2.xml', sD);
+    zip.file('xl/worksheets/_rels/sheet1.xml.rels', RELS(pivots.map((_, k) => REL('rIdPt' + k, 'pivotTable', `../pivotTables/pivotTable${k + 1}.xml`))));
+    pivots.forEach((pv, k) => { zip.file(`xl/pivotTables/pivotTable${k + 1}.xml`, ptXml(pv)); zip.file(`xl/pivotTables/_rels/pivotTable${k + 1}.xml.rels`, RELS([REL('rId1', 'pivotCacheDefinition', '../pivotCache/pivotCacheDefinition1.xml')])); });
+    zip.file('xl/pivotCache/pivotCacheDefinition1.xml', cacheDef);
+    zip.file('xl/pivotCache/pivotCacheRecords1.xml', recParts.join(''));
+    zip.file('xl/pivotCache/_rels/pivotCacheDefinition1.xml.rels', RELS([REL('rId1', 'pivotCacheRecords', 'pivotCacheRecords1.xml')]));
+    zip.file('xl/sharedStrings.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" uniqueCount="${sst.length}">${sst.map(v => `<si><t xml:space="preserve">${xe(v)}</t></si>`).join('')}</sst>`);
+    const OV = (part, type) => `<Override PartName="${part}" ContentType="application/vnd.openxmlformats-officedocument.${type}+xml"/>`;
+    zip.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>' +
+      OV('/xl/workbook.xml', 'spreadsheetml.sheet.main') + OV('/xl/styles.xml', 'spreadsheetml.styles') + OV('/xl/sharedStrings.xml', 'spreadsheetml.sharedStrings') + OV('/xl/worksheets/sheet1.xml', 'spreadsheetml.worksheet') + OV('/xl/worksheets/sheet2.xml', 'spreadsheetml.worksheet') +
+      OV('/xl/pivotCache/pivotCacheDefinition1.xml', 'spreadsheetml.pivotCacheDefinition') + OV('/xl/pivotCache/pivotCacheRecords1.xml', 'spreadsheetml.pivotCacheRecords') + pivots.map((_, k) => OV(`/xl/pivotTables/pivotTable${k + 1}.xml`, 'spreadsheetml.pivotTable')).join('') + '</Types>');
+    zip.file('_rels/.rels', RELS([REL('rId1', 'officeDocument', 'xl/workbook.xml')]));
+    zip.file('xl/_rels/workbook.xml.rels', RELS([REL('rId1', 'worksheet', 'worksheets/sheet1.xml'), REL('rId2', 'worksheet', 'worksheets/sheet2.xml'), REL('rId3', 'styles', 'styles.xml'), REL('rId4', 'sharedStrings', 'sharedStrings.xml'), REL('rId5', 'pivotCacheDefinition', 'pivotCache/pivotCacheDefinition1.xml')]));
+    zip.file('xl/workbook.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView xWindow="0" yWindow="0" windowWidth="28800" windowHeight="15000" activeTab="0"/></bookViews><sheets><sheet name="${SY}" sheetId="1" r:id="rId1"/><sheet name="${DN}" sheetId="2" r:id="rId2"/></sheets><definedNames><definedName name="_xlnm._FilterDatabase" localSheetId="1" hidden="1">'${DN}'!$A$1:$J$${dFin}</definedName></definedNames><pivotCaches><pivotCache cacheId="1" r:id="rId5"/></pivotCaches><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>`);
+    // styles : 0 normal · 1 en-tête · 2 date · 3 entier · 4 décimal · 5 titre · 6 valeur orange · 7 date gras · 8 décimal orange · 9 en-tête jour
+    //          10 note · 11 en-tête orange · 12 rouge clair · 13 jaune · 14 vert · 15 en-tête sur 2 lignes · 16 rubrique (rouge gras) · 17 texte gras
     const font = (o = '') => `<font>${o}<sz val="10"/><name val="Calibri"/><family val="2"/></font>`;
     const fill = rgb => `<fill><patternFill patternType="solid"><fgColor rgb="${rgb}"/><bgColor indexed="64"/></patternFill></fill>`;
     zip.file('xl/styles.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="3"><numFmt numFmtId="164" formatCode="dd/mm/yyyy"/><numFmt numFmtId="165" formatCode="#,##0.0"/><numFmt numFmtId="166" formatCode="dd/mm/yy"/></numFmts>' +
@@ -753,17 +822,16 @@ async function exportXlsx(){
       '<fills count="8"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>' + fill('FF14254A') + fill('FFFFD9B0') + fill('FFF07C1E') + fill('FFFBD5D5') + fill('FFFFE9A8') + fill('FFE3F1C7') + '</fills>' +
       '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="medium"><color rgb="FFF07C1E"/></left><right style="medium"><color rgb="FFF07C1E"/></right><top/><bottom/><diagonal/></border></borders>' +
       '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
-      '<cellXfs count="17"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="center"/></xf><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="3" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
-      '<xf numFmtId="3" fontId="3" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="164" fontId="5" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1"/><xf numFmtId="165" fontId="3" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="166" fontId="1" fillId="2" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="center"/></xf><xf numFmtId="0" fontId="4" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
+      '<cellXfs count="18"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="center"/></xf><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="3" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
+      '<xf numFmtId="3" fontId="3" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="164" fontId="5" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1"/><xf numFmtId="165" fontId="3" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="166" fontId="1" fillId="2" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1"/><xf numFmtId="0" fontId="4" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
       '<xf numFmtId="0" fontId="1" fillId="4" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="5" borderId="0" xfId="0" applyFill="1"/><xf numFmtId="0" fontId="0" fillId="6" borderId="0" xfId="0" applyFill="1"/><xf numFmtId="0" fontId="0" fillId="7" borderId="0" xfId="0" applyFill="1"/>' +
-      '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="6" fillId="5" borderId="0" xfId="0" applyFont="1" applyFill="1"/></cellXfs>' +
-      '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
-      '<dxfs count="1"><dxf><font><b/><color rgb="FFFFFFFF"/></font><fill><patternFill><bgColor rgb="FFF07C1E"/></patternFill></fill></dxf></dxfs></styleSheet>');
+      '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="6" fillId="5" borderId="0" xfId="0" applyFont="1" applyFill="1"/><xf numFmtId="0" fontId="5" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs>' +
+      '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>');
     const blob = await zip.generateAsync({type:'blob', compression:'DEFLATE', compressionOptions:{level:6}, mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nomAnnee('Seuil_max_StockStatus', 'xlsx');
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-    const nC = c => L.filter(r => r.cat === c).length;
-    setMsg(`Excel prêt : ${nJ} jour(s) · ${nC('Dangereux')} dangereux / ICPE, ${nC('Alcool fort')} alcools forts, ${nC('Huile')} huiles · ${nb(N)} produits au total · ${(blob.size / 1048576).toFixed(1)} Mo`);
+    const nC = c => P.filter(r => r.cat === c).length;
+    setMsg(`Excel prêt : ${nJ} jour(s) · ${nC('Dangereux')} dangereux / ICPE, ${nC('Alcool fort')} alcools forts, ${nC('Huile')} huiles · ${nb(nR)} lignes de données · ${(blob.size / 1048576).toFixed(1)} Mo`);
   } catch(e){ console.error(e); alert('Erreur Excel : ' + e.message); setMsg(''); }
   btn.disabled = false;
 }
