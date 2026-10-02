@@ -135,7 +135,7 @@ tfoot td{font-weight:700;background:#eef2f8!important;position:sticky;bottom:0}
 <header>
   <div class="logo"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h6v6H4zM14 5h6v6h-6zM4 15h6v4H4z" fill="rgba(255,255,255,.3)"/><path d="M14 17h6M17 14v6"/></svg></div>
   <div>
-    <h1>Contrôle StockStatus <span class="ver">v5</span></h1>
+    <h1>Contrôle StockStatus <span class="ver">v6</span></h1>
     <div class="sub">Contrôle tous les StockStatus d'un dossier, écarte les doublons et range un fichier par jour dans l'Archive · Dépôt 171 La Brède</div>
   </div>
   <div class="sp"></div>
@@ -184,7 +184,7 @@ tfoot td{font-weight:700;background:#eef2f8!important;position:sticky;bottom:0}
         <div class="info" id="infoX"></div>
       </div>
       <p class="note"><b>Fichier de l'année (CSV)</b> : tous les produits, une ligne par produit, une colonne par jour.<br>
-      <b>Excel</b> : <b>une seule feuille</b>. Les produits dangereux / ICPE, les alcools forts et les huiles sont en haut, colorés. Pour chaque produit : le <b>seuil max</b> dans une colonne orange, la date du pic, et le jour du pic surligné en orange dans les colonnes de jours. Formules visibles : MAX, date du pic, moyenne, volume au pic. Le litige (INSPECTION) n'est pas compté.</p>
+      <b>Excel</b> : <b>une seule feuille</b>. Les produits dangereux / ICPE, les alcools forts et les huiles sont en haut, colorés. Pour chaque produit : le <b>seuil max</b> dans une colonne orange, la date du pic, et le jour du pic surligné en orange dans les colonnes de jours. Tout en haut, le <b>volume total par rubrique ICPE en dm³</b> (1 dm³ = 1 litre), jour par jour, avec son pic. Formules visibles : MAX, date du pic, moyenne, volume. Le litige (INSPECTION) n'est pas compté.</p>
       <p class="note" id="catSrc"></p>
     </section>
 
@@ -216,7 +216,7 @@ tfoot td{font-weight:700;background:#eef2f8!important;position:sticky;bottom:0}
      - quantités différentes -> c'est normal (export à une autre heure) :
        le plus tôt est gardé (heure du dernier mouvement dans le fichier)
    ===================================================================== */
-const VERSION = 'v5';
+const VERSION = 'v6';
 const SECTEURS = [
   {k:'AMB', n:'Ambiant',          min:1,  max:18},
   {k:'FRA', n:'Frais',            min:19, max:29},
@@ -652,9 +652,9 @@ async function exportCsvAnnee(){
   setMsg('Préparation du fichier…'); await tick();
   const D = donnees.dernier = donnees(); const {jours, nJ, L} = D;
   const nf = v => v ? String(r3(v)).replace('.', ',') : '';
-  const out = [['MGB','Libellé','Secteur','Catégorie','Détail catégorie','Unité','Seuil max','Date du seuil max','Jours présents', ...jours.map(fr)].join(';')];
+  const out = [['MGB','Libellé','Secteur','Catégorie','Détail catégorie','Unité','Contenance (L)','Seuil max','Date du seuil max','Volume au pic (dm3)','Jours présents', ...jours.map(fr)].join(';')];
   for (const r of L){
-    const row = [r.mgb, cellCsv(r.lib), r.secteur, r.cat, cellCsv(r.det), r.dec ? 'Kg' : 'Unités', nf(r.max), r.dm >= 0 ? fr(jours[r.dm]) : '', r.pres];
+    const row = [r.mgb, cellCsv(r.lib), r.secteur, r.cat, cellCsv(r.det), r.dec ? 'Kg' : 'Unités', nf(r.cont), nf(r.max), r.dm >= 0 ? fr(jours[r.dm]) : '', r.cont ? nf(r.max * r.cont) : '', r.pres];
     for (let j = 0; j < nJ; j++) row.push(nf(r.q[j]));
     out.push(row.join(';'));
   }
@@ -666,6 +666,8 @@ async function exportCsvAnnee(){
    EXCEL : une seule feuille
    - en haut, les produits ICPE / dangereux, les alcools forts et les huiles,
      colorés par catégorie ; ensuite tous les autres produits
+   - tout en haut : le volume total par rubrique ICPE en dm³, jour par jour
+     (SOMMEPROD), avec son pic et sa date
    - SEUIL MAX = MAX(jours) en colonne orange, Date du pic = INDEX/EQUIV,
      Volume au pic = seuil max × contenance, Moyenne = MOYENNE(jours)
    - le jour du pic est surligné dans les colonnes de jours
@@ -678,24 +680,52 @@ async function exportXlsx(){
     const ORD = ['Dangereux', 'Alcool fort', 'Huile', ''];
     const L = [...D.L].sort((a, b) => ORD.indexOf(a.cat) - ORD.indexOf(b.cat) || (a.cat ? b.max - a.max : 0));
     const N = L.length, nCat = L.filter(r => r.cat).length;
-    const NOM = 'Seuils max', k0 = 11, kFin = colL(k0 + nJ - 1), l0 = 5, lFin = l0 + N - 1;   // jours à partir de la colonne L ; produits à partir de la ligne 5
+    const NOM = 'Seuils max', k0 = 11, kFin = colL(k0 + nJ - 1);                 // jours à partir de la colonne L
     const stCat = {'Dangereux':12, 'Alcool fort':13, 'Huile':14};
-    const icpe = r => r.cat === 'Dangereux' ? r.det : (r.cat === 'Alcool fort' && r.deg > 40 ? '4755 · Alcools de bouche > 40 %' : '');
+    const icpe = r => r.cat === 'Dangereux' ? r.det : (r.cat === 'Alcool fort' && r.deg > 40 ? '4755 · Alcools de bouche' : '');
+    // ----- bloc du haut : volume total par rubrique, en dm³ (1 dm³ = 1 litre) -----
+    const G1 = [];                                             // {nom, col:'D'|'C', val, q[]}
+    const grp = (nom, col, val, test) => {
+      const q = new Float64Array(nJ); let n = 0;
+      for (const r of L) if (r.cat && r.cont && test(r)){ n++; for (let j = 0; j < nJ; j++) q[j] += r.q[j] * r.cont; }
+      if (n) G1.push({nom, col, val, q});
+    };
+    [...new Set(L.filter(r => icpe(r)).map(icpe))].sort().forEach(v => grp(v, 'D', v, r => icpe(r) === v));
+    grp('Alcools forts (tous degrés)', 'C', 'Alcool fort', r => r.cat === 'Alcool fort');
+    grp('Huiles', 'C', 'Huile', r => r.cat === 'Huile');
+    const sH = 5, s0 = 6, sFin = s0 + G1.length - 1;           // en-tête du bloc ligne 5, rubriques lignes 6 à sFin
+    const T = G1.length ? sFin + 2 : 4;                        // ligne d'en-tête du tableau des produits
+    const l0 = T + 1, lFin = l0 + N - 1, cA = l0, cB = l0 + Math.max(nCat, 1) - 1;   // cA:cB = lignes des produits colorés
     const f = [
       '<row r="1" ht="24" customHeight="1">' + cS('A1', `Seuil maximum de stock par produit${D.an ? ' · ' + D.an : ''} · ${nJ} jour(s) du ${fr(jours[0])} au ${fr(jours[nJ - 1])}`, 5) + '</row>',
-      '<row r="2">' + cS('A2', 'Lecture : la colonne orange SEUIL MAX donne la plus grande quantité présente sur une journée. Le jour du pic est surligné en orange dans les colonnes de jours.', 10) + '</row>',
-      '<row r="3">' + cS('A3', 'Couleurs :', 10) + cS('B3', 'Dangereux / ICPE', 12) + cS('C3', 'Alcool fort', 13) + cS('D3', 'Huile', 14) + cS('E3', `Les ${nCat} produits colorés sont en haut de la liste ; le filtre de la colonne Catégorie permet de n'afficher qu'eux.`, 10) + '</row>',
-      '<row r="4" ht="30" customHeight="1">' + ['MGB','Libellé','Catégorie','ICPE / détail','Secteur','Unité','Contenance (L)'].map((t, i) => cS(colL(i) + '4', t, 1)).join('') +
-        cS('H4', 'SEUIL MAX\n=MAX(jours)', 11) + cS('I4', 'Date du pic', 15) + cS('J4', 'Volume au pic (L)\n=seuil × contenance', 15) + cS('K4', 'Moyenne\n=MOYENNE(jours)', 15) +
-        jours.map((iso, j) => cN(colL(k0 + j) + '4', serial(iso), 9)).join('') + '</row>'
+      '<row r="2">' + cS('A2', 'Lecture : la colonne orange donne la plus grande quantité présente sur une journée. Le jour du pic est surligné en orange dans les colonnes de jours. Volumes en dm³ : 1 dm³ = 1 litre, 1 000 dm³ = 1 m³.', 10) + '</row>',
+      '<row r="3">' + cS('A3', 'Couleurs :', 10) + cS('B3', 'Dangereux / ICPE', 12) + cS('C3', 'Alcool fort', 13) + cS('D3', 'Huile', 14) + cS('E3', `Les ${nCat} produits colorés sont en haut de la liste ; le filtre de la colonne Catégorie permet de n'afficher qu'eux.`, 10) + '</row>'
     ];
+    if (G1.length){
+      f.push(`<row r="${sH}" ht="30" customHeight="1">` + cS('A' + sH, 'VOLUME TOTAL PAR RUBRIQUE, en dm³ (somme de tous les produits de la rubrique, jour par jour)', 1) + ['B','C','D','E','F','G'].map(c => cS(c + sH, '', 1)).join('') +
+        cS('H' + sH, 'PIC en dm³\n=MAX(jours)', 11) + cS('I' + sH, 'Date du pic', 15) + cS('J' + sH, 'Pic en m³\n=dm³ / 1000', 15) + cS('K' + sH, 'Moyenne dm³\n=MOYENNE(jours)', 15) +
+        jours.map((iso, j) => cN(colL(k0 + j) + sH, serial(iso), 9)).join('') + '</row>');
+      G1.forEach((g, i) => {
+        const n = s0 + i, plage = `L${n}:${kFin}${n}`; let max = 0, dm = 0, som = 0;
+        for (let j = 0; j < nJ; j++){ g.q[j] = Math.round(g.q[j]); som += g.q[j]; if (g.q[j] > max){ max = g.q[j]; dm = j; } }
+        const crit = `($${g.col}$${cA}:$${g.col}$${cB}="${g.val.replace(/"/g, '""')}")`;
+        let x = `<row r="${n}">` + cS('A' + n, g.nom, 16) + ['B','C','D','E','F','G'].map(c => cS(c + n, '', 12)).join('') +
+          cF('H' + n, `MAX(${plage})`, max, 6) + cF('I' + n, `INDEX($L$${sH}:$${kFin}$${sH},MATCH(H${n},${plage},0))`, serial(jours[dm]), 7) +
+          cF('J' + n, `H${n}/1000`, r3(max / 1000), 4) + cF('K' + n, `AVERAGE(${plage})`, Math.round(som / nJ), 3);
+        for (let j = 0; j < nJ; j++){ const c = colL(k0 + j); x += cF(c + n, `SUMPRODUCT(${crit}*$G$${cA}:$G$${cB}*${c}$${cA}:${c}$${cB})`, g.q[j], 3); }
+        f.push(x + '</row>');
+      });
+    }
+    f.push(`<row r="${T}" ht="30" customHeight="1">` + ['MGB','Libellé','Catégorie','ICPE / détail','Secteur','Unité','Contenance\n(L = dm³)'].map((t, i) => cS(colL(i) + T, t, i === 6 ? 15 : 1)).join('') +
+        cS('H' + T, 'SEUIL MAX\n=MAX(jours)', 11) + cS('I' + T, 'Date du pic', 15) + cS('J' + T, 'Volume au pic (dm³)\n=seuil × contenance', 15) + cS('K' + T, 'Moyenne\n=MOYENNE(jours)', 15) +
+        jours.map((iso, j) => cN(colL(k0 + j) + T, serial(iso), 9)).join('') + '</row>');
     L.forEach((r, i) => {
       const n = l0 + i, plage = `L${n}:${kFin}${n}`, st = r.dec ? 4 : 3, sc = stCat[r.cat] || 0, ic = icpe(r);
       let x = `<row r="${n}">` + cS('A' + n, r.mgb, sc) + cS('B' + n, r.lib, sc) + (r.cat ? cS('C' + n, r.cat, sc) : '') +
         (r.cat ? cS('D' + n, ic || r.det, ic ? 16 : sc) : '') + cS('E' + n, r.secteur) + cS('F' + n, r.dec ? 'Kg' : 'Unités') +
         (r.cont ? cN('G' + n, r3(r.cont), 4) : '') +
         cF('H' + n, `MAX(${plage})`, r3(r.max), r.dec ? 8 : 6) +
-        cF('I' + n, `IF(H${n}=0,"",INDEX($L$4:$${kFin}$4,MATCH(H${n},${plage},0)))`, serial(jours[r.dm]), 7) +
+        cF('I' + n, `IF(H${n}=0,"",INDEX($L$${T}:$${kFin}$${T},MATCH(H${n},${plage},0)))`, serial(jours[r.dm]), 7) +
         (r.cont ? cF('J' + n, `H${n}*G${n}`, r3(r.max * r.cont), 3) : '') +
         cF('K' + n, `IFERROR(AVERAGE(${plage}),0)`, r.pres ? r3(r.som / r.pres) : 0, st);
       for (let j = 0; j < nJ; j++){ const v = r.q[j]; if (v > 0) x += cN(colL(k0 + j) + n, r3(v), st); }
@@ -703,16 +733,17 @@ async function exportXlsx(){
     });
     // jour du pic surligné : sur les produits colorés (en haut), pour garder un fichier fluide
     const cfFin = l0 + Math.max(nCat, Math.min(N, 500)) - 1;
-    const cf = `<conditionalFormatting sqref="L${l0}:${kFin}${cfFin}"><cfRule type="expression" dxfId="0" priority="1"><formula>AND(L${l0}&lt;&gt;"",L${l0}=$H${l0})</formula></cfRule></conditionalFormatting>`;
-    const sheet = feuille(f, {gel:{x:11, y:4}, filtre:`A4:${kFin}${lFin}`, cf,
-      cols:[[1,1,15],[2,2,46],[3,3,13],[4,4,34],[5,5,15],[6,6,8],[7,7,13],[8,8,14],[9,9,12],[10,10,19],[11,11,17],[12, 11 + nJ, 10]]});
+    const cfR = (a, z) => `<conditionalFormatting sqref="L${a}:${kFin}${z}"><cfRule type="expression" dxfId="0" priority="1"><formula>AND(L${a}&lt;&gt;"",L${a}=$H${a})</formula></cfRule></conditionalFormatting>`;
+    const cf = (G1.length ? cfR(s0, sFin) : '') + cfR(l0, cfFin);
+    const sheet = feuille(f, {gel:{x:11, y:T}, filtre:`A${T}:${kFin}${lFin}`, cf,
+      cols:[[1,1,15],[2,2,46],[3,3,13],[4,4,34],[5,5,15],[6,6,8],[7,7,13],[8,8,14],[9,9,12],[10,10,20],[11,11,17],[12, 11 + nJ, 10]]});
 
     const zip = new JSZip();
     zip.file('xl/worksheets/sheet1.xml', sheet);
     zip.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>');
     zip.file('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
     zip.file('xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId9" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
-    zip.file('xl/workbook.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView xWindow="0" yWindow="0" windowWidth="28800" windowHeight="15000"/></bookViews><sheets><sheet name="${NOM}" sheetId="1" r:id="rId1"/></sheets><definedNames><definedName name="_xlnm._FilterDatabase" localSheetId="0" hidden="1">'${NOM}'!$A$4:$${kFin}$${lFin}</definedName></definedNames><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>`);
+    zip.file('xl/workbook.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView xWindow="0" yWindow="0" windowWidth="28800" windowHeight="15000"/></bookViews><sheets><sheet name="${NOM}" sheetId="1" r:id="rId1"/></sheets><definedNames><definedName name="_xlnm._FilterDatabase" localSheetId="0" hidden="1">'${NOM}'!$A$${T}:$${kFin}$${lFin}</definedName></definedNames><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>`);
     // styles : 0 normal · 1 en-tête · 2 date · 3 entier · 4 décimal · 5 titre · 6 SEUIL MAX entier · 7 date du pic · 8 SEUIL MAX décimal · 9 en-tête jour
     //          10 note · 11 en-tête SEUIL MAX · 12 dangereux · 13 alcool fort · 14 huile · 15 en-tête formule · 16 rubrique ICPE
     const font = (o = '') => `<font>${o}<sz val="10"/><name val="Calibri"/><family val="2"/></font>`;
