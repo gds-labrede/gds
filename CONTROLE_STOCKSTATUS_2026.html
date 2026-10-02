@@ -135,7 +135,7 @@ tfoot td{font-weight:700;background:#eef2f8!important;position:sticky;bottom:0}
 <header>
   <div class="logo"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h6v6H4zM14 5h6v6h-6zM4 15h6v4H4z" fill="rgba(255,255,255,.3)"/><path d="M14 17h6M17 14v6"/></svg></div>
   <div>
-    <h1>Contrôle StockStatus <span class="ver">v4</span></h1>
+    <h1>Contrôle StockStatus <span class="ver">v5</span></h1>
     <div class="sub">Contrôle tous les StockStatus d'un dossier, écarte les doublons et range un fichier par jour dans l'Archive · Dépôt 171 La Brède</div>
   </div>
   <div class="sp"></div>
@@ -184,7 +184,7 @@ tfoot td{font-weight:700;background:#eef2f8!important;position:sticky;bottom:0}
         <div class="info" id="infoX"></div>
       </div>
       <p class="note"><b>Fichier de l'année (CSV)</b> : tous les produits, une ligne par produit, une colonne par jour.<br>
-      <b>Excel</b> : <b>une seule feuille</b>. Les produits dangereux / ICPE, les alcools forts et les huiles sont en haut, colorés. Pour chaque produit : le <b>seuil max</b> dans une colonne orange, la date du pic, un <b>mini-graphique</b> de la période avec le pic en orange, et le jour du pic surligné. Formules visibles : MAX, date du pic, moyenne, volume au pic. Le litige (INSPECTION) n'est pas compté.</p>
+      <b>Excel</b> : <b>une seule feuille</b>. Les produits dangereux / ICPE, les alcools forts et les huiles sont en haut, colorés. Pour chaque produit : le <b>seuil max</b> dans une colonne orange, la date du pic, et le jour du pic surligné en orange dans les colonnes de jours. Formules visibles : MAX, date du pic, moyenne, volume au pic. Le litige (INSPECTION) n'est pas compté.</p>
       <p class="note" id="catSrc"></p>
     </section>
 
@@ -196,7 +196,7 @@ tfoot td{font-weight:700;background:#eef2f8!important;position:sticky;bottom:0}
       </div>
       <div class="view on" id="v-fic"><div class="tw" id="tFic"></div></div>
       <div class="view" id="v-ano"><div class="tw" id="tAno"></div></div>
-      <div class="view" id="v-man"><p class="note" style="margin:0 0 10px">Jours du calendrier sans StockStatus entre le premier et le dernier fichier. Les dimanches sont indiqués à part : le dépôt ne travaille pas.</p><div class="tw" id="tMan"></div></div>
+      <div class="view" id="v-man"><p class="note" style="margin:0 0 10px">Jours de semaine (lundi au vendredi) sans StockStatus entre le premier et le dernier fichier. Les samedis, les dimanches et les jours fériés ne sont pas comptés.</p><div class="tw" id="tMan"></div></div>
     </section>
   </div>
 </main>
@@ -216,7 +216,7 @@ tfoot td{font-weight:700;background:#eef2f8!important;position:sticky;bottom:0}
      - quantités différentes -> c'est normal (export à une autre heure) :
        le plus tôt est gardé (heure du dernier mouvement dans le fichier)
    ===================================================================== */
-const VERSION = 'v4';
+const VERSION = 'v5';
 const SECTEURS = [
   {k:'AMB', n:'Ambiant',          min:1,  max:18},
   {k:'FRA', n:'Frais',            min:19, max:29},
@@ -349,12 +349,29 @@ async function traiter(){
   afficher();
 }
 
+/* ---------- Jours fériés français (fixes + Pâques, Ascension, Pentecôte) ---------- */
+const FERIES = {};
+function feries(an){
+  if (FERIES[an]) return FERIES[an];
+  const a = an % 19, b = Math.floor(an / 100), c = an % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25),
+        g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4,
+        l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451),
+        mois = Math.floor((h + l - 7 * m + 114) / 31), jour = ((h + l - 7 * m + 114) % 31) + 1;
+  const paques = `${an}-${String(mois).padStart(2, '0')}-${String(jour).padStart(2, '0')}`;
+  const o = {};
+  [['01-01', "Jour de l'an"], ['05-01', 'Fête du travail'], ['05-08', '8 mai'], ['07-14', '14 juillet'], ['08-15', 'Assomption'], ['11-01', 'Toussaint'], ['11-11', '11 novembre'], ['12-25', 'Noël']]
+    .forEach(x => o[an + '-' + x[0]] = x[1]);
+  o[isoPlus(paques, 1)] = 'Lundi de Pâques'; o[isoPlus(paques, 39)] = 'Ascension'; o[isoPlus(paques, 50)] = 'Lundi de Pentecôte';
+  return FERIES[an] = o;
+}
+const estFerie = iso => !!feries(+iso.slice(0, 4))[iso];
+
 /* ---------- Jours manquants ---------- */
 function manquants(){
   const d = [...R.days.keys()].sort(); const out = [];
   if (d.length < 2) return out;
   for (let iso = isoPlus(d[0], 1); iso < d[d.length - 1]; iso = isoPlus(iso, 1))
-    if (!R.days.has(iso)) out.push({iso, jour: JOURS[new Date(iso + 'T12:00:00Z').getUTCDay()]});
+    if (!R.days.has(iso)){ const n = new Date(iso + 'T12:00:00Z').getUTCDay(); if (n !== 0 && n !== 6 && !estFerie(iso)) out.push({iso, jour: JOURS[n]}); }   // samedis, dimanches et jours fériés non comptés
   return out;
 }
 
@@ -412,13 +429,13 @@ function afficher(){
     <div class="kpi ok"><div class="l">Jours retenus (1 fichier par jour)</div><div class="v">${nb(d.length)}</div><div class="d">${d.length ? 'du ' + fr(d[0]) + ' au ' + fr(d[d.length - 1]) : ''}</div></div>
     <div class="kpi"><div class="l">Doublons identiques</div><div class="v">${nId}</div><div class="d">écartés, non comptés</div></div>
     <div class="kpi"><div class="l">Exports plus tardifs</div><div class="v">${nDf}</div><div class="d">même jour, autre heure : le plus tôt est gardé</div></div>
-    <div class="kpi ${manOuv.length ? 'hot' : ''}"><div class="l">Jours manquants</div><div class="v">${manOuv.length}</div><div class="d">hors dimanches (${man.length - manOuv.length} dimanche(s))</div></div>
+    <div class="kpi ${manOuv.length ? 'hot' : ''}"><div class="l">Jours manquants</div><div class="v">${manOuv.length}</div><div class="d">lundi au vendredi, hors jours fériés</div></div>
     <div class="kpi ${ano.length ? 'red' : 'ok'}"><div class="l">À vérifier</div><div class="v">${ano.length}</div><div class="d">${ano.length ? 'voir l\'onglet' : 'rien à signaler'}</div></div>`;
   $('nFic').textContent = R.fic.length; $('nAno').textContent = ano.length; $('nMan').textContent = man.length;
   $('tFic').innerHTML = tableFic(ficTries());
   $('tAno').innerHTML = tableFic(ano);
   $('tMan').innerHTML = man.length ? '<table><thead><tr><th>Jour manquant</th><th>Jour de la semaine</th><th></th></tr></thead><tbody>' +
-    man.map(m => `<tr><td class="mono">${fr(m.iso)}</td><td>${m.jour}</td><td>${m.jour === 'dimanche' ? '<span class="tag">normal</span>' : '<span class="tag wa">pas de fichier</span>'}</td></tr>`).join('') + '</tbody></table>'
+    man.map(m => `<tr><td class="mono">${fr(m.iso)}</td><td>${m.jour}</td><td><span class="tag wa">pas de fichier</span></td></tr>`).join('') + '</tbody></table>'
     : '<div class="empty">Aucun jour manquant</div>';
   $('bRap').disabled = !d.length;
   const ans = [...new Set(d.map(x => x.slice(0, 4)))].sort(), av = $('fAn').value;
@@ -651,7 +668,6 @@ async function exportCsvAnnee(){
      colorés par catégorie ; ensuite tous les autres produits
    - SEUIL MAX = MAX(jours) en colonne orange, Date du pic = INDEX/EQUIV,
      Volume au pic = seuil max × contenance, Moyenne = MOYENNE(jours)
-   - un mini-graphique en barres par produit (le pic en orange)
    - le jour du pic est surligné dans les colonnes de jours
    ===================================================================== */
 async function exportXlsx(){
@@ -662,37 +678,34 @@ async function exportXlsx(){
     const ORD = ['Dangereux', 'Alcool fort', 'Huile', ''];
     const L = [...D.L].sort((a, b) => ORD.indexOf(a.cat) - ORD.indexOf(b.cat) || (a.cat ? b.max - a.max : 0));
     const N = L.length, nCat = L.filter(r => r.cat).length;
-    const NOM = 'Seuils max', k0 = 12, kFin = colL(k0 + nJ - 1), l0 = 5, lFin = l0 + N - 1;   // jours à partir de la colonne M ; produits à partir de la ligne 5
+    const NOM = 'Seuils max', k0 = 11, kFin = colL(k0 + nJ - 1), l0 = 5, lFin = l0 + N - 1;   // jours à partir de la colonne L ; produits à partir de la ligne 5
     const stCat = {'Dangereux':12, 'Alcool fort':13, 'Huile':14};
     const icpe = r => r.cat === 'Dangereux' ? r.det : (r.cat === 'Alcool fort' && r.deg > 40 ? '4755 · Alcools de bouche > 40 %' : '');
     const f = [
       '<row r="1" ht="24" customHeight="1">' + cS('A1', `Seuil maximum de stock par produit${D.an ? ' · ' + D.an : ''} · ${nJ} jour(s) du ${fr(jours[0])} au ${fr(jours[nJ - 1])}`, 5) + '</row>',
-      '<row r="2">' + cS('A2', 'Lecture : la colonne orange SEUIL MAX donne la plus grande quantité présente sur une journée. Le mini-graphique montre toute la période, avec la barre du pic en orange. Le jour du pic est surligné en orange dans les colonnes de jours.', 10) + '</row>',
+      '<row r="2">' + cS('A2', 'Lecture : la colonne orange SEUIL MAX donne la plus grande quantité présente sur une journée. Le jour du pic est surligné en orange dans les colonnes de jours.', 10) + '</row>',
       '<row r="3">' + cS('A3', 'Couleurs :', 10) + cS('B3', 'Dangereux / ICPE', 12) + cS('C3', 'Alcool fort', 13) + cS('D3', 'Huile', 14) + cS('E3', `Les ${nCat} produits colorés sont en haut de la liste ; le filtre de la colonne Catégorie permet de n'afficher qu'eux.`, 10) + '</row>',
       '<row r="4" ht="30" customHeight="1">' + ['MGB','Libellé','Catégorie','ICPE / détail','Secteur','Unité','Contenance (L)'].map((t, i) => cS(colL(i) + '4', t, 1)).join('') +
-        cS('H4', 'SEUIL MAX\n=MAX(jours)', 11) + cS('I4', 'Date du pic', 15) + cS('J4', 'Volume au pic (L)\n=seuil × contenance', 15) + cS('K4', 'Moyenne\n=MOYENNE(jours)', 15) + cS('L4', 'Graphique de la période', 15) +
+        cS('H4', 'SEUIL MAX\n=MAX(jours)', 11) + cS('I4', 'Date du pic', 15) + cS('J4', 'Volume au pic (L)\n=seuil × contenance', 15) + cS('K4', 'Moyenne\n=MOYENNE(jours)', 15) +
         jours.map((iso, j) => cN(colL(k0 + j) + '4', serial(iso), 9)).join('') + '</row>'
     ];
-    const spark = [];
     L.forEach((r, i) => {
-      const n = l0 + i, plage = `M${n}:${kFin}${n}`, st = r.dec ? 4 : 3, sc = stCat[r.cat] || 0, ic = icpe(r);
+      const n = l0 + i, plage = `L${n}:${kFin}${n}`, st = r.dec ? 4 : 3, sc = stCat[r.cat] || 0, ic = icpe(r);
       let x = `<row r="${n}">` + cS('A' + n, r.mgb, sc) + cS('B' + n, r.lib, sc) + (r.cat ? cS('C' + n, r.cat, sc) : '') +
         (r.cat ? cS('D' + n, ic || r.det, ic ? 16 : sc) : '') + cS('E' + n, r.secteur) + cS('F' + n, r.dec ? 'Kg' : 'Unités') +
         (r.cont ? cN('G' + n, r3(r.cont), 4) : '') +
         cF('H' + n, `MAX(${plage})`, r3(r.max), r.dec ? 8 : 6) +
-        cF('I' + n, `IF(H${n}=0,"",INDEX($M$4:$${kFin}$4,MATCH(H${n},${plage},0)))`, serial(jours[r.dm]), 7) +
+        cF('I' + n, `IF(H${n}=0,"",INDEX($L$4:$${kFin}$4,MATCH(H${n},${plage},0)))`, serial(jours[r.dm]), 7) +
         (r.cont ? cF('J' + n, `H${n}*G${n}`, r3(r.max * r.cont), 3) : '') +
         cF('K' + n, `IFERROR(AVERAGE(${plage}),0)`, r.pres ? r3(r.som / r.pres) : 0, st);
       for (let j = 0; j < nJ; j++){ const v = r.q[j]; if (v > 0) x += cN(colL(k0 + j) + n, r3(v), st); }
       f.push(x + '</row>');
-      spark.push(`<x14:sparkline><xm:f>'${NOM}'!${plage}</xm:f><xm:sqref>L${n}</xm:sqref></x14:sparkline>`);
     });
     // jour du pic surligné : sur les produits colorés (en haut), pour garder un fichier fluide
     const cfFin = l0 + Math.max(nCat, Math.min(N, 500)) - 1;
-    const cf = `<conditionalFormatting sqref="M${l0}:${kFin}${cfFin}"><cfRule type="expression" dxfId="0" priority="1"><formula>AND(M${l0}&lt;&gt;"",M${l0}=$H${l0})</formula></cfRule></conditionalFormatting>`;
-    const ext = `<extLst><ext xmlns:x14="http://schemas.microsoft.com/office/spreadsheetml/2009/9/main" uri="{05C60535-1F16-4fd2-B633-F4F36F0B64E0}"><x14:sparklineGroups xmlns:xm="http://schemas.microsoft.com/office/excel/2006/main"><x14:sparklineGroup type="column" displayEmptyCellsAs="zero" high="1" minAxisType="custom" manualMin="0"><x14:colorSeries rgb="FF8FA3C8"/><x14:colorNegative rgb="FFC6363A"/><x14:colorAxis rgb="FF000000"/><x14:colorMarkers rgb="FF14254A"/><x14:colorFirst rgb="FF14254A"/><x14:colorLast rgb="FF14254A"/><x14:colorHigh rgb="FFF07C1E"/><x14:colorLow rgb="FF14254A"/><x14:sparklines>${spark.join('')}</x14:sparklines></x14:sparklineGroup></x14:sparklineGroups></ext></extLst>`;
-    const sheet = feuille(f, {gel:{x:12, y:4}, filtre:`A4:${kFin}${lFin}`, cf, ext,
-      cols:[[1,1,15],[2,2,46],[3,3,13],[4,4,34],[5,5,15],[6,6,8],[7,7,13],[8,8,14],[9,9,12],[10,10,19],[11,11,17],[12,12,26],[13, 12 + nJ, 10]]});
+    const cf = `<conditionalFormatting sqref="L${l0}:${kFin}${cfFin}"><cfRule type="expression" dxfId="0" priority="1"><formula>AND(L${l0}&lt;&gt;"",L${l0}=$H${l0})</formula></cfRule></conditionalFormatting>`;
+    const sheet = feuille(f, {gel:{x:11, y:4}, filtre:`A4:${kFin}${lFin}`, cf,
+      cols:[[1,1,15],[2,2,46],[3,3,13],[4,4,34],[5,5,15],[6,6,8],[7,7,13],[8,8,14],[9,9,12],[10,10,19],[11,11,17],[12, 11 + nJ, 10]]});
 
     const zip = new JSZip();
     zip.file('xl/worksheets/sheet1.xml', sheet);
