@@ -26,6 +26,11 @@
     imp.outils.push({ nom:'Seuil max stockage', f:'SEUIL_MAX_2026.html', ico:'courbe', roles:['admin','admin_restreint'] });
     if(location.hash === '#implantation' && typeof ouvrirVue === 'function') ouvrirVue('implantation');
   }
+  /* tuile Implantation → Contrôle StockStatus */
+  if(imp && !imp.outils.some(function(o){ return o.f === 'CONTROLE_STOCKSTATUS_2026.html'; })){
+    imp.outils.push({ nom:'Contrôle StockStatus', f:'CONTROLE_STOCKSTATUS_2026.html', ico:'check', roles:['admin','admin_restreint'] });
+    if(location.hash === '#implantation' && typeof ouvrirVue === 'function') ouvrirVue('implantation');
+  }
 
   /* ── dates ── */
   function aujourdhui(){                         // AAAA-MM-JJ, heure de Paris

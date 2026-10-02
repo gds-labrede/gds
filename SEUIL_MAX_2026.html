@@ -126,7 +126,7 @@ tfoot td{font-weight:700;background:#eef2f8!important;position:sticky;bottom:0}
 <header>
   <div class="logo"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18"/><rect x="5" y="11" width="3" height="7" rx=".6" fill="rgba(255,255,255,.35)"/><rect x="10.5" y="6" width="3" height="12" rx=".6" fill="#fff"/><rect x="16" y="9" width="3" height="9" rx=".6" fill="rgba(255,255,255,.35)"/><path d="M4 4h16" stroke-dasharray="2 2"/></svg></div>
   <div>
-    <h1>Seuil max stockage <span class="ver">v5</span></h1>
+    <h1>Seuil max stockage <span class="ver">v6</span></h1>
     <div class="sub">Pics de stock par référence, secteur, famille et produits dangereux · Dépôt 171 La Brède</div>
   </div>
   <div class="sp"></div>
@@ -258,7 +258,7 @@ tfoot td{font-weight:700;background:#eef2f8!important;position:sticky;bottom:0}
    - Unités et Kg ne sont jamais additionnés ; palettes = unités / (Palette_CCVM × CCVM) du data
    - litres = unités × contenance lue dans le libellé ; 4755 = alcools de bouche > 40 % vol
    ===================================================================== */
-const VERSION = 'v5';
+const VERSION = 'v6';
 const SECTEURS = [
   {k:'AMB', n:'Ambiant',          min:1,  max:18, c:'#2a78d6'},
   {k:'FRA', n:'Frais',            min:19, max:29, c:'#eb6834'},
@@ -497,7 +497,7 @@ async function readAll(){
   for (const f of S.files){ if (!byDay.has(f.iso)) byDay.set(f.iso, []); byDay.get(f.iso).push(f); }
   const isos = [...byDay.keys()].sort().filter(iso => !S.done.has(iso));
   setProg(0);
-  const t0 = performance.now(); let nNew = 0;
+  const t0 = performance.now(); let nNew = 0, nArch = 0;
   for (let d = 0; d < isos.length; d++){
     const iso = isos[d];
     S.done.add(iso);
@@ -512,6 +512,7 @@ async function readAll(){
       S.dups.push({iso, keep:keep.name, others});
     }
     if (S.dayMap.has(iso) && S.dayMap.get(iso).src === 'archive'){ S.skipped.push(iso); }
+    else if (G.on && G.arch.has(iso)){ addDay(iso, text, G.arch.get(iso).slice(D_SS.length), 'archive'); nNew++; nArch++; }   // déjà rangé dans l'Archive : lu ici, sans téléchargement
     else { addDay(iso, text, keep.name, 'poste'); nNew++; }
     setProg((d + 1) / isos.length);
     setMsg(`Lecture ${d + 1} / ${isos.length} · ${dayLabel(iso)}`);
@@ -519,8 +520,9 @@ async function readAll(){
   }
   setProg(null);
   setMsg(isos.length ? `${nNew} jour(s) ajouté(s) depuis le poste en ${((performance.now() - t0) / 1000).toFixed(1)} s` : '');
+  if (nArch && G.peut){ try { setMsg("Mise à jour de l'historique…"); await saveHist(); setMsg(`${nArch} jour(s) de l'Archive ajouté(s) à l'historique`); } catch(e){ console.warn(e); } }
   reading = false;
-  rebuildDays(); renderCtrl(); updateUp(); analyse();
+  rebuildDays(); updateSrc(); renderCtrl(); updateUp(); analyse();
 }
 
 function parseDay(text){
@@ -728,7 +730,7 @@ async function startGDS(){
     // 4. jours de l'archive absents du résumé
     const manque = [...G.arch.keys()].filter(iso => !S.dayMap.has(iso)).sort();
     const mo = manque.reduce((t, iso) => t + (G.archSize.get(iso) || 0), 0) / 1048576;
-    if (manque.length && (mo < 300 || confirm(`${manque.length} StockStatus de l'archive ne sont pas encore dans l'historique (${Math.round(mo)} Mo à télécharger).\n\nLes télécharger maintenant ?`))){
+    if (manque.length && (mo < 40 || confirm(`${manque.length} StockStatus de l'Archive ne sont pas encore dans l'historique (${Math.round(mo)} Mo à télécharger).\n\nOK : les télécharger maintenant.\nAnnuler : glisse plutôt ici le dossier de ton poste, ils seront lus sans téléchargement.`))){
       for (let i = 0; i < manque.length; i++){
         const iso = manque[i];
         setMsg(`Ajout à l'historique ${i + 1} / ${manque.length} · ${dayLabel(iso)}`); setProg((i + 1) / manque.length);
