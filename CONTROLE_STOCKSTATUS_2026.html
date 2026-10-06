@@ -135,7 +135,7 @@ tfoot td{font-weight:700;background:#eef2f8!important;position:sticky;bottom:0}
 <header>
   <div class="logo"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h6v6H4zM14 5h6v6h-6zM4 15h6v4H4z" fill="rgba(255,255,255,.3)"/><path d="M14 17h6M17 14v6"/></svg></div>
   <div>
-    <h1>Contrôle StockStatus <span class="ver">v6</span></h1>
+    <h1>Contrôle StockStatus <span class="ver">v10</span></h1>
     <div class="sub">Contrôle tous les StockStatus d'un dossier, écarte les doublons et range un fichier par jour dans l'Archive · Dépôt 171 La Brède</div>
   </div>
   <div class="sp"></div>
@@ -216,7 +216,7 @@ tfoot td{font-weight:700;background:#eef2f8!important;position:sticky;bottom:0}
      - quantités différentes -> c'est normal (export à une autre heure) :
        le plus tôt est gardé (heure du dernier mouvement dans le fichier)
    ===================================================================== */
-const VERSION = 'v6';
+const VERSION = 'v10';
 const SECTEURS = [
   {k:'AMB', n:'Ambiant',          min:1,  max:18},
   {k:'FRA', n:'Frais',            min:19, max:29},
@@ -536,6 +536,7 @@ const normMgb = v => String(v ?? '').trim().replace(/\.0+$/, '').replace(/^0+/, 
 const mgb6 = n => n.length > 6 ? n.slice(0, -6) : n;
 const toL = (n, u) => { n = parseFloat(String(n).replace(',', '.')); u = u.toLowerCase(); return u === 'cl' ? n / 100 : u === 'ml' ? n / 1000 : n; };
 function parseCont(t){                                     // litres par unité, lus dans le libellé
+  t = String(t || '').replace(/\b(cl|ml)l\b/gi, '$1');          // faute de frappe « 70 clL »
   let m = t.match(/soit\s*(\d+(?:[.,]\d+)?)\s*(cl|ml|l)\b/i); if (m) return toL(m[1], m[2]);
   m = t.match(/\b(\d+)\s*x\s*(\d+(?:[.,]\d+)?)\s*(cl|ml|l)\b/i); if (m) return +m[1] * toL(m[2], m[3]);
   m = t.match(/(\d+(?:[.,]\d+)?)\s*(cl|ml|l)\s*x\s*(\d+)\b/i); if (m) return +m[3] * toL(m[1], m[2]);
@@ -564,20 +565,28 @@ function categorie(mgb, lib){
   const n = normMgb(mgb), art = G.base ? (G.base.get(n) || G.base6.get(mgb6(n))) : null;
   const txt = lib + ' ' + (art ? art.lib : '');
   const deg = parseDeg(lib) ?? (art ? parseDeg(art.lib.replace(/(\d)D\b/, '$1°')) : null);
-  const cont = parseCont(lib);
+  const cont = parseCont(lib) || (art ? parseCont(art.lib) : 0);   // libellé illisible : celui de la base articles
+  // familles qui ne contiennent pas de liquide : jetable, sacs, ustensiles, arts de la table… « cl » ou « L » y désigne la taille de l'objet
+  const nonLiq = !!art && (art.sa === 45 || /^(48[23]|5\d\d)\b/.test(art.ga));
+  // familles de liquides : spiritueux, brasserie (bières, softs, eaux, jus, sirops), cave, huile, vinaigre, lait, crèmes, boissons fraîches, nettoyants et entretien
+  const liqFam = !!art && (art.sa === 53 || art.sa === 54 || art.sa === 55 || /^(380|383|214|216|252|106|488|49[0-4])\b/.test(art.ga));
   // sans la base articles : il faut un mot d'alcool, une contenance et un degré lisible (écarte « glace rhum raisin », « vanille bourbon »…)
   const spirit = art ? (art.sa === 53 && !/^429/.test(art.ga)) : (RX_ALCOOL.test(lib) && cont > 0 && deg != null);
   if (spirit && !/sans alcool/i.test(txt) && (deg == null || deg >= 15))
-    return {cat:'Alcool fort', det: deg != null ? String(deg).replace('.', ',') + ' %' + (deg > 40 ? ' · plus de 40 % (ICPE 4755)' : '') : 'degré non lu', deg};
+    return {cat:'Alcool fort', det: deg != null ? String(deg).replace('.', ',') + ' %' + (deg > 40 ? ' · plus de 40 % (ICPE 4755)' : '') : 'degré non lu', deg, cont};
   if (art ? /^380\b/.test(art.ga) : (RX_HUILE.test(lib) && cont > 0 && !RX_PAS_HUILE.test(lib)))
-    return {cat:'Huile', det: art ? art.ga : 'huile', deg:null};
+    return {cat:'Huile', det: art ? art.ga : 'huile', deg:null, cont};
   if (G.icpe){
     const code = G.icpe.get(n) || G.icpe6.get(mgb6(n));
-    if (code && code !== '1510') return {cat:'Dangereux', det: code + (ICPE_LIB[code] ? ' · ' + ICPE_LIB[code] : ''), deg:null};
-    if (code || G.icpe.size > 50) return {cat:'', det:'', deg:null};       // référentiel chargé : lui seul décide
+    if (code && code !== '1510'){
+      // 4755 = alcools de bouche : hors famille spiritueux, le classement du référentiel est à corriger, aucun volume compté
+      if (code === '4755' && art && art.sa !== 53) return {cat:'Dangereux', det:'À vérifier · classé 4755 mais famille ' + (art.ga || '?'), deg:null, cont:0};
+      return {cat:'Dangereux', det: code + (ICPE_LIB[code] ? ' · ' + ICPE_LIB[code] : ''), deg:null, cont: nonLiq ? 0 : cont};
+    }
+    if (code || G.icpe.size > 50) return {cat:'', det:'', deg:null, cont: art ? (liqFam ? cont : 0) : 0};       // référentiel chargé : lui seul décide
   }
-  for (const [rx, sauf, nom] of RX_DANGER) if (rx.test(txt) && !(sauf && sauf.test(txt))) return {cat:'Dangereux', det:nom, deg:null};
-  return {cat:'', det:'', deg:null};
+  for (const [rx, sauf, nom] of RX_DANGER) if (rx.test(txt) && !(sauf && sauf.test(txt))) return {cat:'Dangereux', det:nom, deg:null, cont: nonLiq ? 0 : cont};
+  return {cat:'', det:'', deg:null, cont: art ? (liqFam ? cont : 0) : (nonLiq ? 0 : cont)};
 }
 // base articles et référentiel ICPE de GDS (meilleur classement quand l'outil est ouvert depuis le sommaire)
 async function decompresser(buf){
@@ -639,7 +648,7 @@ function donnees(){
     let max = 0, dm = -1, som = 0, pres = 0;
     // arrondi au gramme avant de chercher le pic : à égalité, c'est le premier jour qui compte, comme dans la formule Excel
     for (let j = 0; j < nJ; j++){ const v = r.q[j] = r3(r.q[j]); if (v > 0){ pres++; som += v; if (v > max){ max = v; dm = j; } } }
-    return Object.assign(r, {secteur: secP(r), max, dm, som, pres, cont: r.dec ? 0 : parseCont(r.lib)}, categorie(r.mgb, r.lib));
+    return Object.assign(r, {secteur: secP(r), max, dm, som, pres, cont:0}, categorie(r.mgb, r.lib), r.dec ? {cont:0} : null);
   }).sort((a, b) => SECS.indexOf(a.secteur) - SECS.indexOf(b.secteur) || a.mgb.localeCompare(b.mgb, 'fr', {numeric:true}));
   return {an, jours, nJ, L};
 }
@@ -693,6 +702,10 @@ async function exportXlsx(){
     [...new Set(L.filter(r => icpe(r)).map(icpe))].sort().forEach(v => grp(v, 'D', v, r => icpe(r) === v));
     grp('Alcools forts (tous degrés)', 'C', 'Alcool fort', r => r.cat === 'Alcool fort');
     grp('Huiles', 'C', 'Huile', r => r.cat === 'Huile');
+    if (G.base){                                               // total de tous les liquides du dépôt : toute ligne qui a une contenance
+      const q = new Float64Array(nJ); for (const r of L) if (r.cont) for (let j = 0; j < nJ; j++) q[j] += r.q[j] * r.cont;
+      G1.push({nom:'TOTAL LIQUIDES · toutes familles confondues', all:true, q});
+    }
     const sH = 5, s0 = 6, sFin = s0 + G1.length - 1;           // en-tête du bloc ligne 5, rubriques lignes 6 à sFin
     const T = G1.length ? sFin + 2 : 4;                        // ligne d'en-tête du tableau des produits
     const l0 = T + 1, lFin = l0 + N - 1, cA = l0, cB = l0 + Math.max(nCat, 1) - 1;   // cA:cB = lignes des produits colorés
@@ -708,11 +721,11 @@ async function exportXlsx(){
       G1.forEach((g, i) => {
         const n = s0 + i, plage = `L${n}:${kFin}${n}`; let max = 0, dm = 0, som = 0;
         for (let j = 0; j < nJ; j++){ g.q[j] = Math.round(g.q[j]); som += g.q[j]; if (g.q[j] > max){ max = g.q[j]; dm = j; } }
-        const crit = `($${g.col}$${cA}:$${g.col}$${cB}="${g.val.replace(/"/g, '""')}")`;
+        const crit = g.all ? '' : `($${g.col}$${cA}:$${g.col}$${cB}="${g.val.replace(/"/g, '""')}")*`, rA = g.all ? l0 : cA, rB = g.all ? lFin : cB;
         let x = `<row r="${n}">` + cS('A' + n, g.nom, 16) + ['B','C','D','E','F','G'].map(c => cS(c + n, '', 12)).join('') +
           cF('H' + n, `MAX(${plage})`, max, 6) + cF('I' + n, `INDEX($L$${sH}:$${kFin}$${sH},MATCH(H${n},${plage},0))`, serial(jours[dm]), 7) +
           cF('J' + n, `H${n}/1000`, r3(max / 1000), 4) + cF('K' + n, `AVERAGE(${plage})`, Math.round(som / nJ), 3);
-        for (let j = 0; j < nJ; j++){ const c = colL(k0 + j); x += cF(c + n, `SUMPRODUCT(${crit}*$G$${cA}:$G$${cB}*${c}$${cA}:${c}$${cB})`, g.q[j], 3); }
+        for (let j = 0; j < nJ; j++){ const c = colL(k0 + j); x += cF(c + n, `SUMPRODUCT(${crit}$G$${rA}:$G$${rB}*${c}$${rA}:${c}$${rB})`, g.q[j], 3); }
         f.push(x + '</row>');
       });
     }
