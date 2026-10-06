@@ -135,7 +135,7 @@ tfoot td{font-weight:700;background:#eef2f8!important;position:sticky;bottom:0}
 <header>
   <div class="logo"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h6v6H4zM14 5h6v6h-6zM4 15h6v4H4z" fill="rgba(255,255,255,.3)"/><path d="M14 17h6M17 14v6"/></svg></div>
   <div>
-    <h1>Contrôle StockStatus <span class="ver">v11</span></h1>
+    <h1>Contrôle StockStatus <span class="ver">v13</span></h1>
     <div class="sub">Contrôle tous les StockStatus d'un dossier, écarte les doublons et range un fichier par jour dans l'Archive · Dépôt 171 La Brède</div>
   </div>
   <div class="sp"></div>
@@ -216,7 +216,7 @@ tfoot td{font-weight:700;background:#eef2f8!important;position:sticky;bottom:0}
      - quantités différentes -> c'est normal (export à une autre heure) :
        le plus tôt est gardé (heure du dernier mouvement dans le fichier)
    ===================================================================== */
-const VERSION = 'v11';
+const VERSION = 'v13';
 const SECTEURS = [
   {k:'AMB', n:'Ambiant',          min:1,  max:18},
   {k:'FRA', n:'Frais',            min:19, max:29},
@@ -565,7 +565,7 @@ function liqDe(mgb){                                          // famille de liqu
   const n = normMgb(mgb), art = G.base ? (G.base.get(n) || G.base6.get(mgb6(n))) : null; if (!art) return '';
   const gaN = (String(art.ga).match(/^\d+/) || [''])[0];
   return art.sa === 53 ? 'Spiritueux' : art.sa === 54 ? 'Brasserie (bières, softs, eaux, jus, sirops)' : art.sa === 55 ? 'Vins et champagnes'
-    : gaN === '380' ? 'Huiles' : gaN === '383' ? 'Vinaigres' : gaN === '216' ? 'Crèmes' : (gaN === '214' || gaN === '252') ? 'Lait et boissons fraîches'
+    : gaN === '380' ? 'Huiles' : gaN === '383' ? 'Vinaigres' : gaN === '216' ? 'Crèmes' : gaN === '214' ? 'Lait' : gaN === '252' ? 'Boissons fraîches'
     : /^(106|488|49[0-4])$/.test(gaN) ? 'Nettoyants et entretien' : '';
 }
 function categorie(mgb, lib){
@@ -708,10 +708,10 @@ async function exportXlsx(){
     };
     [...new Set(L.filter(r => icpe(r)).map(icpe))].sort().forEach(v => grp(v, 'D', v, r => icpe(r) === v));
     grp('Alcools forts (tous degrés)', 'C', 'Alcool fort', r => r.cat === 'Alcool fort');
-    grp('Huiles', 'C', 'Huile', r => r.cat === 'Huile');
+    if (!G.base) grp('Huiles', 'C', 'Huile', r => r.cat === 'Huile');   // avec la base articles, la ligne « Liquides · Huiles » donne le même chiffre
     if (G.base){                                               // total de tous les liquides du dépôt : toute ligne qui a une contenance
       const q = new Float64Array(nJ); for (const r of L) if (r.cont) for (let j = 0; j < nJ; j++) q[j] += r.q[j] * r.cont;
-      const ordre = ['Huiles','Brasserie (bières, softs, eaux, jus, sirops)','Spiritueux','Vins et champagnes','Vinaigres','Crèmes','Lait et boissons fraîches','Nettoyants et entretien'];
+      const ordre = ['Huiles','Brasserie (bières, softs, eaux, jus, sirops)','Spiritueux','Vins et champagnes','Vinaigres','Crèmes','Lait','Boissons fraîches','Nettoyants et entretien'];
       for (const fam of ordre){
         const qf = new Float64Array(nJ); let nf = 0;
         for (const r of L) if (r.cont && r.liq === fam){ nf++; for (let j = 0; j < nJ; j++) qf[j] += r.q[j] * r.cont; }
