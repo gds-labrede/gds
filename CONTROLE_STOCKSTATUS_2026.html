@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GDS · Contrôle StockStatus</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#14254a; --navy2:#1f3868; --navy3:#2c4a82;
+  --orange:#f07c1e; --orange2:#ffa14f; --orange-bg:#fff4ea;
+  --bg:#eef2f8; --card:#ffffff; --line:#dbe2ee; --line2:#eef1f6;
+  --ink:#16213a; --ink2:#51607c; --ink3:#8793a9;
+  --red:#c6363a; --red-bg:#fdecec; --green:#1f8a4c;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#4a3aa7;
+  --mono:'DM Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+button,select,input{font-family:inherit;font-size:13px}
+
+/* ---------- Bandeau ---------- */
+header{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 60%,var(--navy3) 100%);color:#fff;padding:14px 22px;display:flex;align-items:center;gap:16px;position:relative;overflow:hidden}
+header::after{content:"";position:absolute;inset:0 0 50% 0;background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,0));pointer-events:none}
+header .logo{width:42px;height:42px;border-radius:11px;background:linear-gradient(145deg,var(--orange2),var(--orange));display:grid;place-items:center;box-shadow:0 4px 14px rgba(240,124,30,.45),inset 0 1px 0 rgba(255,255,255,.5)}
+header h1{margin:0;font-size:19px;font-weight:700;letter-spacing:.2px}
+header .sub{font-size:12px;opacity:.75}
+header .ver{font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.12);padding:2px 8px;border-radius:20px;margin-left:6px}
+header .sp{flex:1}
+.btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:8px 14px;border-radius:9px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;font-weight:600;transition:.15s}
+.btn:hover{border-color:var(--navy3)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.pri{background:linear-gradient(180deg,var(--orange2),var(--orange));border-color:var(--orange);color:#fff;box-shadow:0 2px 8px rgba(240,124,30,.35)}
+.btn.nav{background:linear-gradient(180deg,var(--navy3),var(--navy));border-color:var(--navy);color:#fff}
+.btn.ghost{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.25);color:#fff}
+.btn svg{width:16px;height:16px}
+
+main{max-width:1500px;margin:0 auto;padding:18px 20px 40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 3px rgba(20,37,74,.05);padding:16px 18px;margin-bottom:16px}
+.card h2{margin:0 0 12px;font-size:15px;display:flex;align-items:center;gap:8px}
+.card h2 .dot{width:8px;height:8px;border-radius:50%;background:var(--orange)}
+
+/* ---------- Chargement ---------- */
+.load{display:grid;grid-template-columns:1.3fr 1fr;gap:16px}
+.drop{border:2px dashed #b9c5da;border-radius:12px;padding:22px;text-align:center;background:linear-gradient(180deg,#fafcff,#f3f6fb);transition:.15s}
+.drop.over{border-color:var(--orange);background:var(--orange-bg)}
+.drop p{margin:6px 0;color:var(--ink2)}
+.drop .row{display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+.srcs{display:flex;flex-direction:column;gap:8px}
+.src{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+.src .ic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:#eef2f8;flex:none}
+.src .ic svg{width:17px;height:17px}
+.src.ok .ic{background:#e5f4ec}
+.src b{font-size:13px}
+.src .st{font-size:12px;color:var(--ink2)}
+.src .opt{font-size:11px;color:var(--ink3)}
+.prog{height:6px;background:var(--line2);border-radius:6px;overflow:hidden;margin-top:12px;display:none}
+.prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--orange2),var(--orange));transition:width .1s}
+.msg{font-size:12px;color:var(--ink2);margin-top:6px;min-height:16px}
+details.ctrl{margin-top:12px;border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:#fbfcfe}
+details.ctrl summary{cursor:pointer;font-weight:600;font-size:13px}
+details.ctrl table{margin-top:8px}
+
+/* ---------- Filtres ---------- */
+.filters{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.f{display:flex;flex-direction:column;gap:4px}
+.f label{font-size:11px;color:var(--ink2);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.f select,.f input{border:1px solid var(--line);border-radius:8px;padding:7px 10px;background:#fff;min-width:150px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{border:0;background:#fff;padding:7px 14px;cursor:pointer;font-weight:600;color:var(--ink2)}
+.seg button.on{background:var(--navy);color:#fff}
+.filters .sp{flex:1}
+
+/* ---------- KPI ---------- */
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px}
+.gauge{height:12px;background:var(--line2);border-radius:8px;overflow:hidden;margin-top:8px;position:relative}
+.gauge i{display:block;height:100%;background:linear-gradient(90deg,#1f8a4c,#eda100 70%,#c6363a);border-radius:8px}
+.alcgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.reg{display:inline-block;font-weight:700;padding:3px 10px;border-radius:12px;font-size:13px}
+.reg.nc{background:#e5f4ec;color:#1f8a4c}.reg.dc{background:#fff1dc;color:#b86e00}.reg.a{background:var(--red-bg);color:var(--red)}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;position:relative;overflow:hidden}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--navy3)}
+.kpi.hot::before{background:var(--orange)}
+.kpi.red::before{background:var(--red)}
+.kpi .l{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--ink2);font-weight:600}
+.kpi .v{font-size:24px;font-weight:700;margin:4px 0 2px;font-variant-numeric:tabular-nums}
+.kpi .v small{font-size:13px;font-weight:600;color:var(--ink2);margin-left:4px}
+.kpi .d{font-size:12px;color:var(--ink2)}
+
+/* ---------- Onglets ---------- */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:14px;flex-wrap:wrap}
+.tabs button{border:0;background:none;padding:10px 14px;cursor:pointer;font-weight:600;color:var(--ink2);border-bottom:3px solid transparent;margin-bottom:-1px}
+.tabs button.on{color:var(--navy);border-bottom-color:var(--orange)}
+.tabs button .n{font-family:var(--mono);font-size:11px;background:var(--line2);border-radius:10px;padding:1px 7px;margin-left:5px}
+.view{display:none}
+.view.on{display:block}
+.chartbox{position:relative;height:380px}
+.chartbox.sm{height:300px}
+.grid2{display:grid;grid-template-columns:3fr 2fr;gap:16px}
+.note{font-size:12px;color:var(--ink2);margin:8px 0 0}
+
+/* ---------- Tableaux ---------- */
+.tw{max-height:560px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th{position:sticky;top:0;background:var(--navy);color:#fff;text-align:left;padding:8px 10px;font-weight:600;white-space:nowrap;cursor:pointer;z-index:1}
+th.num,td.num{text-align:right}
+td{padding:7px 10px;border-bottom:1px solid var(--line2);white-space:nowrap}
+td.lib{white-space:normal;min-width:240px}
+tr:nth-child(even) td{background:#fafbfd}
+tr:hover td{background:#fff6ee}
+td.mono{font-family:var(--mono);font-size:12px}
+tfoot td{font-weight:700;background:#eef2f8!important;position:sticky;bottom:0}
+.tag{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--line2);color:var(--ink2)}
+.tag.dg{background:var(--red-bg);color:var(--red)}
+.tag.u{font-family:var(--mono)}
+.sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.pk{font-weight:700;color:var(--navy)}
+.empty{padding:40px;text-align:center;color:var(--ink3)}
+.hidden{display:none!important}
+
+@media (max-width:1000px){.kpis{grid-template-columns:repeat(2,1fr)}.load,.grid2{grid-template-columns:1fr}}
+</style>
+<style>
+.kpis{grid-template-columns:repeat(6,1fr)}
+.kpi.ok::before{background:#1f8a4c}
+.tag.ok{background:#e5f4ec;color:#1f8a4c}
+.tag.wa{background:#fff1dc;color:#b86e00}
+.steps{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.big{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.big .info{font-size:13px;color:var(--ink2)}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h6v6H4zM14 5h6v6h-6zM4 15h6v4H4z" fill="rgba(255,255,255,.3)"/><path d="M14 17h6M17 14v6"/></svg></div>
+  <div>
+    <h1>Contrôle StockStatus <span class="ver">v14</span></h1>
+    <div class="sub">Contrôle tous les StockStatus d'un dossier, écarte les doublons et range un fichier par jour dans l'Archive · Dépôt 171 La Brède</div>
+  </div>
+  <div class="sp"></div>
+  <a class="btn ghost" href="sommaire.html" style="text-decoration:none">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Retour au tableau de bord</a>
+</header>
+
+<main>
+  <section class="card">
+    <h2><span class="dot"></span>1 · Choisir le dossier</h2>
+    <div class="drop" id="drop">
+      <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="#2c4a82" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M12 11v5M9.5 13.5 12 11l2.5 2.5" stroke="#f07c1e"/></svg>
+      <p><b>Glisse ici le dossier qui contient tous les StockStatus</b></p>
+      <p style="font-size:12px">Le contrôle se fait sur ton poste : rien n'est envoyé tant que tu ne cliques pas sur « Envoyer dans l'Archive ». Les sous-dossiers sont lus aussi.</p>
+      <div class="row">
+        <button class="btn nav" id="bDir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg>Choisir un dossier</button>
+        <button class="btn" id="bFiles"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></svg>Choisir des fichiers</button>
+        <button class="btn" id="bReset"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>Tout vider</button>
+      </div>
+      <input type="file" id="inFiles" multiple accept=".csv" class="hidden">
+      <input type="file" id="inDir" webkitdirectory directory multiple class="hidden">
+      <div class="prog" id="prog"><i></i></div>
+      <div class="msg" id="msg"></div>
+    </div>
+  </section>
+
+  <div id="app" class="hidden">
+    <div class="kpis" id="kpis"></div>
+
+    <section class="card">
+      <h2><span class="dot"></span>2 · Ranger dans l'Archive GDS</h2>
+      <div class="big">
+        <button class="btn pri" id="bUp" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg><span id="bUpT">Envoyer dans l'Archive</span></button>
+        <button class="btn nav" id="bRap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 14h6M9 17h4"/></svg>Rapport de contrôle (CSV)</button>
+        <div class="info" id="info"></div>
+      </div>
+      <p class="note">Un seul fichier par jour part dans le dossier <b>StockStatus</b> de l'Archive, sous le nom <span style="font-family:var(--mono)">StockStatus_FR_STOREDEPOT_00171_JJ-MM-AAAA.csv</span>. Les fichiers sont envoyés tels quels, sans aucune modification. Les doublons et les jours déjà dans l'Archive ne sont pas renvoyés.</p>
+    </section>
+
+    <section class="card">
+      <h2><span class="dot"></span>3 · Fichier de l'année et Excel des seuils max</h2>
+      <div class="big">
+        <div class="f"><label>Année</label><select id="fAn"></select></div>
+        <button class="btn pri" id="bCsv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg><span id="bCsvT">Fichier de l'année (CSV)</span></button>
+        <button class="btn nav" id="bXls"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>Excel avec formules</button>
+        <div class="info" id="infoX"></div>
+      </div>
+      <p class="note"><b>Fichier de l'année (CSV)</b> : tous les produits, une ligne par produit, une colonne par jour.<br>
+      <b>Excel</b> : <b>une seule feuille</b>. Les produits dangereux / ICPE, les alcools forts et les huiles sont en haut, colorés. Pour chaque produit : le <b>seuil max</b> dans une colonne orange, la date du pic, et le jour du pic surligné en orange dans les colonnes de jours. Tout en haut, le <b>volume total par rubrique ICPE en dm³</b> (1 dm³ = 1 litre), jour par jour, avec son pic. Formules visibles : MAX, date du pic, moyenne, volume. Le litige (INSPECTION) n'est pas compté.</p>
+      <p class="note" id="catSrc"></p>
+    </section>
+
+    <section class="card">
+      <div class="tabs" id="tabs">
+        <button data-v="fic" class="on">Contrôle des fichiers <span class="n" id="nFic">0</span></button>
+        <button data-v="ano">À vérifier <span class="n" id="nAno">0</span></button>
+        <button data-v="man">Jours manquants <span class="n" id="nMan">0</span></button>
+      </div>
+      <div class="view on" id="v-fic"><div class="tw" id="tFic"></div></div>
+      <div class="view" id="v-ano"><div class="tw" id="tAno"></div></div>
+      <div class="view" id="v-man"><p class="note" style="margin:0 0 10px">Jours de semaine (lundi au vendredi) sans StockStatus entre le premier et le dernier fichier. Les samedis, les dimanches et les jours fériés ne sont pas comptés.</p><div class="tw" id="tMan"></div></div>
+    </section>
+  </div>
+</main>
+
+<script src="config.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>window.JSZip||document.write('<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"><\/script>')</script>
+<script>
+/* =====================================================================
+   CONTRÔLE STOCKSTATUS · GDS
+   1. contrôle chaque fichier du dossier : nom, colonnes, date du nom /
+      date du contenu, nombre de lignes, doublons du même jour
+   2. garde un seul fichier par jour et l'envoie tel quel dans
+      Archive/StockStatus/ (aucun calcul, aucune modification)
+   Doublons du même jour :
+     - mêmes quantités       -> un seul gardé, les autres écartés
+     - quantités différentes -> c'est normal (export à une autre heure) :
+       le plus tôt est gardé (heure du dernier mouvement dans le fichier)
+   ===================================================================== */
+const VERSION = 'v14';
+const SECTEURS = [
+  {k:'AMB', n:'Ambiant',          min:1,  max:18},
+  {k:'FRA', n:'Frais',            min:19, max:29},
+  {k:'FL',  n:'Fruits & légumes', min:30, max:37},
+  {k:'SUR', n:'Surgelé',          min:38, max:49},
+  {k:'MAR', n:'La Marée',         min:50, max:59},
+];
+const SEC_LAB = {AMB:'Ambiant', FRA:'Frais', FL:'Fruits & légumes', SUR:'Surgelé', MAR:'La Marée', Q:'Quai', LIT:'Litige', NC:'Non classé'};
+const SEC_ORDRE = ['AMB','FRA','FL','SUR','MAR','Q','NC','LIT'];
+const COLS_OBLIG = ['Position', 'MGB', 'Quantity'];
+const JOURS = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fr = iso => iso ? iso.slice(8,10) + '/' + iso.slice(5,7) + '/' + iso.slice(0,4) : '';
+const nb = v => Math.round(v).toLocaleString('fr-FR');
+const tick = () => new Promise(r => setTimeout(r, 0));
+function setMsg(t){ $('msg').textContent = t; }
+function setProg(p){ const b = $('prog'); b.style.display = p == null ? 'none' : 'block'; b.firstElementChild.style.width = ((p||0)*100) + '%'; }
+function secOfAisle(a){ for (const s of SECTEURS) if (a >= s.min && a <= s.max) return s.k; return 'NC'; }
+function splitCSV(line){
+  if (line.indexOf('"') < 0) return line.split(',');
+  const out = []; let cur = '', q = false;
+  for (let i = 0; i < line.length; i++){
+    const c = line[i];
+    if (q){ if (c === '"'){ if (line[i+1] === '"'){ cur += '"'; i++; } else q = false; } else cur += c; }
+    else if (c === '"') q = true;
+    else if (c === ','){ out.push(cur); cur = ''; }
+    else cur += c;
+  }
+  out.push(cur); return out;
+}
+function fnv(str){ let h = 0x811c9dc5; for (let i = 0; i < str.length; i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); } return (h >>> 0).toString(16) + ':' + str.length; }
+const isoPlus = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+const ecart = (a, b) => Math.round((new Date(a + 'T12:00:00Z') - new Date(b + 'T12:00:00Z')) / 86400000);
+
+/* ---------- État ---------- */
+let F = [];                       // fichiers reçus (File)
+let R = null;                     // résultat
+function vide(){ return {fic:[], days:new Map(), depot:''}; }
+
+/* ---------- Lecture d'un fichier : contrôle + agrégat ---------- */
+function lireFichier(text, name){
+  const o = {name, iso:null, isoNom:null, isoContenu:null, heure:'', lignes:0, refs:0, statut:'ok', details:[], agg:null, hash:''};
+  const lines = text.split(/\r?\n/);
+  const h = splitCSV((lines[0] || '').replace(/^﻿/, ''));
+  const manque = COLS_OBLIG.filter(c => h.indexOf(c) < 0);
+  if (manque.length){
+    o.statut = 'rejet';
+    o.details.push(/^StockChange/i.test(name) ? 'Fichier StockChanges : ce n\'est pas un StockStatus' : 'Ce n\'est pas un StockStatus (colonnes absentes : ' + manque.join(', ') + ')');
+    return o;
+  }
+  const iPos = h.indexOf('Position'), iLoc = h.indexOf('Location Code'), iM = h.indexOf('MGB'), iQ = h.indexOf('Quantity'),
+        iD = h.indexOf('Description'), iT = h.indexOf('LastChangedAt');
+  const m = /(\d{2})-(\d{2})-(\d{4})/.exec(name);
+  if (m) o.isoNom = `${m[3]}-${m[2]}-${m[1]}`;
+  const dep = /_FR_STOREDEPOT_(\d+)/i.exec(name); if (dep) o.depot = dep[1];
+  const agg = new Map(); const refs = new Set(); let tmax = '';
+  for (let l = 1; l < lines.length; l++){
+    const line = lines[l]; if (!line) continue;
+    const x = splitCSV(line);
+    const mgb = String(x[iM] || '').trim(); if (!mgb) continue;
+    const qs = x[iQ] || '0', q = parseFloat(qs); if (!(q > 0) && !(q < 0)) continue;
+    const pos = x[iPos] || '';
+    let sec;
+    if (/^INSPECTION/i.test(pos) || (iLoc >= 0 && /INSPECTION/i.test(x[iLoc] || ''))) sec = 'LIT';
+    else { const a = pos.match(/^(\d+)-/); sec = a ? secOfAisle(+a[1]) : 'Q'; }
+    const key = mgb + '|' + sec;
+    let e = agg.get(key);
+    if (!e){ e = {q:0, lib:iD >= 0 ? (x[iD] || '').trim() : '', dec:false}; agg.set(key, e); }
+    e.q += q; if (!e.dec && /\.\d*[1-9]/.test(qs)) e.dec = true;
+    refs.add(mgb); o.lignes++;
+    if (iT >= 0 && x[iT] > tmax) tmax = x[iT];
+  }
+  o.refs = refs.size; o.agg = agg;
+  if (tmax){ o.isoContenu = tmax.slice(0, 10); o.heure = tmax.slice(11, 16); o.t = tmax; }
+  // la date de référence est celle du nom ; à défaut, celle du contenu
+  o.iso = o.isoNom || o.isoContenu;
+  if (!o.iso){ o.statut = 'rejet'; o.details.push('Aucune date : ni dans le nom, ni dans le contenu'); return o; }
+  if (!o.isoNom){ o.statut = 'attention'; o.details.push('Pas de date dans le nom : date prise dans le contenu (' + fr(o.isoContenu) + ')'); }
+  else if (o.isoContenu){
+    const e = ecart(o.isoNom, o.isoContenu);
+    if (e < 0){ o.statut = 'attention'; o.details.push(`Date incohérente : le nom dit ${fr(o.isoNom)} mais le contenu va jusqu'au ${fr(o.isoContenu)}`); }
+    else if (e > 3){ o.statut = 'attention'; o.details.push(`Dernier mouvement le ${fr(o.isoContenu)}, soit ${e} jours avant la date du nom`); }
+  }
+  if (!o.lignes){ o.statut = 'rejet'; o.details.push('Fichier vide'); }
+  // empreinte des quantités (et non du texte) : un fichier réenregistré reste « identique »
+  o.hash = fnv([...agg.entries()].map(([k, e]) => k + '=' + Math.round(e.q * 1000)).sort().join(';'));
+  return o;
+}
+
+/* ---------- Traitement complet ---------- */
+async function traiter(){
+  R = vide();
+  const liste = F.filter(f => /\.csv$/i.test(f.name)).sort((a, b) => a.name.localeCompare(b.name));
+  if (!liste.length){ setMsg('Aucun fichier CSV dans la sélection.'); return; }
+  setProg(0); const t0 = performance.now();
+  const parJour = new Map();
+  for (let i = 0; i < liste.length; i++){
+    const o = lireFichier(await liste[i].text(), liste[i].name);
+    o.file = liste[i];
+    R.fic.push(o);
+    if (o.depot && !R.depot) R.depot = o.depot;
+    if (o.statut !== 'rejet'){ if (!parJour.has(o.iso)) parJour.set(o.iso, []); parJour.get(o.iso).push(o); }
+    setProg((i + 1) / liste.length); setMsg(`Contrôle ${i + 1} / ${liste.length} · ${liste[i].name}`);
+    if (i % 3 === 2) await tick();
+  }
+  // lignes anormalement peu nombreuses
+  const L = R.fic.filter(o => o.statut !== 'rejet').map(o => o.lignes).sort((a, b) => a - b);
+  const med = L.length ? L[Math.floor(L.length / 2)] : 0;
+  for (const o of R.fic) if (o.statut !== 'rejet' && med && o.lignes < med * .6){
+    o.statut = 'attention'; o.details.push(`Peu de lignes : ${nb(o.lignes)} contre ${nb(med)} d'habitude, fichier peut-être incomplet`);
+  }
+  // un fichier gardé par jour
+  for (const [iso, lot] of [...parJour.entries()].sort((a, b) => a[0].localeCompare(b[0]))){
+    // le plus tôt d'abord : heure du dernier mouvement dans le fichier ; à égalité, le nom daté le plus court
+    lot.sort((a, b) => (a.t || '9').localeCompare(b.t || '9') || (b.isoNom ? 1 : 0) - (a.isoNom ? 1 : 0) || a.name.length - b.name.length || a.name.localeCompare(b.name));
+    const base = lot[0]; base.garde = true;
+    lot.forEach((o, n) => {
+      if (!n) return;
+      if (o.hash === base.hash){ o.doublon = 'identique'; o.details.push('Doublon identique du ' + fr(iso) + ' : écarté'); }
+      else { o.doublon = 'different';
+             o.details.push('Autre export du ' + fr(iso) + (o.heure ? ' (dernier mouvement ' + o.heure + ')' : '') + ' : écarté, le plus tôt est gardé' + (base.heure ? ' (' + base.heure + ')' : '')); }
+    });
+    R.days.set(iso, base);
+  }
+  for (const o of R.fic) if (!o.garde) o.agg = null;       // libère la mémoire (les fichiers gardés servent à l'Excel)
+  setProg(null);
+  setMsg(`${liste.length} fichier(s) contrôlé(s) en ${((performance.now() - t0) / 1000).toFixed(1)} s`);
+  afficher();
+}
+
+/* ---------- Jours fériés français (fixes + Pâques, Ascension, Pentecôte) ---------- */
+const FERIES = {};
+function feries(an){
+  if (FERIES[an]) return FERIES[an];
+  const a = an % 19, b = Math.floor(an / 100), c = an % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25),
+        g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4,
+        l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451),
+        mois = Math.floor((h + l - 7 * m + 114) / 31), jour = ((h + l - 7 * m + 114) % 31) + 1;
+  const paques = `${an}-${String(mois).padStart(2, '0')}-${String(jour).padStart(2, '0')}`;
+  const o = {};
+  [['01-01', "Jour de l'an"], ['05-01', 'Fête du travail'], ['05-08', '8 mai'], ['07-14', '14 juillet'], ['08-15', 'Assomption'], ['11-01', 'Toussaint'], ['11-11', '11 novembre'], ['12-25', 'Noël']]
+    .forEach(x => o[an + '-' + x[0]] = x[1]);
+  o[isoPlus(paques, 1)] = 'Lundi de Pâques'; o[isoPlus(paques, 39)] = 'Ascension'; o[isoPlus(paques, 50)] = 'Lundi de Pentecôte';
+  return FERIES[an] = o;
+}
+const estFerie = iso => !!feries(+iso.slice(0, 4))[iso];
+
+/* ---------- Jours manquants ---------- */
+function manquants(){
+  const d = [...R.days.keys()].sort(); const out = [];
+  if (d.length < 2) return out;
+  for (let iso = isoPlus(d[0], 1); iso < d[d.length - 1]; iso = isoPlus(iso, 1))
+    if (!R.days.has(iso)){ const n = new Date(iso + 'T12:00:00Z').getUTCDay(); if (n !== 0 && n !== 6 && !estFerie(iso)) out.push({iso, jour: JOURS[n]}); }   // samedis, dimanches et jours fériés non comptés
+  return out;
+}
+
+const cellCsv = s => /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+function csvRapport(){
+  const out = ['Date;Fichier;Action;Lignes;Références;Dernier mouvement;Statut;Archive;Détail'];
+  for (const o of ficTries()) out.push([fr(o.iso), cellCsv(o.name), o.garde ? 'Gardé' : 'Écarté', o.lignes, o.refs, o.isoContenu ? fr(o.isoContenu) + ' ' + o.heure : '', libStatut(o),
+    o.garde && G.on ? (G.arch.has(o.iso) ? 'Déjà dans l\'Archive' : 'À envoyer') : '', cellCsv(o.details.join(' | '))].join(';'));
+  out.push(''); out.push('Jours manquants;Jour de la semaine');
+  for (const m of manquants()) out.push(fr(m.iso) + ';' + m.jour);
+  return '﻿' + out.join('\r\n') + '\r\n';
+}
+function telecharger(texte, nom){
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([texte], {type:'text/csv;charset=utf-8'}));
+  a.download = nom; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+function nomSortie(prefixe){
+  const d = [...R.days.keys()].sort();
+  return `${prefixe}_${R.depot || '00171'}_${d[0]}_au_${d[d.length - 1]}.csv`;
+}
+
+/* ---------- Affichage ---------- */
+const ficTries = () => [...R.fic].sort((a, b) => (a.iso || '9').localeCompare(b.iso || '9') || a.name.localeCompare(b.name));
+function libStatut(o){
+  if (o.statut === 'rejet') return 'Refusé';
+  if (o.doublon === 'identique') return 'Doublon identique';
+  if (o.doublon === 'different') return 'Export plus tardif';
+  return o.statut === 'attention' ? 'À vérifier' : 'Bon';
+}
+function tagStatut(o){
+  const t = libStatut(o);
+  const c = o.statut === 'rejet' ? 'dg' : o.doublon === 'identique' ? '' : o.statut === 'attention' ? 'wa' : 'ok';
+  return `<span class="tag ${c}">${t}</span>`;
+}
+function tagArch(o){
+  if (!o.garde) return o.statut === 'rejet' ? '' : '<span class="tag">écarté</span>';
+  if (!G.on) return '<span class="tag">gardé</span>';
+  return G.arch.has(o.iso) ? '<span class="tag ok">dans l\'Archive</span>' : '<span class="tag wa">à envoyer</span>';
+}
+function tableFic(list){
+  if (!list.length) return '<div class="empty">Rien à signaler</div>';
+  return '<table><thead><tr><th>Date</th><th>Fichier</th><th class="num">Lignes</th><th class="num">Références</th><th>Dernier mouvement</th><th>Statut</th><th>Archive</th><th>Détail</th></tr></thead><tbody>' +
+    list.map(o => `<tr><td class="mono">${fr(o.iso)}</td><td class="mono">${esc(o.name)}</td><td class="num">${o.lignes ? nb(o.lignes) : ''}</td><td class="num">${o.refs ? nb(o.refs) : ''}</td><td class="mono">${o.isoContenu ? fr(o.isoContenu) + ' ' + o.heure : ''}</td><td>${tagStatut(o)}</td><td>${tagArch(o)}</td><td class="lib">${esc(o.details.join(' · '))}</td></tr>`).join('') +
+    '</tbody></table>';
+}
+function afficher(){
+  const d = [...R.days.keys()].sort();
+  const nId = R.fic.filter(o => o.doublon === 'identique').length, nDf = R.fic.filter(o => o.doublon === 'different').length;
+  const nRej = R.fic.filter(o => o.statut === 'rejet').length;
+  const ano = ficTries().filter(o => o.statut !== 'ok');
+  const man = manquants(), manOuv = man.filter(m => m.jour !== 'dimanche');
+  $('app').classList.remove('hidden');
+  $('kpis').innerHTML = `
+    <div class="kpi"><div class="l">Fichiers contrôlés</div><div class="v">${nb(R.fic.length)}</div><div class="d">${nRej} refusé(s)</div></div>
+    <div class="kpi ok"><div class="l">Jours retenus (1 fichier par jour)</div><div class="v">${nb(d.length)}</div><div class="d">${d.length ? 'du ' + fr(d[0]) + ' au ' + fr(d[d.length - 1]) : ''}</div></div>
+    <div class="kpi"><div class="l">Doublons identiques</div><div class="v">${nId}</div><div class="d">écartés, non comptés</div></div>
+    <div class="kpi"><div class="l">Exports plus tardifs</div><div class="v">${nDf}</div><div class="d">même jour, autre heure : le plus tôt est gardé</div></div>
+    <div class="kpi ${manOuv.length ? 'hot' : ''}"><div class="l">Jours manquants</div><div class="v">${manOuv.length}</div><div class="d">lundi au vendredi, hors jours fériés</div></div>
+    <div class="kpi ${ano.length ? 'red' : 'ok'}"><div class="l">À vérifier</div><div class="v">${ano.length}</div><div class="d">${ano.length ? 'voir l\'onglet' : 'rien à signaler'}</div></div>`;
+  $('nFic').textContent = R.fic.length; $('nAno').textContent = ano.length; $('nMan').textContent = man.length;
+  $('tFic').innerHTML = tableFic(ficTries());
+  $('tAno').innerHTML = tableFic(ano);
+  $('tMan').innerHTML = man.length ? '<table><thead><tr><th>Jour manquant</th><th>Jour de la semaine</th><th></th></tr></thead><tbody>' +
+    man.map(m => `<tr><td class="mono">${fr(m.iso)}</td><td>${m.jour}</td><td><span class="tag wa">pas de fichier</span></td></tr>`).join('') + '</tbody></table>'
+    : '<div class="empty">Aucun jour manquant</div>';
+  $('bRap').disabled = !d.length;
+  const ans = [...new Set(d.map(x => x.slice(0, 4)))].sort(), av = $('fAn').value;
+  $('fAn').innerHTML = ans.map(a => `<option>${a}</option>`).join('') + '<option value="">Toutes</option>';
+  $('fAn').value = ans.includes(av) ? av : (av === '' && $('fAn').dataset.vu ? '' : (ans.includes('2026') ? '2026' : ans[ans.length - 1] || ''));
+  $('fAn').dataset.vu = '1';
+  majAnnee();
+  majEnvoi();
+}
+
+/* =====================================================================
+   ARCHIVE GDS : un StockStatus par jour dans Archive/StockStatus/
+   ===================================================================== */
+const G = {on:false, jeton:'', role:'', peut:false, arch:new Map(), pret:false, erreur:''};
+const D_SS = 'StockStatus/';
+function lireS(c){ try { return sessionStorage.getItem(c) || localStorage.getItem(c); } catch(e){ return null; } }
+if (window.GDS && GDS.API){ G.jeton = lireS('gds_jeton') || ''; G.role = lireS('gds_role') || ''; G.on = !!G.jeton; G.peut = G.role === 'admin' || G.role === 'admin_restreint'; }
+function authG(sup){ return Object.assign({'Authorization':'Bearer ' + GDS.CLE_PUBLIQUE, 'apikey':GDS.CLE_PUBLIQUE, 'X-GDS-Session':G.jeton}, sup || {}); }
+async function gds(chemin, opt){
+  const r = await fetch(GDS.API + chemin, Object.assign({headers:authG()}, opt || {}));
+  if (r.status === 401 || r.status === 403) throw new Error('accès refusé par le serveur');
+  return r;
+}
+async function chargerArchive(){
+  const r = await gds('/archive', {method:'POST', headers:authG({'Content-Type':'application/json'}), body:JSON.stringify({prefix:D_SS})});
+  if (!r.ok) throw new Error("liste de l'Archive indisponible");
+  G.arch = new Map();
+  for (const f of ((await r.json()).files || [])){
+    const m = /StockStatus_FR_STOREDEPOT_\d+_(\d{2})-(\d{2})-(\d{4})/i.exec(f.fileName);
+    if (m) G.arch.set(`${m[3]}-${m[2]}-${m[1]}`, f.fileName);
+  }
+  G.pret = true;
+}
+const nomArchive = o => `${D_SS}StockStatus_FR_STOREDEPOT_${o.depot || R.depot || '00171'}_${o.iso.slice(8,10)}-${o.iso.slice(5,7)}-${o.iso.slice(0,4)}.csv`;
+const aEnvoyer = () => R ? [...R.days.values()].filter(o => !G.arch.has(o.iso)).sort((a, b) => a.iso.localeCompare(b.iso)) : [];
+function majEnvoi(){
+  const b = $('bUp'), i = $('info');
+  if (!window.GDS || !GDS.API){ b.disabled = true; i.textContent = 'Outil ouvert hors GDS : contrôle et Excel seulement.'; return; }
+  if (!G.on){ b.disabled = true; i.textContent = "Session GDS absente : ouvre l'outil depuis le sommaire pour envoyer dans l'Archive."; return; }
+  if (!G.peut){ b.disabled = true; i.textContent = "L'envoi dans l'Archive est réservé à l'encadrement."; return; }
+  if (G.erreur){ b.disabled = true; i.textContent = 'Archive indisponible : ' + G.erreur; return; }
+  if (!G.pret){ b.disabled = true; i.textContent = "Lecture de l'Archive…"; return; }
+  const L = aEnvoyer(), deja = R ? R.days.size - L.length : 0;
+  const mo = L.reduce((t, o) => t + o.file.size, 0) / 1048576;
+  b.disabled = !L.length;
+  $('bUpT').textContent = L.length ? `Envoyer ${L.length} jour(s) dans l'Archive` : "Tout est déjà dans l'Archive";
+  i.innerHTML = `Archive : <b>${G.arch.size}</b> jour(s) déjà rangé(s)` + (R ? ` · <b>${L.length}</b> à envoyer (${mo.toFixed(0)} Mo) · <b>${deja}</b> déjà présent(s)` : '');
+}
+async function envoyerArchive(){
+  const L = aEnvoyer(); if (!L.length) return;
+  const b = $('bUp'); b.disabled = true; let n = 0;
+  try {
+    await chargerArchive();                       // relit l'Archive juste avant : jamais deux fois le même jour
+    for (const o of aEnvoyer()){
+      n++; setMsg(`Envoi ${n} / ${L.length} · ${fr(o.iso)}`); setProg(n / L.length);
+      const nom = nomArchive(o);
+      const r = await gds('/archive/' + encodeURIComponent(nom), {method:'POST', headers:authG({'Content-Type':'text/csv'}), body:o.file});
+      if (!r.ok) throw new Error('envoi de ' + fr(o.iso) + ' impossible');
+      G.arch.set(o.iso, nom);
+    }
+    setMsg(`${n} jour(s) rangé(s) dans Archive / StockStatus`);
+  } catch(e){ console.error(e); setMsg('Envoi interrompu : ' + e.message + ' · relance, les jours déjà envoyés ne sont pas renvoyés.'); }
+  setProg(null); afficher();
+}
+if (G.on) chargerArchive().catch(e => { G.erreur = e.message; }).finally(() => { if (R) afficher(); });
+if (G.on) chargerReferentiels().finally(() => majAnnee());
+
+/* =====================================================================
+   EXCEL simple, avec formules
+   Feuille « Stock par jour » : une ligne par référence, une colonne par jour
+     Seuil max = MAX(jours) · Date du seuil max = INDEX(dates ; EQUIV(max ; jours ; 0))
+     Moyenne = MOYENNE(jours) · Jours présents = NB(jours)
+   Feuille « Par secteur » : total du jour par secteur = SOMME.SI.ENS
+   Feuille « Contrôle fichiers » : le rapport
+   ===================================================================== */
+const xe = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+const colL = n => { let s = ''; n++; while (n){ const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
+const serial = iso => { const [y, m, d] = iso.split('-').map(Number); return (Date.UTC(y, m - 1, d) - Date.UTC(1899, 11, 30)) / 86400000; };
+const r3 = v => Math.round(v * 1000) / 1000;
+// styles : 0 normal · 1 en-tête · 2 date · 3 entier · 4 décimal · 5 titre · 6 formule entier (fond clair) · 7 formule date · 8 formule décimal
+const cS = (ref, v, st) => `<c r="${ref}"${st ? ` s="${st}"` : ''} t="inlineStr"><is><t xml:space="preserve">${xe(v)}</t></is></c>`;
+const cN = (ref, v, st) => `<c r="${ref}"${st ? ` s="${st}"` : ''}><v>${v}</v></c>`;
+const cF = (ref, f, v, st) => `<c r="${ref}"${st ? ` s="${st}"` : ''}><f>${xe(f)}</f>${v === '' || v == null ? '' : `<v>${v}</v>`}</c>`;
+const cFs = (ref, f, st) => `<c r="${ref}"${st ? ` s="${st}"` : ''} t="str"><f>${xe(f)}</f><v></v></c>`;
+function feuille(lignes, o = {}){
+  let x = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0">';
+  if (o.gel) x += `<pane${o.gel.x ? ` xSplit="${o.gel.x}"` : ''} ySplit="${o.gel.y}" topLeftCell="${colL(o.gel.x || 0)}${o.gel.y + 1}" activePane="${o.gel.x ? 'bottomRight' : 'bottomLeft'}" state="frozen"/>`;
+  x += '</sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/>';
+  if (o.cols) x += '<cols>' + o.cols.map(c => `<col min="${c[0]}" max="${c[1]}" width="${c[2]}" customWidth="1"/>`).join('') + '</cols>';
+  x += '<sheetData>' + lignes.join('') + '</sheetData>';
+  if (o.filtre) x += `<autoFilter ref="${o.filtre}"/>`;
+  if (o.cf) x += o.cf;
+  if (o.ext) x += o.ext;
+  return x + '</worksheet>';
+}
+/* ---------- catégories : alcool fort, huile, dangereux ---------- */
+const normMgb = v => String(v ?? '').trim().replace(/\.0+$/, '').replace(/^0+/, '');
+const mgb6 = n => n.length > 6 ? n.slice(0, -6) : n;
+const toL = (n, u) => { n = parseFloat(String(n).replace(',', '.')); u = u.toLowerCase(); return u === 'cl' ? n / 100 : u === 'ml' ? n / 1000 : n; };
+function parseCont(t){                                     // litres par unité, lus dans le libellé
+  t = String(t || '').replace(/\b(cl|ml)l\b/gi, '$1');          // faute de frappe « 70 clL »
+  let m = t.match(/soit\s*(\d+(?:[.,]\d+)?)\s*(cl|ml|l)\b/i); if (m) return toL(m[1], m[2]);
+  m = t.match(/\b(\d+)\s*x\s*(\d+(?:[.,]\d+)?)\s*(cl|ml|l)\b/i); if (m) return +m[1] * toL(m[2], m[3]);
+  m = t.match(/(\d+(?:[.,]\d+)?)\s*(cl|ml|l)\s*x\s*(\d+)\b/i); if (m) return +m[3] * toL(m[1], m[2]);
+  m = t.match(/(\d+(?:[.,]\d+)?)\s*(cl|ml|l)\b/i); if (m) return toL(m[1], m[2]);
+  return 0;
+}
+function parseDeg(t){                                      // degré d'alcool lu dans le libellé
+  const m = t.match(/(\d{1,2}(?:[.,]\d{1,2})?)\s?(?:°|%\s?vol|%)/i) || t.match(/\b(\d{1,2}(?:[.,]\d)?)\s?D\b/);
+  return m ? parseFloat(m[1].replace(',', '.')) : null;
+}
+const RX_ALCOOL = /\b(rhum|rum|whisk(e)?y|bourbon|gin|vodka|pastis|liqueur|cognac|armagnac|calvados|tequila|mezcal|eau[- ]de[- ]vie|brandy|grappa|absinthe|schnaps|kirsch|spiritueux|triple sec|amaretto|limoncello|cacha[çc]a|pisco|ricard|chartreuse|get 27|anis[ée]?)\b/i;
+// une huile = le produit lui-même (bidon, bouteille), pas un aliment « à l'huile »
+const RX_HUILE = /\bhuiles?\b/i, RX_PAS_HUILE = /(à|a|au|aux|en|et) l['’ ]?huile|sans huile|base d['’ ]?huile|huiles? essentielle|vinaigrette|sauce|shaker|pr[ée]paration|thon|sardine|anchois|margarine|ar[ôo]me/i;
+const RX_DANGER = [
+  [/a[eé]rosol/i, /cr[eèê]me|chantilly/i, 'Aérosol'],
+  [/javel|hypochlor|chlor[ée]/i, null, 'Javel / chloré'],
+  [/alcool (a|à) br[uû]ler|alcool m[ée]nager|white spirit|ac[ée]tone/i, null, 'Liquide inflammable'],
+  [/cartouche (de |à |a )?gaz|camping ?gaz|butane|propane|chalumeau/i, null, 'Gaz'],
+  [/allume[- ]feu|charbon de bois/i, null, 'Allume-feu / charbon'],
+  [/insecticide|raticide|anti[- ]?moustique/i, null, 'Insecticide'],
+  [/d[ée]graissant|d[ée]tartrant|d[ée]capant|d[ée]sinfectant|d[ée]boucheur|soude caustique|acide\b|liquide de rin[çc]age|lave[- ]vaisselle|nettoyant/i, null, 'Nettoyant / corrosif'],
+];
+const ICPE_LIB = {'1436':'Liquides combustibles','1450':'Solides inflammables','1630':'Soude caustique','4320':'Aérosols inflammables','4321':'Aérosols inflammables','4330':'Liquides inflammables','4331':'Liquides inflammables','4440':'Comburants','4441':'Comburants','4510':'Dangereux pour l\'eau','4511':'Dangereux pour l\'eau','4718':'Gaz inflammables','4734':'Produits pétroliers','4741':'Javel','4755':'Alcools de bouche','4801':'Charbon de bois, houille'};
+// renvoie {cat, det} ; cat = 'Alcool fort' | 'Huile' | 'Dangereux' | ''
+function parsePoids(t){                                    // kg par unité, lus dans le libellé (« 2 kg », « 500 g », « x 200 soit 700 g »)
+  t = String(t || '');
+  const kg = (v, u) => parseFloat(v.replace(',', '.')) * (/^k/i.test(u) ? 1 : 0.001);
+  let m = t.match(/soit\s*(\d+(?:[.,]\d+)?)\s*(kg|g)\b/i); if (m) return kg(m[1], m[2]);
+  m = t.match(/\b(\d+)\s*x\s*(\d+(?:[.,]\d+)?)\s*(kg|g)\b/i); if (m) return +m[1] * kg(m[2], m[3]);
+  m = t.match(/(\d+(?:[.,]\d+)?)\s*(kg|g)\s*x\s*(\d+)\b/i); if (m) return +m[3] * kg(m[1], m[2]);
+  m = t.match(/(\d+(?:[.,]\d+)?)\s*(kg|g)\b/i); if (m) return kg(m[1], m[2]);
+  return 0;
+}
+function poidsDe(r){                                          // produit dangereux sans volume : son poids par unité (1 s'il est déjà stocké au kg)
+  if (r.cat !== 'Dangereux' || r.cont || /^À vérifier/.test(r.det)) return 0;
+  if (r.dec) return 1;
+  const n = normMgb(r.mgb), art = G.base ? (G.base.get(n) || G.base6.get(mgb6(n))) : null;
+  return parsePoids(r.lib) || (art ? parsePoids(art.lib) : 0);
+}
+function liqDe(mgb){                                          // famille de liquide d'après la base articles ('' si aucune)
+  const n = normMgb(mgb), art = G.base ? (G.base.get(n) || G.base6.get(mgb6(n))) : null; if (!art) return '';
+  const gaN = (String(art.ga).match(/^\d+/) || [''])[0];
+  return art.sa === 53 ? 'Spiritueux' : art.sa === 54 ? 'Brasserie (bières, softs, eaux, jus, sirops)' : art.sa === 55 ? 'Vins et champagnes'
+    : gaN === '380' ? 'Huiles' : gaN === '383' ? 'Vinaigres' : gaN === '216' ? 'Crèmes' : gaN === '214' ? 'Lait' : gaN === '252' ? 'Boissons fraîches'
+    : /^(106|488|49[0-4])$/.test(gaN) ? 'Nettoyants et entretien' : '';
+}
+function categorie(mgb, lib){
+  const n = normMgb(mgb), art = G.base ? (G.base.get(n) || G.base6.get(mgb6(n))) : null;
+  const txt = lib + ' ' + (art ? art.lib : '');
+  const deg = parseDeg(lib) ?? (art ? parseDeg(art.lib.replace(/(\d)D\b/, '$1°')) : null);
+  const cont = parseCont(lib) || (art ? parseCont(art.lib) : 0);   // libellé illisible : celui de la base articles
+  // familles qui ne contiennent pas de liquide : jetable, sacs, ustensiles, arts de la table… « cl » ou « L » y désigne la taille de l'objet
+  const nonLiq = !!art && (art.sa === 45 || /^(48[23]|5\d\d)\b/.test(art.ga));
+  // familles de liquides : spiritueux, brasserie (bières, softs, eaux, jus, sirops), cave, huile, vinaigre, lait, crèmes, boissons fraîches, nettoyants et entretien
+  const liqFam = !!art && (art.sa === 53 || art.sa === 54 || art.sa === 55 || /^(380|383|214|216|252|106|488|49[0-4])\b/.test(art.ga));
+  // sans la base articles : il faut un mot d'alcool, une contenance et un degré lisible (écarte « glace rhum raisin », « vanille bourbon »…)
+  const spirit = art ? (art.sa === 53 && !/^429/.test(art.ga)) : (RX_ALCOOL.test(lib) && cont > 0 && deg != null);
+  if (spirit && !/sans alcool/i.test(txt) && (deg == null || deg >= 15))
+    return {cat:'Alcool fort', det: deg != null ? String(deg).replace('.', ',') + ' %' + (deg > 40 ? ' · plus de 40 % (ICPE 4755)' : '') : 'degré non lu', deg, cont};
+  if (art ? /^380\b/.test(art.ga) : (RX_HUILE.test(lib) && cont > 0 && !RX_PAS_HUILE.test(lib)))
+    return {cat:'Huile', det: art ? art.ga : 'huile', deg:null, cont};
+  if (G.icpe){
+    const code = G.icpe.get(n) || G.icpe6.get(mgb6(n));
+    if (code && code !== '1510'){
+      // 4755 = alcools de bouche : hors famille spiritueux, le classement du référentiel est à corriger, aucun volume compté
+      if (code === '4755' && art && art.sa !== 53) return {cat:'Dangereux', det:'À vérifier · classé 4755 mais famille ' + (art.ga || '?'), deg:null, cont:0};
+      return {cat:'Dangereux', det: code + (ICPE_LIB[code] ? ' · ' + ICPE_LIB[code] : ''), deg:null, cont: nonLiq ? 0 : cont};
+    }
+    if (code || G.icpe.size > 50) return {cat:'', det:'', deg:null, cont: art ? (liqFam ? cont : 0) : 0};       // référentiel chargé : lui seul décide
+  }
+  for (const [rx, sauf, nom] of RX_DANGER) if (rx.test(txt) && !(sauf && sauf.test(txt))) return {cat:'Dangereux', det:nom, deg:null, cont: nonLiq ? 0 : cont};
+  return {cat:'', det:'', deg:null, cont: art ? (liqFam ? cont : 0) : (nonLiq ? 0 : cont)};
+}
+// base articles et référentiel ICPE de GDS (meilleur classement quand l'outil est ouvert depuis le sommaire)
+async function decompresser(buf){
+  const u = new Uint8Array(buf);
+  if (u[0] === 0x1f && u[1] === 0x8b) return await new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+  return new TextDecoder().decode(buf);
+}
+async function chargerReferentiels(){
+  try {
+    const r = await gds('/archive/' + encodeURIComponent('BASE_ARTICLES/base_articles.json.gz'));
+    if (r.ok){
+      const base = JSON.parse(await decompresser(await r.arrayBuffer())); const m = new Map(), m6 = new Map();
+      for (const [k, a] of Object.entries(base.articles || {})){
+        const art = {lib:String(a.libelle || ''), sa: a.saNum ? Number(a.saNum) : '', ga:String(a.ga || '')}; const n = normMgb(k); if (!n) continue;
+        m.set(n, art); if (!m6.has(mgb6(n))) m6.set(mgb6(n), art);
+      }
+      if (m.size){ G.base = m; G.base6 = m6; }
+    }
+  } catch(e){ console.warn(e); }
+  try {
+    const r = await gds('/fichier/' + encodeURIComponent('systeme/icpe_refs.csv'));
+    if (r.ok){
+      const m = new Map(), m6 = new Map();
+      new TextDecoder().decode(await r.arrayBuffer()).split(/\r?\n/).forEach(l => {
+        const c = l.split(/[;,]/), d = String(c[0] || '').replace(/\D/g, ''), code = String(c[1] || '').trim();
+        if (d.length < 5 || !code || code === '?') return;
+        const n = normMgb(d); if (d.length <= 6) m6.set(n, code); else { m.set(n, code); if (!m6.has(mgb6(n))) m6.set(mgb6(n), code); }
+      });
+      if (m.size || m6.size){ G.icpe = m; G.icpe6 = m6; }
+    }
+  } catch(e){ console.warn(e); }
+}
+function majAnnee(){
+  if (!R) return;
+  const an = $('fAn').value, n = [...R.days.keys()].filter(d => !an || d.startsWith(an)).length;
+  $('bCsv').disabled = $('bXls').disabled = !n;
+  $('bCsvT').textContent = an ? `Fichier ${an} (CSV)` : 'Fichier complet (CSV)';
+  $('infoX').innerHTML = `<b>${n}</b> jour(s)` + (an ? ` en ${an}` : '');
+  $('catSrc').textContent = 'Classement des produits : ' + (G.base ? 'base articles GDS' : 'libellé du produit') + (G.icpe ? ' + référentiel ICPE GDS.' : ' ; produits dangereux repérés par mots-clés (ouvre l\'outil depuis le sommaire pour utiliser le référentiel ICPE).');
+}
+
+/* ---------- données communes au CSV et à l'Excel ---------- */
+function donnees(){
+  const an = $('fAn').value;
+  const jours = [...R.days.keys()].sort().filter(d => !an || d.startsWith(an)), nJ = jours.length;
+  const refs = new Map();
+  jours.forEach((iso, j) => {
+    for (const [key, e] of R.days.get(iso).agg){
+      const p = key.lastIndexOf('|'), mgb = key.slice(0, p), sec = key.slice(p + 1);
+      if (sec === 'LIT') continue;                                  // litige : hors stock
+      let r = refs.get(mgb);
+      if (!r){ r = {mgb, lib:e.lib, dec:false, q:new Float64Array(nJ), sec:{}}; refs.set(mgb, r); }
+      r.q[j] += e.q; if (e.dec) r.dec = true; if (!r.lib && e.lib) r.lib = e.lib;
+      if (sec !== 'Q') r.sec[sec] = (r.sec[sec] || 0) + e.q;
+    }
+  });
+  const secP = r => { let b = '', m = -1; for (const [k, v] of Object.entries(r.sec)) if (v > m){ m = v; b = k; } return SEC_LAB[b || 'Q']; };
+  const L = [...refs.values()].map(r => {
+    let max = 0, dm = -1, som = 0, pres = 0;
+    // arrondi au gramme avant de chercher le pic : à égalité, c'est le premier jour qui compte, comme dans la formule Excel
+    for (let j = 0; j < nJ; j++){ const v = r.q[j] = r3(r.q[j]); if (v > 0){ pres++; som += v; if (v > max){ max = v; dm = j; } } }
+    Object.assign(r, {secteur: secP(r), max, dm, som, pres, cont:0}, categorie(r.mgb, r.lib), r.dec ? {cont:0} : null, {liq: liqDe(r.mgb)}); r.poids = poidsDe(r); return r;
+  }).sort((a, b) => SECS.indexOf(a.secteur) - SECS.indexOf(b.secteur) || a.mgb.localeCompare(b.mgb, 'fr', {numeric:true}));
+  return {an, jours, nJ, L};
+}
+function nomAnnee(prefixe, ext){
+  const d = donnees.dernier; return `${prefixe}_${R.depot || '00171'}_${d.an || (d.jours[0] + '_au_' + d.jours[d.nJ - 1])}.${ext}`;
+}
+
+/* ---------- Fichier de l'année en CSV : tous les produits ---------- */
+async function exportCsvAnnee(){
+  setMsg('Préparation du fichier…'); await tick();
+  const D = donnees.dernier = donnees(); const {jours, nJ, L} = D;
+  const nf = v => v ? String(r3(v)).replace('.', ',') : '';
+  const out = [['MGB','Libellé','Secteur','Catégorie','Détail catégorie','Unité','Contenance (L)','Seuil max','Date du seuil max','Volume au pic (dm3)','Jours présents', ...jours.map(fr)].join(';')];
+  for (const r of L){
+    const row = [r.mgb, cellCsv(r.lib), r.secteur, r.cat, cellCsv(r.det), r.dec ? 'Kg' : 'Unités', nf(r.cont), nf(r.max), r.dm >= 0 ? fr(jours[r.dm]) : '', r.cont ? nf(r.max * r.cont) : '', r.pres];
+    for (let j = 0; j < nJ; j++) row.push(nf(r.q[j]));
+    out.push(row.join(';'));
+  }
+  telecharger('﻿' + out.join('\r\n') + '\r\n', nomAnnee('StockStatus', 'csv'));
+  setMsg(`Fichier prêt : ${nb(L.length)} produits · ${nJ} jour(s)`);
+}
+
+/* =====================================================================
+   EXCEL : une seule feuille
+   - en haut, les produits ICPE / dangereux, les alcools forts et les huiles,
+     colorés par catégorie ; ensuite tous les autres produits
+   - tout en haut : le volume total par rubrique ICPE en dm³, jour par jour
+     (SOMMEPROD), avec son pic et sa date
+   - SEUIL MAX = MAX(jours) en colonne orange, Date du pic = INDEX/EQUIV,
+     Volume au pic = seuil max × contenance, Moyenne = MOYENNE(jours)
+   - le jour du pic est surligné dans les colonnes de jours
+   ===================================================================== */
+async function exportXlsx(){
+  const btn = $('bXls'); btn.disabled = true; setMsg("Préparation de l'Excel…"); await tick();
+  try {
+    const D = donnees.dernier = donnees(); const {jours, nJ} = D;
+    if (!nJ) throw new Error('aucun jour pour cette année');
+    const ORD = ['Dangereux', 'Alcool fort', 'Huile', ''];
+    const L = [...D.L].sort((a, b) => ORD.indexOf(a.cat) - ORD.indexOf(b.cat) || (a.cat ? b.max - a.max : 0));
+    const N = L.length, nCat = L.filter(r => r.cat).length;
+    const NOM = 'Seuils max', k0 = 11, kFin = colL(k0 + nJ - 1), cFam = colL(k0 + nJ), cPds = colL(k0 + nJ + 1);   // cFam : famille de liquide, après le dernier jour                 // jours à partir de la colonne L
+    const stCat = {'Dangereux':12, 'Alcool fort':13, 'Huile':14};
+    const icpe = r => r.cat === 'Dangereux' ? r.det : (r.cat === 'Alcool fort' && r.deg > 40 ? '4755 · Alcools de bouche' : '');
+    // ----- bloc du haut : volume total par rubrique, en dm³ (1 dm³ = 1 litre) -----
+    const G1 = [];                                             // {nom, col:'D'|'C', val, q[]}
+    const grp = (nom, col, val, test) => {
+      const q = new Float64Array(nJ); let n = 0;
+      for (const r of L) if (r.cat && r.cont && test(r)){ n++; for (let j = 0; j < nJ; j++) q[j] += r.q[j] * r.cont; }
+      if (n) G1.push({nom, col, val, q});
+    };
+    [...new Set(L.filter(r => icpe(r)).map(icpe))].sort().forEach(v => {
+      grp(v, 'D', v, r => icpe(r) === v);
+      const q = new Float64Array(nJ); let n = 0;                // produits au poids de la rubrique : total en kg
+      for (const r of L) if (r.poids && icpe(r) === v){ n++; for (let j = 0; j < nJ; j++) q[j] += r.q[j] * r.poids; }
+      if (n) G1.push({nom: v + ' · POIDS en kg (colonne m³ = tonnes)', col:'D', val:v, kg:true, q});
+    });
+    grp('Alcools forts (tous degrés)', 'C', 'Alcool fort', r => r.cat === 'Alcool fort');
+    if (!G.base) grp('Huiles', 'C', 'Huile', r => r.cat === 'Huile');   // avec la base articles, la ligne « Liquides · Huiles » donne le même chiffre
+    if (G.base){                                               // total de tous les liquides du dépôt : toute ligne qui a une contenance
+      const q = new Float64Array(nJ); for (const r of L) if (r.cont) for (let j = 0; j < nJ; j++) q[j] += r.q[j] * r.cont;
+      const ordre = ['Huiles','Brasserie (bières, softs, eaux, jus, sirops)','Spiritueux','Vins et champagnes','Vinaigres','Crèmes','Lait','Boissons fraîches','Nettoyants et entretien'];
+      for (const fam of ordre){
+        const qf = new Float64Array(nJ); let nf = 0;
+        for (const r of L) if (r.cont && r.liq === fam){ nf++; for (let j = 0; j < nJ; j++) qf[j] += r.q[j] * r.cont; }
+        if (nf) G1.push({nom:'Liquides · ' + fam, fam, q:qf});
+      }
+      G1.push({nom:'TOTAL LIQUIDES · toutes familles confondues', all:true, q});
+    }
+    const sH = 5, s0 = 6, sFin = s0 + G1.length - 1;           // en-tête du bloc ligne 5, rubriques lignes 6 à sFin
+    const T = G1.length ? sFin + 2 : 4;                        // ligne d'en-tête du tableau des produits
+    const l0 = T + 1, lFin = l0 + N - 1, cA = l0, cB = l0 + Math.max(nCat, 1) - 1;   // cA:cB = lignes des produits colorés
+    const f = [
+      '<row r="1" ht="24" customHeight="1">' + cS('A1', `Seuil maximum de stock par produit${D.an ? ' · ' + D.an : ''} · ${nJ} jour(s) du ${fr(jours[0])} au ${fr(jours[nJ - 1])}`, 5) + '</row>',
+      '<row r="2">' + cS('A2', 'Lecture : la colonne orange donne la plus grande quantité présente sur une journée. Le jour du pic est surligné en orange dans les colonnes de jours. Volumes en dm³ : 1 dm³ = 1 litre, 1 000 dm³ = 1 m³.', 10) + '</row>',
+      '<row r="3">' + cS('A3', 'Couleurs :', 10) + cS('B3', 'Dangereux / ICPE', 12) + cS('C3', 'Alcool fort', 13) + cS('D3', 'Huile', 14) + cS('E3', `Les ${nCat} produits colorés sont en haut de la liste ; le filtre de la colonne Catégorie permet de n'afficher qu'eux.`, 10) + '</row>'
+    ];
+    if (G1.length){
+      f.push(`<row r="${sH}" ht="30" customHeight="1">` + cS('A' + sH, 'VOLUME TOTAL PAR RUBRIQUE, en dm³ (somme de tous les produits de la rubrique, jour par jour)', 1) + ['B','C','D','E','F','G'].map(c => cS(c + sH, '', 1)).join('') +
+        cS('H' + sH, 'PIC en dm³\n=MAX(jours)', 11) + cS('I' + sH, 'Date du pic', 15) + cS('J' + sH, 'Pic en m³\n=dm³ / 1000', 15) + cS('K' + sH, 'Moyenne dm³\n=MOYENNE(jours)', 15) +
+        jours.map((iso, j) => cN(colL(k0 + j) + sH, serial(iso), 9)).join('') + '</row>');
+      G1.forEach((g, i) => {
+        const n = s0 + i, plage = `L${n}:${kFin}${n}`; let max = 0, dm = 0, som = 0;
+        for (let j = 0; j < nJ; j++){ g.q[j] = Math.round(g.q[j]); som += g.q[j]; if (g.q[j] > max){ max = g.q[j]; dm = j; } }
+        const tout = g.all || g.fam, rA = tout ? l0 : cA, rB = tout ? lFin : cB;
+        const crit = g.all ? '' : g.fam ? `($${cFam}$${l0}:$${cFam}$${lFin}="${g.fam}")*` : `($${g.col}$${cA}:$${g.col}$${cB}="${g.val.replace(/"/g, '""')}")*`, cM = g.kg ? cPds : 'G';
+        let x = `<row r="${n}">` + cS('A' + n, g.nom, 16) + ['B','C','D','E','F','G'].map(c => cS(c + n, '', 12)).join('') +
+          cF('H' + n, `MAX(${plage})`, max, 6) + cF('I' + n, `INDEX($L$${sH}:$${kFin}$${sH},MATCH(H${n},${plage},0))`, serial(jours[dm]), 7) +
+          cF('J' + n, `H${n}/1000`, r3(max / 1000), 4) + cF('K' + n, `AVERAGE(${plage})`, Math.round(som / nJ), 3);
+        for (let j = 0; j < nJ; j++){ const c = colL(k0 + j); x += cF(c + n, `SUMPRODUCT(${crit}$${cM}$${rA}:$${cM}$${rB}*${c}$${rA}:${c}$${rB})`, g.q[j], 3); }
+        f.push(x + '</row>');
+      });
+    }
+    f.push(`<row r="${T}" ht="30" customHeight="1">` + ['MGB','Libellé','Catégorie','ICPE / détail','Secteur','Unité','Contenance\n(L = dm³)'].map((t, i) => cS(colL(i) + T, t, i === 6 ? 15 : 1)).join('') +
+        cS('H' + T, 'SEUIL MAX\n=MAX(jours)', 11) + cS('I' + T, 'Date du pic', 15) + cS('J' + T, 'Volume au pic (dm³)\n=seuil × contenance', 15) + cS('K' + T, 'Moyenne\n=MOYENNE(jours)', 15) +
+        jours.map((iso, j) => cN(colL(k0 + j) + T, serial(iso), 9)).join('') + cS(cFam + T, 'Famille de liquide', 1) + cS(cPds + T, 'Poids (kg par unité)', 1) + '</row>');
+    L.forEach((r, i) => {
+      const n = l0 + i, plage = `L${n}:${kFin}${n}`, st = r.dec ? 4 : 3, sc = stCat[r.cat] || 0, ic = icpe(r);
+      let x = `<row r="${n}">` + cS('A' + n, r.mgb, sc) + cS('B' + n, r.lib, sc) + (r.cat ? cS('C' + n, r.cat, sc) : '') +
+        (r.cat ? cS('D' + n, ic || r.det, ic ? 16 : sc) : '') + cS('E' + n, r.secteur) + cS('F' + n, r.dec ? 'Kg' : 'Unités') +
+        (r.cont ? cN('G' + n, r3(r.cont), 4) : '') +
+        cF('H' + n, `MAX(${plage})`, r3(r.max), r.dec ? 8 : 6) +
+        cF('I' + n, `IF(H${n}=0,"",INDEX($L$${T}:$${kFin}$${T},MATCH(H${n},${plage},0)))`, serial(jours[r.dm]), 7) +
+        (r.cont ? cF('J' + n, `H${n}*G${n}`, r3(r.max * r.cont), 3) : '') +
+        cF('K' + n, `IFERROR(AVERAGE(${plage}),0)`, r.pres ? r3(r.som / r.pres) : 0, st);
+      for (let j = 0; j < nJ; j++){ const v = r.q[j]; if (v > 0) x += cN(colL(k0 + j) + n, r3(v), st); }
+      if (r.cont && r.liq) x += cS(cFam + n, r.liq);
+      if (r.poids) x += cN(cPds + n, r3(r.poids), 4);
+      f.push(x + '</row>');
+    });
+    // jour du pic surligné : sur les produits colorés (en haut), pour garder un fichier fluide
+    const cfFin = l0 + Math.max(nCat, Math.min(N, 500)) - 1;
+    const cfR = (a, z) => `<conditionalFormatting sqref="L${a}:${kFin}${z}"><cfRule type="expression" dxfId="0" priority="1"><formula>AND(L${a}&lt;&gt;"",L${a}=$H${a})</formula></cfRule></conditionalFormatting>`;
+    const cf = (G1.length ? cfR(s0, sFin) : '') + cfR(l0, cfFin);
+    const sheet = feuille(f, {gel:{x:11, y:T}, filtre:`A${T}:${cPds}${lFin}`, cf,
+      cols:[[1,1,15],[2,2,46],[3,3,13],[4,4,34],[5,5,15],[6,6,8],[7,7,13],[8,8,14],[9,9,12],[10,10,20],[11,11,17],[12, 11 + nJ, 10],[12 + nJ, 12 + nJ, 30],[13 + nJ, 13 + nJ, 12]]});
+
+    const zip = new JSZip();
+    zip.file('xl/worksheets/sheet1.xml', sheet);
+    zip.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>');
+    zip.file('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
+    zip.file('xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId9" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
+    zip.file('xl/workbook.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView xWindow="0" yWindow="0" windowWidth="28800" windowHeight="15000"/></bookViews><sheets><sheet name="${NOM}" sheetId="1" r:id="rId1"/></sheets><definedNames><definedName name="_xlnm._FilterDatabase" localSheetId="0" hidden="1">'${NOM}'!$A$${T}:$${kFin}$${lFin}</definedName></definedNames><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>`);
+    // styles : 0 normal · 1 en-tête · 2 date · 3 entier · 4 décimal · 5 titre · 6 SEUIL MAX entier · 7 date du pic · 8 SEUIL MAX décimal · 9 en-tête jour
+    //          10 note · 11 en-tête SEUIL MAX · 12 dangereux · 13 alcool fort · 14 huile · 15 en-tête formule · 16 rubrique ICPE
+    const font = (o = '') => `<font>${o}<sz val="10"/><name val="Calibri"/><family val="2"/></font>`;
+    const fill = rgb => `<fill><patternFill patternType="solid"><fgColor rgb="${rgb}"/><bgColor indexed="64"/></patternFill></fill>`;
+    zip.file('xl/styles.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="3"><numFmt numFmtId="164" formatCode="dd/mm/yyyy"/><numFmt numFmtId="165" formatCode="#,##0.0"/><numFmt numFmtId="166" formatCode="dd/mm/yy"/></numFmts>' +
+      '<fonts count="7">' + font() + '<font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="14"/><color rgb="FF14254A"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="11"/><color rgb="FF14254A"/><name val="Calibri"/><family val="2"/></font><font><i/><sz val="10"/><color rgb="FF51607C"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="10"/><color rgb="FF14254A"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="10"/><color rgb="FF8F1D20"/><name val="Calibri"/><family val="2"/></font></fonts>' +
+      '<fills count="8"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>' + fill('FF14254A') + fill('FFFFD9B0') + fill('FFF07C1E') + fill('FFFBD5D5') + fill('FFFFE9A8') + fill('FFE3F1C7') + '</fills>' +
+      '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="medium"><color rgb="FFF07C1E"/></left><right style="medium"><color rgb="FFF07C1E"/></right><top/><bottom/><diagonal/></border></borders>' +
+      '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+      '<cellXfs count="17"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="center"/></xf><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="3" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
+      '<xf numFmtId="3" fontId="3" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="164" fontId="5" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1"/><xf numFmtId="165" fontId="3" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="166" fontId="1" fillId="2" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="center"/></xf><xf numFmtId="0" fontId="4" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
+      '<xf numFmtId="0" fontId="1" fillId="4" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="5" borderId="0" xfId="0" applyFill="1"/><xf numFmtId="0" fontId="0" fillId="6" borderId="0" xfId="0" applyFill="1"/><xf numFmtId="0" fontId="0" fillId="7" borderId="0" xfId="0" applyFill="1"/>' +
+      '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="6" fillId="5" borderId="0" xfId="0" applyFont="1" applyFill="1"/></cellXfs>' +
+      '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+      '<dxfs count="1"><dxf><font><b/><color rgb="FFFFFFFF"/></font><fill><patternFill><bgColor rgb="FFF07C1E"/></patternFill></fill></dxf></dxfs></styleSheet>');
+    const blob = await zip.generateAsync({type:'blob', compression:'DEFLATE', compressionOptions:{level:6}, mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nomAnnee('Seuil_max_StockStatus', 'xlsx');
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    const nC = c => L.filter(r => r.cat === c).length;
+    setMsg(`Excel prêt : ${nJ} jour(s) · ${nC('Dangereux')} dangereux / ICPE, ${nC('Alcool fort')} alcools forts, ${nC('Huile')} huiles · ${nb(N)} produits au total · ${(blob.size / 1048576).toFixed(1)} Mo`);
+  } catch(e){ console.error(e); alert('Erreur Excel : ' + e.message); setMsg(''); }
+  btn.disabled = false;
+}
+const SECS = ['Ambiant', 'Frais', 'Fruits & légumes', 'Surgelé', 'La Marée', 'Quai', 'Non classé'];
+
+/* ---------- Événements ---------- */
+function recevoir(list){ F = F.concat(list.filter(f => !F.some(x => x.name === f.name && x.size === f.size))); traiter(); }
+const drop = $('drop');
+['dragenter','dragover'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', async ev => {
+  const entries = [...(ev.dataTransfer.items || [])].map(i => i.webkitGetAsEntry && i.webkitGetAsEntry()).filter(Boolean);
+  if (entries.some(e => e.isDirectory)){
+    const out = [];
+    const walk = async en => {
+      if (en.isFile) out.push(await new Promise(r => en.file(r)));
+      else if (en.isDirectory){ const rd = en.createReader(); let b; do { b = await new Promise(r => rd.readEntries(r)); for (const x of b) await walk(x); } while (b.length); }
+    };
+    for (const e of entries) await walk(e);
+    recevoir(out);
+  } else recevoir([...ev.dataTransfer.files]);
+});
+$('bFiles').onclick = () => $('inFiles').click();
+$('bDir').onclick = () => $('inDir').click();
+$('inFiles').onchange = e => { recevoir([...e.target.files]); e.target.value = ''; };
+$('inDir').onchange = e => { recevoir([...e.target.files]); e.target.value = ''; };
+$('bReset').onclick = () => location.reload();
+$('bXls').onclick = exportXlsx;
+$('bCsv').onclick = exportCsvAnnee;
+$('fAn').onchange = majAnnee;
+$('bUp').onclick = envoyerArchive;
+$('bRap').onclick = () => telecharger(csvRapport(), nomSortie('Controle_StockStatus'));
+$('tabs').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  [...$('tabs').children].forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id === 'v-' + b.dataset.v));
+});
+</script>
+</body>
+</html>
