@@ -126,7 +126,7 @@ tfoot td{font-weight:700;background:#eef2f8!important;position:sticky;bottom:0}
 <header>
   <div class="logo"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18"/><rect x="5" y="11" width="3" height="7" rx=".6" fill="rgba(255,255,255,.35)"/><rect x="10.5" y="6" width="3" height="12" rx=".6" fill="#fff"/><rect x="16" y="9" width="3" height="9" rx=".6" fill="rgba(255,255,255,.35)"/><path d="M4 4h16" stroke-dasharray="2 2"/></svg></div>
   <div>
-    <h1>Seuil max stockage <span class="ver">v7</span></h1>
+    <h1>Seuil max stockage <span class="ver">v8</span></h1>
     <div class="sub">Pics de stock par référence, secteur, famille et produits dangereux · Dépôt 171 La Brède</div>
   </div>
   <div class="sp"></div>
@@ -147,6 +147,7 @@ tfoot td{font-weight:700;background:#eef2f8!important;position:sticky;bottom:0}
           <button class="btn nav" id="bFiles"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></svg>Choisir des fichiers</button>
           <button class="btn" id="bDir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg>Choisir un dossier</button>
           <button class="btn" id="bReset"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>Tout vider</button>
+          <button class="btn hidden" id="bSrc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h11M4 7l3-3M4 7l3 3M20 17H9M20 17l-3-3M20 17l-3 3"/></svg><span id="bSrcT">Mon dossier seulement</span></button>
         </div>
         <input type="file" id="inFiles" multiple accept=".csv,.xlsx,.xls" class="hidden">
         <input type="file" id="inDir" webkitdirectory directory multiple class="hidden">
@@ -258,7 +259,7 @@ tfoot td{font-weight:700;background:#eef2f8!important;position:sticky;bottom:0}
    - Unités et Kg ne sont jamais additionnés ; palettes = unités / (Palette_CCVM × CCVM) du data
    - litres = unités × contenance lue dans le libellé ; 4755 = alcools de bouche > 40 % vol
    ===================================================================== */
-const VERSION = 'v7';
+const VERSION = 'v8';
 const SECTEURS = [
   {k:'AMB', n:'Ambiant',          min:1,  max:18, c:'#2a78d6'},
   {k:'FRA', n:'Frais',            min:19, max:29, c:'#eb6834'},
@@ -696,6 +697,14 @@ async function chargerIcpe(){
   return true;
 }
 
+async function startDossier(){                                // dossier seul : familles et rubriques ICPE de GDS, mais aucun jour de l'historique
+  setMsg('Connexion à GDS…'); setProg(.05);
+  try { await Promise.all([chargerBase().catch(e => (console.warn(e), false)), chargerIcpe().catch(e => (console.warn(e), false))]); } catch(e){ console.warn(e); }
+  G.on = false;                                               // rien n'est lu ni envoyé dans l'Archive
+  updateSrc(); setProg(null);
+  $('dropT').textContent = "Mode « mon dossier seulement » : seuls les fichiers que tu choisis sont analysés.";
+  setMsg("Mode « mon dossier seulement » : l'historique GDS n'est pas chargé. Choisis ton dossier.");
+}
 async function startGDS(){
   G.loading = true;
   $('dropT').textContent = "L'historique GDS se charge tout seul. Glisse ici d'anciens StockStatus pour les ajouter à l'historique.";
@@ -1651,7 +1660,14 @@ if (window.GDS && GDS.API && !G.jeton){
 }
 if (G.on && !G.peut){
   document.body.innerHTML = '<p style="font-family:system-ui,sans-serif;padding:48px;text-align:center;color:#5c6883">Cet outil est réservé à l\'encadrement.<br><br><a href="sommaire.html" style="color:#1a2e55">Retour au tableau de bord</a></p>';
-} else if (G.on) startGDS();
+} else if (G.on){
+  // choix de la source : tout l'historique GDS, ou seulement le dossier choisi sur le poste (pour comparer un jeu de fichiers précis)
+  let seul = false; try { seul = sessionStorage.getItem('sm_dossier') === '1'; } catch(e){}
+  $('bSrc').classList.remove('hidden');
+  $('bSrcT').textContent = seul ? "Revenir à l'historique GDS" : 'Mon dossier seulement';
+  $('bSrc').onclick = () => { try { sessionStorage.setItem('sm_dossier', seul ? '0' : '1'); } catch(e){} location.reload(); };
+  if (seul) startDossier(); else startGDS();
+}
 ['fSec','fGa','fDg','fD1','fD2'].forEach(id => $(id).addEventListener('change', render));
 $('fSa').addEventListener('change', () => { fillGa(); render(); });
 $('fQ').addEventListener('input', () => renderRef());
