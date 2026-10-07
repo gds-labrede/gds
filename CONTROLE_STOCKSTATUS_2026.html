@@ -135,7 +135,7 @@ tfoot td{font-weight:700;background:#eef2f8!important;position:sticky;bottom:0}
 <header>
   <div class="logo"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h6v6H4zM14 5h6v6h-6zM4 15h6v4H4z" fill="rgba(255,255,255,.3)"/><path d="M14 17h6M17 14v6"/></svg></div>
   <div>
-    <h1>Contrôle StockStatus <span class="ver">v13</span></h1>
+    <h1>Contrôle StockStatus <span class="ver">v14</span></h1>
     <div class="sub">Contrôle tous les StockStatus d'un dossier, écarte les doublons et range un fichier par jour dans l'Archive · Dépôt 171 La Brède</div>
   </div>
   <div class="sp"></div>
@@ -216,7 +216,7 @@ tfoot td{font-weight:700;background:#eef2f8!important;position:sticky;bottom:0}
      - quantités différentes -> c'est normal (export à une autre heure) :
        le plus tôt est gardé (heure du dernier mouvement dans le fichier)
    ===================================================================== */
-const VERSION = 'v13';
+const VERSION = 'v14';
 const SECTEURS = [
   {k:'AMB', n:'Ambiant',          min:1,  max:18},
   {k:'FRA', n:'Frais',            min:19, max:29},
@@ -561,6 +561,21 @@ const RX_DANGER = [
 ];
 const ICPE_LIB = {'1436':'Liquides combustibles','1450':'Solides inflammables','1630':'Soude caustique','4320':'Aérosols inflammables','4321':'Aérosols inflammables','4330':'Liquides inflammables','4331':'Liquides inflammables','4440':'Comburants','4441':'Comburants','4510':'Dangereux pour l\'eau','4511':'Dangereux pour l\'eau','4718':'Gaz inflammables','4734':'Produits pétroliers','4741':'Javel','4755':'Alcools de bouche','4801':'Charbon de bois, houille'};
 // renvoie {cat, det} ; cat = 'Alcool fort' | 'Huile' | 'Dangereux' | ''
+function parsePoids(t){                                    // kg par unité, lus dans le libellé (« 2 kg », « 500 g », « x 200 soit 700 g »)
+  t = String(t || '');
+  const kg = (v, u) => parseFloat(v.replace(',', '.')) * (/^k/i.test(u) ? 1 : 0.001);
+  let m = t.match(/soit\s*(\d+(?:[.,]\d+)?)\s*(kg|g)\b/i); if (m) return kg(m[1], m[2]);
+  m = t.match(/\b(\d+)\s*x\s*(\d+(?:[.,]\d+)?)\s*(kg|g)\b/i); if (m) return +m[1] * kg(m[2], m[3]);
+  m = t.match(/(\d+(?:[.,]\d+)?)\s*(kg|g)\s*x\s*(\d+)\b/i); if (m) return +m[3] * kg(m[1], m[2]);
+  m = t.match(/(\d+(?:[.,]\d+)?)\s*(kg|g)\b/i); if (m) return kg(m[1], m[2]);
+  return 0;
+}
+function poidsDe(r){                                          // produit dangereux sans volume : son poids par unité (1 s'il est déjà stocké au kg)
+  if (r.cat !== 'Dangereux' || r.cont || /^À vérifier/.test(r.det)) return 0;
+  if (r.dec) return 1;
+  const n = normMgb(r.mgb), art = G.base ? (G.base.get(n) || G.base6.get(mgb6(n))) : null;
+  return parsePoids(r.lib) || (art ? parsePoids(art.lib) : 0);
+}
 function liqDe(mgb){                                          // famille de liquide d'après la base articles ('' si aucune)
   const n = normMgb(mgb), art = G.base ? (G.base.get(n) || G.base6.get(mgb6(n))) : null; if (!art) return '';
   const gaN = (String(art.ga).match(/^\d+/) || [''])[0];
@@ -655,7 +670,7 @@ function donnees(){
     let max = 0, dm = -1, som = 0, pres = 0;
     // arrondi au gramme avant de chercher le pic : à égalité, c'est le premier jour qui compte, comme dans la formule Excel
     for (let j = 0; j < nJ; j++){ const v = r.q[j] = r3(r.q[j]); if (v > 0){ pres++; som += v; if (v > max){ max = v; dm = j; } } }
-    return Object.assign(r, {secteur: secP(r), max, dm, som, pres, cont:0}, categorie(r.mgb, r.lib), r.dec ? {cont:0} : null, {liq: liqDe(r.mgb)});
+    Object.assign(r, {secteur: secP(r), max, dm, som, pres, cont:0}, categorie(r.mgb, r.lib), r.dec ? {cont:0} : null, {liq: liqDe(r.mgb)}); r.poids = poidsDe(r); return r;
   }).sort((a, b) => SECS.indexOf(a.secteur) - SECS.indexOf(b.secteur) || a.mgb.localeCompare(b.mgb, 'fr', {numeric:true}));
   return {an, jours, nJ, L};
 }
@@ -696,7 +711,7 @@ async function exportXlsx(){
     const ORD = ['Dangereux', 'Alcool fort', 'Huile', ''];
     const L = [...D.L].sort((a, b) => ORD.indexOf(a.cat) - ORD.indexOf(b.cat) || (a.cat ? b.max - a.max : 0));
     const N = L.length, nCat = L.filter(r => r.cat).length;
-    const NOM = 'Seuils max', k0 = 11, kFin = colL(k0 + nJ - 1), cFam = colL(k0 + nJ);   // cFam : famille de liquide, après le dernier jour                 // jours à partir de la colonne L
+    const NOM = 'Seuils max', k0 = 11, kFin = colL(k0 + nJ - 1), cFam = colL(k0 + nJ), cPds = colL(k0 + nJ + 1);   // cFam : famille de liquide, après le dernier jour                 // jours à partir de la colonne L
     const stCat = {'Dangereux':12, 'Alcool fort':13, 'Huile':14};
     const icpe = r => r.cat === 'Dangereux' ? r.det : (r.cat === 'Alcool fort' && r.deg > 40 ? '4755 · Alcools de bouche' : '');
     // ----- bloc du haut : volume total par rubrique, en dm³ (1 dm³ = 1 litre) -----
@@ -706,7 +721,12 @@ async function exportXlsx(){
       for (const r of L) if (r.cat && r.cont && test(r)){ n++; for (let j = 0; j < nJ; j++) q[j] += r.q[j] * r.cont; }
       if (n) G1.push({nom, col, val, q});
     };
-    [...new Set(L.filter(r => icpe(r)).map(icpe))].sort().forEach(v => grp(v, 'D', v, r => icpe(r) === v));
+    [...new Set(L.filter(r => icpe(r)).map(icpe))].sort().forEach(v => {
+      grp(v, 'D', v, r => icpe(r) === v);
+      const q = new Float64Array(nJ); let n = 0;                // produits au poids de la rubrique : total en kg
+      for (const r of L) if (r.poids && icpe(r) === v){ n++; for (let j = 0; j < nJ; j++) q[j] += r.q[j] * r.poids; }
+      if (n) G1.push({nom: v + ' · POIDS en kg (colonne m³ = tonnes)', col:'D', val:v, kg:true, q});
+    });
     grp('Alcools forts (tous degrés)', 'C', 'Alcool fort', r => r.cat === 'Alcool fort');
     if (!G.base) grp('Huiles', 'C', 'Huile', r => r.cat === 'Huile');   // avec la base articles, la ligne « Liquides · Huiles » donne le même chiffre
     if (G.base){                                               // total de tous les liquides du dépôt : toute ligne qui a une contenance
@@ -735,17 +755,17 @@ async function exportXlsx(){
         const n = s0 + i, plage = `L${n}:${kFin}${n}`; let max = 0, dm = 0, som = 0;
         for (let j = 0; j < nJ; j++){ g.q[j] = Math.round(g.q[j]); som += g.q[j]; if (g.q[j] > max){ max = g.q[j]; dm = j; } }
         const tout = g.all || g.fam, rA = tout ? l0 : cA, rB = tout ? lFin : cB;
-        const crit = g.all ? '' : g.fam ? `($${cFam}$${l0}:$${cFam}$${lFin}="${g.fam}")*` : `($${g.col}$${cA}:$${g.col}$${cB}="${g.val.replace(/"/g, '""')}")*`;
+        const crit = g.all ? '' : g.fam ? `($${cFam}$${l0}:$${cFam}$${lFin}="${g.fam}")*` : `($${g.col}$${cA}:$${g.col}$${cB}="${g.val.replace(/"/g, '""')}")*`, cM = g.kg ? cPds : 'G';
         let x = `<row r="${n}">` + cS('A' + n, g.nom, 16) + ['B','C','D','E','F','G'].map(c => cS(c + n, '', 12)).join('') +
           cF('H' + n, `MAX(${plage})`, max, 6) + cF('I' + n, `INDEX($L$${sH}:$${kFin}$${sH},MATCH(H${n},${plage},0))`, serial(jours[dm]), 7) +
           cF('J' + n, `H${n}/1000`, r3(max / 1000), 4) + cF('K' + n, `AVERAGE(${plage})`, Math.round(som / nJ), 3);
-        for (let j = 0; j < nJ; j++){ const c = colL(k0 + j); x += cF(c + n, `SUMPRODUCT(${crit}$G$${rA}:$G$${rB}*${c}$${rA}:${c}$${rB})`, g.q[j], 3); }
+        for (let j = 0; j < nJ; j++){ const c = colL(k0 + j); x += cF(c + n, `SUMPRODUCT(${crit}$${cM}$${rA}:$${cM}$${rB}*${c}$${rA}:${c}$${rB})`, g.q[j], 3); }
         f.push(x + '</row>');
       });
     }
     f.push(`<row r="${T}" ht="30" customHeight="1">` + ['MGB','Libellé','Catégorie','ICPE / détail','Secteur','Unité','Contenance\n(L = dm³)'].map((t, i) => cS(colL(i) + T, t, i === 6 ? 15 : 1)).join('') +
         cS('H' + T, 'SEUIL MAX\n=MAX(jours)', 11) + cS('I' + T, 'Date du pic', 15) + cS('J' + T, 'Volume au pic (dm³)\n=seuil × contenance', 15) + cS('K' + T, 'Moyenne\n=MOYENNE(jours)', 15) +
-        jours.map((iso, j) => cN(colL(k0 + j) + T, serial(iso), 9)).join('') + cS(cFam + T, 'Famille de liquide', 1) + '</row>');
+        jours.map((iso, j) => cN(colL(k0 + j) + T, serial(iso), 9)).join('') + cS(cFam + T, 'Famille de liquide', 1) + cS(cPds + T, 'Poids (kg par unité)', 1) + '</row>');
     L.forEach((r, i) => {
       const n = l0 + i, plage = `L${n}:${kFin}${n}`, st = r.dec ? 4 : 3, sc = stCat[r.cat] || 0, ic = icpe(r);
       let x = `<row r="${n}">` + cS('A' + n, r.mgb, sc) + cS('B' + n, r.lib, sc) + (r.cat ? cS('C' + n, r.cat, sc) : '') +
@@ -757,14 +777,15 @@ async function exportXlsx(){
         cF('K' + n, `IFERROR(AVERAGE(${plage}),0)`, r.pres ? r3(r.som / r.pres) : 0, st);
       for (let j = 0; j < nJ; j++){ const v = r.q[j]; if (v > 0) x += cN(colL(k0 + j) + n, r3(v), st); }
       if (r.cont && r.liq) x += cS(cFam + n, r.liq);
+      if (r.poids) x += cN(cPds + n, r3(r.poids), 4);
       f.push(x + '</row>');
     });
     // jour du pic surligné : sur les produits colorés (en haut), pour garder un fichier fluide
     const cfFin = l0 + Math.max(nCat, Math.min(N, 500)) - 1;
     const cfR = (a, z) => `<conditionalFormatting sqref="L${a}:${kFin}${z}"><cfRule type="expression" dxfId="0" priority="1"><formula>AND(L${a}&lt;&gt;"",L${a}=$H${a})</formula></cfRule></conditionalFormatting>`;
     const cf = (G1.length ? cfR(s0, sFin) : '') + cfR(l0, cfFin);
-    const sheet = feuille(f, {gel:{x:11, y:T}, filtre:`A${T}:${cFam}${lFin}`, cf,
-      cols:[[1,1,15],[2,2,46],[3,3,13],[4,4,34],[5,5,15],[6,6,8],[7,7,13],[8,8,14],[9,9,12],[10,10,20],[11,11,17],[12, 11 + nJ, 10],[12 + nJ, 12 + nJ, 30]]});
+    const sheet = feuille(f, {gel:{x:11, y:T}, filtre:`A${T}:${cPds}${lFin}`, cf,
+      cols:[[1,1,15],[2,2,46],[3,3,13],[4,4,34],[5,5,15],[6,6,8],[7,7,13],[8,8,14],[9,9,12],[10,10,20],[11,11,17],[12, 11 + nJ, 10],[12 + nJ, 12 + nJ, 30],[13 + nJ, 13 + nJ, 12]]});
 
     const zip = new JSZip();
     zip.file('xl/worksheets/sheet1.xml', sheet);
