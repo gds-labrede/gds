@@ -126,7 +126,7 @@ tfoot td{font-weight:700;background:#eef2f8!important;position:sticky;bottom:0}
 <header>
   <div class="logo"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18"/><rect x="5" y="11" width="3" height="7" rx=".6" fill="rgba(255,255,255,.35)"/><rect x="10.5" y="6" width="3" height="12" rx=".6" fill="#fff"/><rect x="16" y="9" width="3" height="9" rx=".6" fill="rgba(255,255,255,.35)"/><path d="M4 4h16" stroke-dasharray="2 2"/></svg></div>
   <div>
-    <h1>Seuil max stockage <span class="ver">v6</span></h1>
+    <h1>Seuil max stockage <span class="ver">v7</span></h1>
     <div class="sub">Pics de stock par référence, secteur, famille et produits dangereux · Dépôt 171 La Brède</div>
   </div>
   <div class="sp"></div>
@@ -258,7 +258,7 @@ tfoot td{font-weight:700;background:#eef2f8!important;position:sticky;bottom:0}
    - Unités et Kg ne sont jamais additionnés ; palettes = unités / (Palette_CCVM × CCVM) du data
    - litres = unités × contenance lue dans le libellé ; 4755 = alcools de bouche > 40 % vol
    ===================================================================== */
-const VERSION = 'v6';
+const VERSION = 'v7';
 const SECTEURS = [
   {k:'AMB', n:'Ambiant',          min:1,  max:18, c:'#2a78d6'},
   {k:'FRA', n:'Frais',            min:19, max:29, c:'#eb6834'},
@@ -315,6 +315,7 @@ const uLab = u => U_LAB[u] || u;
 const toL = (n, u) => { n = parseFloat(String(n).replace(',', '.')); u = u.toLowerCase(); return u === 'cl' ? n / 100 : u === 'ml' ? n / 1000 : n; };
 // contenance en litres par unité, lue dans le libellé (0 si absente)
 function parseCont(t){
+  t = String(t || '').replace(/\b(cl|ml)l\b/gi, '$1');          // faute de frappe « 70 clL »
   let m = t.match(/soit\s*(\d+(?:[.,]\d+)?)\s*(cl|ml|l|litres?)\b/i); if (m) return toL(m[1], m[2].slice(0, 2) === 'li' ? 'l' : m[2]);
   m = t.match(/\b(\d+)\s*x\s*(\d+(?:[.,]\d+)?)\s*(cl|ml|l)\b/i); if (m) return +m[1] * toL(m[2], m[3]);
   m = t.match(/(\d+(?:[.,]\d+)?)\s*(cl|ml|l)\s*x\s*(\d+)\b/i); if (m) return +m[3] * toL(m[1], m[2]);
@@ -838,13 +839,22 @@ function analyse(){
     const sa = art ? (art.sa !== '' ? String(art.sa).padStart(2, '0') + ' ' + art.saName : 'Sans famille') : 'Sans famille';
     const txt = ref.lib + ' | ' + (art ? art.lib : '');
     const alc = art ? [53, 54, 55].includes(art.sa) : ALC_WORDS.test(ref.lib);   // sans data : repérage par le libellé
-    const cont = unit === 'C' ? (parseCont(ref.lib) || (art ? parseCont(art.lib) : 0)) : 0;
+    // même règle que Contrôle StockStatus : un volume seulement pour les familles de liquides,
+    // jamais pour le jetable, les sacs, les ustensiles (« cl » ou « L » y désigne la taille de l'objet)
+    let dg = dangerOf(ref, art);
+    const gaN = art ? (String(art.ga).match(/^\d+/) || [''])[0] : '';
+    const nonLiq = !!art && (art.sa === 45 || /^(48[23]|5\d\d)$/.test(gaN));
+    const liqFam = !!art && (art.sa === 53 || art.sa === 54 || art.sa === 55 || /^(380|383|214|216|252|106|488|49[0-4])$/.test(gaN));
+    const faux4755 = !!art && /^4755\b/.test(dg) && art.sa !== 53;       // classé alcool de bouche hors spiritueux : référentiel à corriger
+    if (faux4755) dg = 'À vérifier · classé 4755 mais famille ' + (art.ga || '?');
+    const lu = unit === 'C' ? (parseCont(ref.lib) || (art ? parseCont(art.lib) : 0)) : 0;
+    const cont = !art ? lu : faux4755 ? 0 : (liqFam || (dg && !nonLiq)) ? lu : 0;
     const deg = parseDeg(ref.lib, alc) ?? (art ? parseDeg(art.lib, alc) : null);
     const fac = unit === 'C' && art && art.fac > 0 ? art.fac : 0;
     const co = {C: unit === 'C' ? 1 : 0, K: unit === 'K' ? 1 : 0, P: fac ? 1 / fac : 0, L: cont,
                 A: deg != null && deg > 40 ? cont : 0, B: alc && deg != null && deg > 0 && deg <= 40 ? cont : 0,
                 W: unit === 'K' ? 1 : (!cont ? (parseWt(ref.lib) || (art ? parseWt(art.lib) : 0)) : 0)};
-    return {unit, main, sa, ga: art ? (art.ga || 'Sans groupe') : 'Sans groupe', dg: dangerOf(ref, art), known: !!art,
+    return {unit, main, sa, ga: art ? (art.ga || 'Sans groupe') : 'Sans groupe', dg, known: !!art,
             co, cont, deg, alc, fac, chk: !!art && alc && art.sa === 53 && deg == null && !/^429/.test(art.ga) && !/sans alcool/i.test(txt)};
   });
   const KS = S.keys.map(k => k.sec === 'Q' ? R[k.r].main : k.sec);

@@ -135,7 +135,7 @@ tfoot td{font-weight:700;background:#eef2f8!important;position:sticky;bottom:0}
 <header>
   <div class="logo"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h6v6H4zM14 5h6v6h-6zM4 15h6v4H4z" fill="rgba(255,255,255,.3)"/><path d="M14 17h6M17 14v6"/></svg></div>
   <div>
-    <h1>Contrôle StockStatus <span class="ver">v14</span></h1>
+    <h1>Contrôle StockStatus <span class="ver">v15</span></h1>
     <div class="sub">Contrôle tous les StockStatus d'un dossier, écarte les doublons et range un fichier par jour dans l'Archive · Dépôt 171 La Brède</div>
   </div>
   <div class="sp"></div>
@@ -216,7 +216,7 @@ tfoot td{font-weight:700;background:#eef2f8!important;position:sticky;bottom:0}
      - quantités différentes -> c'est normal (export à une autre heure) :
        le plus tôt est gardé (heure du dernier mouvement dans le fichier)
    ===================================================================== */
-const VERSION = 'v14';
+const VERSION = 'v15';
 const SECTEURS = [
   {k:'AMB', n:'Ambiant',          min:1,  max:18},
   {k:'FRA', n:'Frais',            min:19, max:29},
@@ -725,7 +725,7 @@ async function exportXlsx(){
       grp(v, 'D', v, r => icpe(r) === v);
       const q = new Float64Array(nJ); let n = 0;                // produits au poids de la rubrique : total en kg
       for (const r of L) if (r.poids && icpe(r) === v){ n++; for (let j = 0; j < nJ; j++) q[j] += r.q[j] * r.poids; }
-      if (n) G1.push({nom: v + ' · POIDS en kg (colonne m³ = tonnes)', col:'D', val:v, kg:true, q});
+      if (n) G1.push({nom: v, col:'D', val:v, kg:true, q});
     });
     grp('Alcools forts (tous degrés)', 'C', 'Alcool fort', r => r.cat === 'Alcool fort');
     if (!G.base) grp('Huiles', 'C', 'Huile', r => r.cat === 'Huile');   // avec la base articles, la ligne « Liquides · Huiles » donne le même chiffre
@@ -739,6 +739,8 @@ async function exportXlsx(){
       }
       G1.push({nom:'TOTAL LIQUIDES · toutes familles confondues', all:true, q});
     }
+    // les poids ne se mélangent pas aux volumes : ils passent dans un second bloc, avec ses propres en-têtes (kg et tonnes)
+    { const kgs = G1.filter(g => g.kg), vol = G1.filter(g => !g.kg); G1.length = 0; G1.push(...vol); if (kgs.length) G1.push({hdr:true}, ...kgs); }
     const sH = 5, s0 = 6, sFin = s0 + G1.length - 1;           // en-tête du bloc ligne 5, rubriques lignes 6 à sFin
     const T = G1.length ? sFin + 2 : 4;                        // ligne d'en-tête du tableau des produits
     const l0 = T + 1, lFin = l0 + N - 1, cA = l0, cB = l0 + Math.max(nCat, 1) - 1;   // cA:cB = lignes des produits colorés
@@ -753,6 +755,12 @@ async function exportXlsx(){
         jours.map((iso, j) => cN(colL(k0 + j) + sH, serial(iso), 9)).join('') + '</row>');
       G1.forEach((g, i) => {
         const n = s0 + i, plage = `L${n}:${kFin}${n}`; let max = 0, dm = 0, som = 0;
+        if (g.hdr){
+          f.push(`<row r="${n}" ht="30" customHeight="1">` + cS('A' + n, 'POIDS TOTAL PAR RUBRIQUE, en kg (produits vendus au poids : charbon, pastilles…)', 1) + ['B','C','D','E','F','G'].map(c => cS(c + n, '', 1)).join('') +
+            cS('H' + n, 'PIC en kg\n=MAX(jours)', 11) + cS('I' + n, 'Date du pic', 15) + cS('J' + n, 'Pic en tonnes\n=kg / 1000', 15) + cS('K' + n, 'Moyenne kg\n=MOYENNE(jours)', 15) +
+            jours.map((iso, j) => cN(colL(k0 + j) + n, serial(iso), 9)).join('') + '</row>');
+          return;
+        }
         for (let j = 0; j < nJ; j++){ g.q[j] = Math.round(g.q[j]); som += g.q[j]; if (g.q[j] > max){ max = g.q[j]; dm = j; } }
         const tout = g.all || g.fam, rA = tout ? l0 : cA, rB = tout ? lFin : cB;
         const crit = g.all ? '' : g.fam ? `($${cFam}$${l0}:$${cFam}$${lFin}="${g.fam}")*` : `($${g.col}$${cA}:$${g.col}$${cB}="${g.val.replace(/"/g, '""')}")*`, cM = g.kg ? cPds : 'G';
