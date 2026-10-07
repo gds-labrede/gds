@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   GDS — archivage automatique des exports
+   GDS — archivage automatique des exports · v2 (07/10/2026)
 
    Chaque export listé dans EXPORTS et déposé depuis le sommaire
    est aussi copié dans son dossier de l'Archive, sous un nom
@@ -19,16 +19,19 @@
   if(window.__gdsStockStatus) return;          // déjà chargé
   if(typeof window.envoyer !== 'function' || typeof FAMILLES === 'undefined') return;   // pas le sommaire
   window.__gdsStockStatus = true;
+  window.__gdsStockStatusVersion = 'v2';
 
+  /* les liens portent un numéro unique : le navigateur et le réseau ne peuvent pas resservir une ancienne version de l'outil */
+  var frais = '?v=' + Date.now();
   /* tuile Implantation → Seuil max stockage */
   var imp = FAMILLES.filter(function(f){ return f.id === 'implantation'; })[0];
-  if(imp && !imp.outils.some(function(o){ return o.f === 'SEUIL_MAX_2026.html'; })){
-    imp.outils.push({ nom:'Seuil max stockage', f:'SEUIL_MAX_2026.html', ico:'courbe', roles:['admin','admin_restreint'] });
+  if(imp && !imp.outils.some(function(o){ return String(o.f).indexOf('SEUIL_MAX_2026.html') === 0; })){
+    imp.outils.push({ nom:'Seuil max stockage', f:'SEUIL_MAX_2026.html' + frais, ico:'courbe', roles:['admin','admin_restreint'] });
     if(location.hash === '#implantation' && typeof ouvrirVue === 'function') ouvrirVue('implantation');
   }
   /* tuile Implantation → Contrôle StockStatus */
-  if(imp && !imp.outils.some(function(o){ return o.f === 'CONTROLE_STOCKSTATUS_2026.html'; })){
-    imp.outils.push({ nom:'Contrôle StockStatus', f:'CONTROLE_STOCKSTATUS_2026.html', ico:'check', roles:['admin','admin_restreint'] });
+  if(imp && !imp.outils.some(function(o){ return String(o.f).indexOf('CONTROLE_STOCKSTATUS_2026.html') === 0; })){
+    imp.outils.push({ nom:'Contrôle StockStatus', f:'CONTROLE_STOCKSTATUS_2026.html' + frais, ico:'check', roles:['admin','admin_restreint'] });
     if(location.hash === '#implantation' && typeof ouvrirVue === 'function') ouvrirVue('implantation');
   }
 
